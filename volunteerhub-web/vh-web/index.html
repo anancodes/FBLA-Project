@@ -1,0 +1,939 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>VolunteerHub</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Public+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: app shell. Top bar + left rail nav + work area; rail becomes a scrolling tab strip on phones. */
+:root{
+  --bg:#f2f5f3; --surface:#ffffff; --surface-2:#e7eeea; --ink:#15221d; --muted:#56675f; --line:#d2dcd7;
+  --accent:#1d6b58; --accent-hover:#16564a; --accent-ink:#ffffff; --accent-soft:#d6eae2;
+  --mark:#c48600; --mark-soft:#fbefcf;
+  --good:#1b7444; --good-soft:#dcf0e3; --warn:#9a5d00; --warn-soft:#fbecd2; --bad:#b0281f; --bad-soft:#fbe2df;
+  --rail:#13302a; --rail-ink:#cfe1da; --rail-active:#22564a; --rail-active-ink:#ffffff;
+  --shadow:0 1px 2px rgba(20,40,32,.06), 0 4px 16px rgba(20,40,32,.06);
+  --f-display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --f-body:"Public Sans","Segoe UI",system-ui,-apple-system,sans-serif;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0f1714; --surface:#16211c; --surface-2:#1e2c26; --ink:#e2ebe7; --muted:#97a9a1; --line:#2b3c35;
+  --accent:#55b898; --accent-hover:#6fcaac; --accent-ink:#06130e; --accent-soft:#1c3a30;
+  --mark:#e4b23f; --mark-soft:#3a2f13;
+  --good:#5cc68a; --good-soft:#173524; --warn:#e3a540; --warn-soft:#3a2b12; --bad:#f07a70; --bad-soft:#3d1e1b;
+  --rail:#0a120f; --rail-ink:#bfd1ca; --rail-active:#1c3a30; --rail-active-ink:#ffffff;
+  --shadow:0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
+  color-scheme:dark; } }
+:root[data-theme="dark"]{
+  --bg:#0f1714; --surface:#16211c; --surface-2:#1e2c26; --ink:#e2ebe7; --muted:#97a9a1; --line:#2b3c35;
+  --accent:#55b898; --accent-hover:#6fcaac; --accent-ink:#06130e; --accent-soft:#1c3a30;
+  --mark:#e4b23f; --mark-soft:#3a2f13;
+  --good:#5cc68a; --good-soft:#173524; --warn:#e3a540; --warn-soft:#3a2b12; --bad:#f07a70; --bad-soft:#3d1e1b;
+  --rail:#0a120f; --rail-ink:#bfd1ca; --rail-active:#1c3a30; --rail-active-ink:#ffffff;
+  --shadow:0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
+  color-scheme:dark; }
+
+html{font-size:15px}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:1rem;line-height:1.5}
+body.hc{--muted:var(--ink);--line:var(--ink);--surface-2:var(--surface)}
+body.hc .card, body.hc .btn, body.hc input, body.hc select, body.hc textarea{border-width:2px}
+*{box-sizing:border-box}
+h1,h2,h3{font-family:var(--f-display);line-height:1.15;margin:0;text-wrap:balance;letter-spacing:-.01em}
+h1{font-size:1.9rem} h2{font-size:1.2rem} h3{font-size:1.08rem}
+p{margin:0}
+.muted{color:var(--muted)}
+.small{font-size:.87rem}
+.eyebrow{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.num{font-variant-numeric:tabular-nums}
+:focus-visible{outline:3px solid var(--mark);outline-offset:2px;border-radius:4px}
+@media (prefers-reduced-motion: reduce){ *{transition:none!important;animation:none!important} }
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;font:600 .93rem/1 var(--f-body);padding:10px 16px;border-radius:8px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);cursor:pointer;white-space:nowrap;transition:background .15s}
+.btn:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
+.btn.secondary{background:var(--surface);color:var(--accent);border-color:var(--line)}
+.btn.secondary:hover{border-color:var(--accent);background:var(--accent-soft)}
+.btn.danger{background:var(--surface);color:var(--bad);border-color:var(--bad)}
+.btn.danger:hover{background:var(--bad-soft)}
+.btn.danger.armed{background:var(--bad);color:#fff}
+.btn.sm{padding:6px 10px;font-size:.84rem}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.linkbtn{background:none;border:0;padding:0;color:var(--accent);font:inherit;font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+
+/* Cards, pills, meters */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px;box-shadow:var(--shadow);min-width:0}
+.card > h2{margin-bottom:4px}
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:.76rem;font-weight:600;padding:3px 9px;border-radius:999px;background:var(--surface-2);color:var(--muted);white-space:nowrap}
+.pill.good{background:var(--good-soft);color:var(--good)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.accent{background:var(--accent-soft);color:var(--accent)}
+.pill.mark{background:var(--mark-soft);color:var(--warn)}
+.meter{height:8px;background:var(--surface-2);border-radius:99px;overflow:hidden}
+.meter > span{display:block;height:100%;background:var(--accent);border-radius:99px}
+.meter.full > span{background:var(--mark)}
+.meter.low > span{background:var(--bad)}
+
+/* Shell */
+.shell{min-height:100vh;display:flex;flex-direction:column}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px 20px;flex-wrap:wrap;padding-block:12px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));background:var(--surface);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px}
+.brand strong{display:block;font-family:var(--f-display);font-size:1.2rem;line-height:1.1}
+.brand span{display:block;font-size:.78rem;color:var(--muted)}
+.logo{width:36px;height:36px;flex:none}
+.tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{background:var(--surface);color:var(--ink);border:0;padding:7px 10px;font:600 .85rem var(--f-body);cursor:pointer}
+.seg button + button{border-left:1px solid var(--line)}
+.seg button:hover,.seg button[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent)}
+.who{display:flex;align-items:center;gap:8px;padding-left:6px}
+.avatar{width:32px;height:32px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-weight:700;font-size:.8rem;flex:none}
+.who-name{font-weight:600;font-size:.88rem;line-height:1.2}
+.who-name small{display:block;color:var(--muted);font-weight:500}
+.frame{flex:1;display:grid;grid-template-columns:230px minmax(0,1fr)}
+.rail{background:var(--rail);padding-block:18px;padding-left:max(14px,env(safe-area-inset-left,0px));padding-right:14px;display:flex;flex-direction:column;gap:3px}
+.rail-label{color:var(--rail-ink);opacity:.7;font-size:.72rem;letter-spacing:.09em;text-transform:uppercase;font-weight:600;padding:4px 12px 8px}
+.rail button{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;text-align:left;background:none;border:0;color:var(--rail-ink);padding:10px 12px;border-radius:8px;font:500 .95rem var(--f-body);cursor:pointer;white-space:nowrap}
+.rail button:hover{background:rgba(255,255,255,.07)}
+.rail button[aria-current="page"]{background:var(--rail-active);color:var(--rail-active-ink);font-weight:600}
+.rail .count{background:var(--mark);color:#1d1600;font-size:.72rem;font-weight:700;border-radius:99px;padding:1px 7px}
+main{padding-block:28px 48px;padding-left:28px;padding-right:max(28px,env(safe-area-inset-right,0px));min-width:0;outline:none}
+.page{max-width:1120px;display:flex;flex-direction:column;gap:20px}
+.foot{padding-block:14px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));font-size:.82rem;color:var(--muted);border-top:1px solid var(--line);background:var(--surface);display:flex;gap:12px;flex-wrap:wrap;justify-content:space-between}
+@media (max-width:780px){
+  .frame{grid-template-columns:minmax(0,1fr)}
+  .rail{flex-direction:row;overflow-x:auto;padding-block:8px;padding-right:max(16px,env(safe-area-inset-right,0px));padding-left:max(16px,env(safe-area-inset-left,0px));gap:4px}
+  .rail-label{display:none}
+  .rail button{width:auto;padding:8px 12px}
+  main{padding-block:20px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+  .who-name{display:none}
+  h1{font-size:1.55rem}
+}
+
+/* Page pieces */
+.head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px 20px;flex-wrap:wrap}
+.head > div{display:flex;flex-direction:column;gap:4px;min-width:0}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px}
+.tile{display:flex;flex-direction:column;gap:6px}
+.tile .val{font-family:var(--f-display);font-size:2rem;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.tile .val small{font-size:.95rem;color:var(--muted);font-weight:600;margin-left:3px}
+.tile .lab{font-size:.85rem;color:var(--muted);font-weight:600}
+.tile .sub{font-size:.8rem;color:var(--muted)}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px;align-items:start}
+@media (max-width:420px){ .cols{grid-template-columns:minmax(0,1fr)} }
+.stack{display:flex;flex-direction:column;gap:12px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.spread{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.empty{padding:22px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:10px}
+
+/* Mini event row */
+.mini{display:grid;grid-template-columns:52px minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
+h2 + .mini, .spread + .mini, p + .mini{border-top:0}
+.datechip{display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:9px;background:var(--accent-soft);color:var(--accent);padding:6px 0;line-height:1.05}
+.datechip span{font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+.datechip strong{font-family:var(--f-display);font-size:1.3rem}
+.mini h3{font-size:.98rem;font-family:var(--f-body);font-weight:600;letter-spacing:0}
+.mini p{font-size:.84rem;color:var(--muted)}
+
+/* Event cards (Find) */
+.filters{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.filters .field{min-width:150px;flex:1}
+.filters .field.grow{flex:2;min-width:200px}
+.evlist{display:flex;flex-direction:column;gap:14px}
+.ev{display:grid;grid-template-columns:64px minmax(0,1fr) 190px;gap:18px;align-items:start}
+.ev .datechip{padding:9px 0}
+.ev .datechip strong{font-size:1.6rem}
+.ev-body{display:flex;flex-direction:column;gap:6px;min-width:0}
+.ev-side{display:flex;flex-direction:column;gap:10px;align-items:stretch}
+.ev-side .btn{width:100%}
+.spots{display:flex;flex-direction:column;gap:5px;font-size:.82rem;color:var(--muted)}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+@media (max-width:640px){ .ev{grid-template-columns:56px minmax(0,1fr)} .ev-side{grid-column:1 / -1} }
+
+/* Forms */
+.field{display:flex;flex-direction:column;gap:5px}
+.field label,.field .lbl{font-size:.85rem;font-weight:600}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:9px 11px;width:100%;min-width:0}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent)}
+input[aria-invalid="true"],select[aria-invalid="true"]{border-color:var(--bad);outline-color:var(--bad)}
+.ferr{color:var(--bad);font-size:.8rem;font-weight:600;min-height:0}
+.ferr:empty{display:none}
+.checks{display:flex;flex-wrap:wrap;gap:8px}
+.check{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:999px;padding:6px 12px;cursor:pointer;font-size:.88rem;background:var(--surface)}
+.check input{width:auto;margin:0;accent-color:var(--accent)}
+.check:has(input:checked){border-color:var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:600}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px}
+.formerr{background:var(--bad-soft);color:var(--bad);border-radius:8px;padding:10px 12px;font-weight:600;font-size:.88rem}
+.formerr:empty{display:none}
+.toggle-inline{display:inline-flex;align-items:center;gap:7px;font-size:.88rem;font-weight:600;cursor:pointer;padding-bottom:9px}
+.toggle-inline input{width:auto;accent-color:var(--accent)}
+
+/* Tables */
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{width:100%;border-collapse:collapse;font-size:.9rem}
+th{text-align:left;font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700;padding:11px 14px;background:var(--surface-2);white-space:nowrap}
+td{padding:11px 14px;border-top:1px solid var(--line);vertical-align:middle}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+tr:hover td{background:color-mix(in srgb, var(--accent-soft) 35%, transparent)}
+td .sub{display:block;font-size:.8rem;color:var(--muted)}
+.actions{display:flex;gap:6px;justify-content:flex-end;flex-wrap:nowrap}
+.fillcell{display:flex;align-items:center;gap:8px;min-width:120px}
+.fillcell .meter{flex:1}
+.hours-in{width:76px;padding:6px 8px;text-align:right}
+
+/* Tabs */
+.tabs{display:inline-flex;background:var(--surface-2);border-radius:9px;padding:3px;gap:2px}
+.tabs button{border:0;background:none;padding:7px 14px;border-radius:7px;font:600 .88rem var(--f-body);color:var(--muted);cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
+
+/* Charts */
+.hbars{display:flex;flex-direction:column;gap:9px}
+.hb-row{display:grid;grid-template-columns:minmax(90px,190px) minmax(0,1fr) 64px;gap:10px;align-items:center;font-size:.86rem}
+.hb-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hb-track{height:14px;background:var(--surface-2);border-radius:4px;overflow:hidden}
+.hb-bar{display:block;height:100%;background:var(--accent);border-radius:4px}
+.hb-row:first-child .hb-bar{background:var(--mark)}
+.hb-val{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.colchart{display:grid;grid-template-rows:190px auto;gap:6px;position:relative}
+.cc-plot{display:grid;align-items:end;gap:10px;height:190px;border-bottom:1px solid var(--line);background:repeating-linear-gradient(to top, transparent 0, transparent 47px, var(--surface-2) 47px, var(--surface-2) 48px)}
+.cc-col{display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;gap:4px}
+.cc-val{font-size:.78rem;font-weight:700;font-variant-numeric:tabular-nums}
+.cc-bar{width:70%;max-width:46px;background:var(--accent);border-radius:5px 5px 0 0;min-height:2px}
+.cc-col:last-child .cc-bar{background:var(--mark)}
+.cc-labels{display:grid;gap:10px;font-size:.78rem;color:var(--muted);text-align:center}
+
+/* Login */
+.login{min-height:100vh;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr)}
+.login-brand{background:var(--rail);color:var(--rail-ink);padding-block:56px;padding-left:max(48px,env(safe-area-inset-left,0px));padding-right:48px;display:flex;flex-direction:column;justify-content:center;gap:22px;position:relative;overflow:hidden}
+.login-brand h1{color:#fff;font-size:2.8rem;max-width:14ch}
+.login-brand .lead{font-size:1.1rem;max-width:44ch;line-height:1.55}
+.login-brand ul{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:12px;max-width:44ch}
+.login-brand li{display:grid;grid-template-columns:26px 1fr;gap:10px;align-items:start}
+.login-brand li b{color:#fff}
+.tick{width:22px;height:22px;border-radius:50%;background:var(--rail-active);display:grid;place-items:center;color:var(--mark);font-weight:700;font-size:.8rem;margin-top:2px}
+.login-brand .fine{font-size:.82rem;opacity:.75}
+.login-brand .ring{position:absolute;right:-120px;bottom:-120px;width:360px;height:360px;border-radius:50%;border:44px solid rgba(255,255,255,.04)}
+.login-panel{display:flex;align-items:center;justify-content:center;padding-block:40px;padding-left:24px;padding-right:max(24px,env(safe-area-inset-right,0px))}
+.login-card{width:100%;max-width:420px;display:flex;flex-direction:column;gap:16px}
+.divider{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.07em}
+.divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--line)}
+.demo-btn{display:flex;align-items:center;gap:12px;text-align:left;width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);cursor:pointer;font:inherit}
+.demo-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.demo-btn b{display:block}
+.demo-btn span.sub{font-size:.82rem;color:var(--muted)}
+@media (max-width:820px){
+  .login{grid-template-columns:minmax(0,1fr)}
+  .login-brand{padding-block:36px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+  .login-brand h1{font-size:2rem}
+  .login-panel{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+}
+
+/* Modal + toast */
+.overlay{position:fixed;inset:0;background:rgba(8,18,14,.55);display:flex;align-items:flex-start;justify-content:center;padding:max(24px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 24px max(16px,env(safe-area-inset-left,0px));overflow-y:auto;z-index:50}
+.modal{background:var(--surface);border-radius:14px;width:100%;max-width:640px;padding:24px;display:flex;flex-direction:column;gap:16px;box-shadow:0 20px 60px rgba(0,0,0,.3);margin-top:4vh}
+.modal textarea{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.82rem}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:max(20px,calc(env(safe-area-inset-bottom,0px) + 12px));z-index:60;display:flex;flex-direction:column;gap:8px;align-items:center;width:max-content;max-width:calc(100vw - 32px)}
+.toast{background:var(--ink);color:var(--bg);padding:11px 16px;border-radius:10px;font-weight:600;font-size:.9rem;box-shadow:var(--shadow);animation:pop .2s ease-out}
+.toast.bad{background:var(--bad);color:#fff}
+@keyframes pop{from{transform:translateY(8px);opacity:.4}to{transform:none;opacity:1}}
+
+/* Help */
+details{border:1px solid var(--line);border-radius:10px;padding:12px 16px;background:var(--surface)}
+details + details{margin-top:8px}
+summary{cursor:pointer;font-weight:600}
+details p,details ol,details ul{margin-top:8px;color:var(--muted)}
+details ol,details ul{padding-left:20px}
+kbd{font-family:ui-monospace,Menlo,monospace;font-size:.8rem;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:1px 6px;background:var(--surface-2)}
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+.step{display:flex;flex-direction:column;gap:6px}
+.step .n{width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-weight:700;font-size:.85rem}
+</style>
+</head>
+<body>
+
+<div id="app"></div>
+<div id="modal"></div>
+<div id="toast" aria-live="polite" role="status"></div>
+
+<script>
+(() => {
+"use strict";
+
+/* ---------- Constants & helpers ---------- */
+const KEY = "volunteerhub-demo-v1";
+const CATS = ["Food Pantry","Tutoring","Environment","Senior Support","Fundraising"];
+const SKILLS = ["Lifting","Driving","Spanish","Tutoring","Cooking","Tech","First Aid"];
+const AVAIL = ["Weekday mornings","Weekday evenings","Weekends"];
+const HOUR_GOAL = 40;
+
+const $ = (s, r = document) => r.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const sum = a => a.reduce((x, y) => x + y, 0);
+const nid = arr => Math.max(0, ...arr.map(x => x.id)) + 1;
+const fmtH = h => String(Math.round(h * 10) / 10);
+const initials = n => n.split(/\s+/).map(p => p[0]).slice(0, 2).join("").toUpperCase();
+
+function iso(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
+const TODAY = iso(new Date());
+function addDays(n){ const d = new Date(); d.setDate(d.getDate() + n); return iso(d); }
+function parseDate(s){ const [y,m,d] = s.split("-").map(Number); return new Date(y, m-1, d); }
+function fmtDate(s, opts = {weekday:"short", month:"short", day:"numeric"}){ return parseDate(s).toLocaleDateString("en-US", opts); }
+function fmtTime(t){ let [h,m] = t.split(":").map(Number); const ap = h >= 12 ? "PM" : "AM"; h = h % 12 || 12; return `${h}:${String(m).padStart(2,"0")} ${ap}`; }
+const timeRange = e => `${fmtTime(e.start)}–${fmtTime(e.end)}`;
+function duration(e){ const [a,b] = e.start.split(":").map(Number), [c,d] = e.end.split(":").map(Number); return ((c*60+d) - (a*60+b)) / 60; }
+const byDate = (a, b) => (a.date + a.start).localeCompare(b.date + b.start);
+function monthKey(s){ return s.slice(0, 7); }
+function monthLabel(k){ const [y,m] = k.split("-").map(Number); return new Date(y, m-1, 1).toLocaleDateString("en-US", {month:"short"}); }
+function monthsBack(n){ const out = []; const d = new Date(); d.setDate(1); for (let i = n-1; i >= 0; i--){ const x = new Date(d.getFullYear(), d.getMonth() - i, 1); out.push(iso(x).slice(0,7)); } return out; }
+function toCSV(rows){ return rows.map(r => r.map(c => { const s = String(c); return /[",\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s; }).join(",")).join("\n"); }
+
+/* ---------- Seed data (fictional organization) ---------- */
+function seed(){
+  let s = 11; const rnd = () => (s = (s * 9301 + 49297) % 233280) / 233280;
+  const users = [
+    {id:1, name:"Jordan Reyes", email:"coordinator@demo.org", phone:"555-201-4410", role:"coordinator", password:"demo1234", skills:[], availability:[]},
+    {id:2, name:"Maya Chen", email:"volunteer@demo.org", phone:"555-318-0927", role:"volunteer", password:"demo1234", skills:["Tutoring","Tech","Spanish"], availability:["Weekday evenings","Weekends"]},
+  ];
+  const people = [["Liam Okafor",["Lifting","Driving"]],["Sofia Martinez",["Spanish","Cooking"]],["Ethan Brooks",["Tech","Tutoring"]],["Aisha Rahman",["First Aid","Cooking"]],["Noah Kim",["Lifting"]],["Grace Thompson",["Tutoring","Spanish"]],["Lucas Silva",["Driving","Lifting"]],["Priya Patel",["Tech","First Aid"]],["Owen Murphy",["Cooking","Lifting"]],["Zoe Williams",["Tutoring"]],["Daniel Nguyen",["Driving","Tech"]],["Hannah Lee",["First Aid","Spanish"]]];
+  people.forEach(([n, sk], i) => users.push({
+    id:i+3, name:n, email:n.toLowerCase().replace(" ", ".") + "@example.org",
+    phone:`555-${410 + i*23}-${String(1200 + i*617).slice(0,4)}`, role:"volunteer", password:"demo1234",
+    skills:sk, availability:[AVAIL[i%3], AVAIL[(i+1)%3]]
+  }));
+  const tpl = [
+    ["Saturday Food Sort","Food Pantry","09:00","12:00","Riverbend Pantry Warehouse",12,["Lifting"],"Sort and shelve donated groceries for the weekly distribution."],
+    ["After-School Homework Help","Tutoring","15:30","17:30","Eastside Library, Room B",6,["Tutoring"],"Help students in grades 3–8 with homework and reading."],
+    ["Miller Creek Cleanup","Environment","08:00","11:00","Miller Creek Trailhead",15,[],"Pick up litter and clear invasive plants along the creek trail. Gloves provided."],
+    ["Senior Grocery Delivery","Senior Support","10:00","13:00","Riverbend Pantry Warehouse",5,["Driving"],"Deliver grocery boxes to homebound seniors on the north-side route."],
+    ["Community Dinner Prep","Food Pantry","16:00","19:00","St. Mark's Community Kitchen",8,["Cooking"],"Prep and serve a hot meal for about 120 neighbors."],
+    ["Tech Help Desk for Seniors","Senior Support","13:00","15:00","Oakwood Senior Center",4,["Tech"],"Help older adults with phones, email, and video calls."],
+    ["Fall 5K Check-In","Fundraising","07:00","10:00","Riverside Park Pavilion",10,[],"Staff registration tables and water stations at our annual fundraiser run."],
+    ["Mobile Pantry Distribution","Food Pantry","14:00","17:00","Lincoln Elementary Parking Lot",14,["Lifting","Spanish"],"Hand out produce boxes at our pop-up pantry."],
+    ["ESL Conversation Circle","Tutoring","18:00","19:30","Eastside Library, Room A",5,["Spanish"],"Lead small-group English conversation practice for adult learners."],
+    ["Neighborhood Health Fair","Senior Support","09:00","13:00","Oakwood Senior Center",8,["First Aid"],"Greet attendees and help run blood-pressure and vision screening stations."],
+  ];
+  const offsets = [-154,-147,-140,-133,-126,-119,-112,-105,-98,-91,-84,-77,-70,-63,-56,-49,-42,-35,-28,-21,-14,-9,-5,-2,0,2,5,8,12,15,19,26];
+  const events = offsets.map((o, i) => { const t = tpl[i % tpl.length];
+    return {id:i+1, title:t[0], category:t[1], start:t[2], end:t[3], location:t[4], slots:t[5], skills:t[6], desc:t[7], date:addDays(o)}; });
+  const regs = []; const vols = users.filter(u => u.role === "volunteer").map(u => u.id);
+  events.forEach(e => {
+    const past = e.date < TODAY;
+    let n = Math.round(e.slots * (past ? 0.6 + rnd()*0.35 : 0.3 + rnd()*0.55));
+    if (!past && e.slots <= 4) n = e.slots;            // one full upcoming event
+    n = Math.min(n, vols.length);
+    const pool = [...vols].sort(() => rnd() - 0.5);
+    if (past && !pool.slice(0, n).includes(2) && rnd() < 0.55) pool.unshift(2);   // give Maya a history
+    if (!past && e.category === "Tutoring") { const k = pool.indexOf(2); if (k > -1 && k < n) pool.splice(k, 1); } // leave tutoring open for her
+    [...new Set(pool)].slice(0, n).forEach(uid => {
+      let status = "registered", hours = 0;
+      if (past) { status = rnd() < 0.87 ? "attended" : "no-show"; hours = status === "attended" ? duration(e) : 0; }
+      regs.push({id:regs.length+1, userId:uid, eventId:e.id, status, hours});
+    });
+  });
+  return {v:1, users, events, regs, session:{userId:null}, prefs:{font:15, hc:false}};
+}
+
+/* ---------- State ---------- */
+function load(){ try { const raw = localStorage.getItem(KEY); if (raw){ const d = JSON.parse(raw); if (d && d.v === 1) return d; } } catch(e){} return null; }
+function save(){ try { localStorage.setItem(KEY, JSON.stringify(state)); } catch(e){} }
+let state = load() || seed();
+const ui = {
+  view:"dashboard", authMode:"login", armed:null, csv:null,
+  find:{q:"", cat:"all", match:false, hideFull:false},
+  ev:{tab:"upcoming", q:""}, ciEvent:null, vq:"",
+  rep:{from:addDays(-90), to:TODAY, cat:"all", group:"volunteer"},
+};
+
+const currentUser = () => state.users.find(u => u.id === state.session.userId) || null;
+const userById = id => state.users.find(u => u.id === id);
+const eventById = id => state.events.find(e => e.id === id);
+const activeRegs = eid => state.regs.filter(r => r.eventId === eid && r.status !== "cancelled");
+const spotsLeft = e => e.slots - activeRegs(e.id).length;
+function userStats(uid){
+  const rs = state.regs.filter(r => r.userId === uid);
+  const att = rs.filter(r => r.status === "attended");
+  return {
+    hours: sum(att.map(r => r.hours)), attended: att.length,
+    noShows: rs.filter(r => r.status === "no-show").length,
+    upcoming: rs.filter(r => r.status === "registered" && eventById(r.eventId).date >= TODAY),
+  };
+}
+
+/* ---------- Small UI builders ---------- */
+const LOGO = `<svg class="logo" viewBox="0 0 36 36" aria-hidden="true"><rect width="36" height="36" rx="9" fill="var(--accent)"/><circle cx="13" cy="14" r="4.2" fill="var(--accent-ink)"/><circle cx="23" cy="14" r="4.2" fill="var(--accent-ink)" opacity=".7"/><path d="M7 27c1.2-4.6 4-7 6-7s4.8 2.4 6 7M17 27c1.2-4.6 4-7 6-7s4.8 2.4 6 7" stroke="var(--accent-ink)" stroke-width="2.4" fill="none" stroke-linecap="round"/></svg>`;
+function dateChip(d){ const x = parseDate(d); return `<div class="datechip" aria-hidden="true"><span>${x.toLocaleDateString("en-US",{month:"short"})}</span><strong>${x.getDate()}</strong><span>${x.toLocaleDateString("en-US",{weekday:"short"})}</span></div>`; }
+function tile(label, val, sub = "", unit = ""){ return `<div class="card tile"><span class="lab">${label}</span><span class="val">${val}${unit ? `<small>${unit}</small>` : ""}</span>${sub ? `<span class="sub">${sub}</span>` : ""}</div>`; }
+function statusPill(st){ const m = {attended:["good","Attended"], "no-show":["bad","No-show"], registered:["accent","Signed up"], cancelled:["","Cancelled"]}[st]; return `<span class="pill ${m[0]}">${m[1]}</span>`; }
+function fillMeter(e){ const n = activeRegs(e.id).length, pct = Math.min(100, Math.round(n / e.slots * 100)); const cls = pct >= 100 ? "full" : (e.date >= TODAY && pct < 40 ? "low" : ""); return `<div class="meter ${cls}" role="img" aria-label="${n} of ${e.slots} spots filled"><span style="width:${pct}%"></span></div>`; }
+function hbars(rows, unit = ""){
+  if (!rows.length) return `<div class="empty">No data for these filters.</div>`;
+  const max = Math.max(...rows.map(r => r.value)) || 1;
+  return `<div class="hbars">${rows.map(r => `<div class="hb-row"><span class="hb-label" title="${esc(r.label)}">${esc(r.label)}</span><span class="hb-track"><span class="hb-bar" style="width:${(r.value/max*100).toFixed(1)}%"></span></span><span class="hb-val">${fmtH(r.value)}${unit}</span></div>`).join("")}</div>`;
+}
+function colChart(rows, unit = ""){
+  const max = Math.max(...rows.map(r => r.value), 1);
+  const n = rows.length;
+  return `<div class="colchart" role="img" aria-label="${esc(rows.map(r => `${r.label}: ${fmtH(r.value)}${unit}`).join(", "))}">
+    <div class="cc-plot" style="grid-template-columns:repeat(${n},1fr)">${rows.map(r => `<div class="cc-col"><span class="cc-val">${fmtH(r.value)}</span><span class="cc-bar" style="height:${(r.value / max * 82).toFixed(1)}%"></span></div>`).join("")}</div>
+    <div class="cc-labels" style="grid-template-columns:repeat(${n},1fr)">${rows.map(r => `<span>${esc(r.label)}</span>`).join("")}</div></div>`;
+}
+function hoursByMonth(regs, n = 6){
+  const keys = monthsBack(n), map = Object.fromEntries(keys.map(k => [k, 0]));
+  regs.filter(r => r.status === "attended").forEach(r => { const k = monthKey(eventById(r.eventId).date); if (k in map) map[k] += r.hours; });
+  return keys.map(k => ({label: monthLabel(k), value: map[k]}));
+}
+function toast(msg, kind = ""){
+  const t = document.createElement("div"); t.className = `toast ${kind}`; t.textContent = msg;
+  $("#toast").appendChild(t); setTimeout(() => t.remove(), 3600);
+}
+function armBtn(key, label, armedLabel, cls = "danger sm"){
+  const on = ui.armed === key;
+  return `<button class="btn ${cls}${on ? " armed" : ""}" data-act="${on ? "confirm" : "arm"}" data-v="${esc(key)}">${on ? armedLabel : label}</button>`;
+}
+
+/* ---------- Modal ---------- */
+function openModal(html){ $("#modal").innerHTML = `<div class="overlay" data-act="overlay"><div class="modal" role="dialog" aria-modal="true">${html}</div></div>`; const f = $("#modal input, #modal select, #modal textarea, #modal button"); if (f) f.focus(); }
+function closeModal(){ $("#modal").innerHTML = ""; }
+
+function copyCSV(text){
+  const fallback = () => openModal(`<div class="spread"><h2>Copy report data</h2><button class="btn secondary sm" data-act="close">Close</button></div><p class="muted">Select all of the text below, copy it, and paste it into Excel or Google Sheets.</p><textarea id="csvbox" rows="12" readonly>${esc(text)}</textarea>`);
+  try { navigator.clipboard.writeText(text).then(() => toast("Copied as CSV. Paste into Excel or Google Sheets."), fallback); }
+  catch(e){ fallback(); }
+}
+
+/* ---------- Render ---------- */
+function applyPrefs(){ document.documentElement.style.fontSize = state.prefs.font + "px"; document.body.classList.toggle("hc", !!state.prefs.hc); }
+
+function render(){
+  applyPrefs();
+  const a = document.activeElement, fid = a && a.id && a.closest("#app") ? a.id : null;
+  let sel = null; try { sel = a && typeof a.selectionStart === "number" ? [a.selectionStart, a.selectionEnd] : null; } catch(e){}
+  const u = currentUser();
+  ui.csv = null;
+  $("#app").innerHTML = u ? shell(u) : loginView();
+  if (fid){ const el = document.getElementById(fid); if (el){ el.focus(); try { if (sel) el.setSelectionRange(sel[0], sel[1]); } catch(e){} } }
+}
+
+const NAV = {
+  volunteer: [["dashboard","Home"],["find","Find opportunities"],["shifts","My shifts"],["hours","My hours"],["profile","Profile"],["help","Help"]],
+  coordinator: [["dashboard","Overview"],["events","Events"],["checkin","Check-in"],["volunteers","Volunteers"],["reports","Reports"],["help","Help"]],
+};
+const VIEWS = {
+  volunteer: {dashboard:vHome, find:vFind, shifts:vShifts, hours:vHours, profile:vProfile, help:helpView},
+  coordinator: {dashboard:cHome, events:cEvents, checkin:cCheckin, volunteers:cVolunteers, reports:cReports, help:helpView},
+};
+
+function shell(u){
+  const nav = NAV[u.role];
+  if (!nav.some(n => n[0] === ui.view)) ui.view = "dashboard";
+  const upCount = u.role === "volunteer" ? userStats(u.id).upcoming.length : 0;
+  return `<div class="shell">
+    <header class="top">
+      <div class="brand">${LOGO}<div><strong>VolunteerHub</strong><span>Riverbend Community Pantry</span></div></div>
+      <div class="tools">
+        <div class="seg" role="group" aria-label="Text size">
+          <button data-act="font" data-v="-2" aria-label="Smaller text">A−</button>
+          <button data-act="font" data-v="2" aria-label="Larger text">A+</button>
+        </div>
+        <div class="seg"><button data-act="contrast" aria-pressed="${state.prefs.hc}">High contrast</button></div>
+        <div class="who"><span class="avatar" aria-hidden="true">${esc(initials(u.name))}</span><span class="who-name">${esc(u.name)}<small>${u.role === "coordinator" ? "Volunteer coordinator" : "Volunteer"}</small></span></div>
+        <button class="btn secondary sm" data-act="logout">Log out</button>
+      </div>
+    </header>
+    <div class="frame">
+      <nav class="rail" aria-label="Main">
+        <span class="rail-label">${u.role === "coordinator" ? "Coordinator" : "Volunteer"}</span>
+        ${nav.map(([k, l]) => `<button data-act="nav" data-v="${k}" ${ui.view === k ? 'aria-current="page"' : ""}><span>${l}</span>${k === "shifts" && upCount ? `<span class="count">${upCount}</span>` : ""}</button>`).join("")}
+      </nav>
+      <main id="main" tabindex="-1"><div class="page">${VIEWS[u.role][ui.view](u)}</div></main>
+    </div>
+    <footer class="foot"><span>Demo with sample data for a fictional nonprofit. Changes are saved in this browser only.</span>${armBtn("reset", "Reset demo data", "Click again to reset", "secondary sm")}</footer>
+  </div>`;
+}
+
+/* ---------- Login / sign up ---------- */
+function loginView(){
+  const brand = `<section class="login-brand"><span class="ring" aria-hidden="true"></span>
+    <div class="row">${LOGO}<span style="color:#fff;font-family:var(--f-display);font-weight:700;font-size:1.2rem">VolunteerHub</span></div>
+    <h1>Every shift filled. Every hour counted.</h1>
+    <p class="lead">Riverbend Community Pantry posts its volunteer needs here. Volunteers sign up in a few clicks, and coordinators check people in and report the hours.</p>
+    <ul>
+      <li><span class="tick">✓</span><span><b>Find a shift that fits.</b> Filter by cause, date, and your skills.</span></li>
+      <li><span class="tick">✓</span><span><b>Track your service hours</b> for school, scouts, or your résumé.</span></li>
+      <li><span class="tick">✓</span><span><b>Run the program.</b> Coordinators manage events, attendance, and reports.</span></li>
+    </ul>
+    <p class="fine">Riverbend Community Pantry is a fictional organization used for this demo.</p></section>`;
+  const login = `<div class="login-card">
+    <div><h2 style="font-size:1.6rem">Log in</h2><p class="muted">Welcome back.</p></div>
+    <form id="loginForm" class="stack" novalidate>
+      <div class="field"><label for="li-email">Email</label><input id="li-email" name="email" type="email" autocomplete="username" placeholder="name@example.org"></div>
+      <div class="field"><label for="li-pass">Password</label><input id="li-pass" name="password" type="password" autocomplete="current-password"></div>
+      <p class="formerr" id="li-err"></p>
+      <button class="btn" type="submit">Log in</button>
+    </form>
+    <p class="small">New here? <button class="linkbtn" data-act="authmode" data-v="signup">Create an account</button></p>
+    <div class="divider">Or try a demo account</div>
+    <button class="demo-btn" data-act="demo" data-v="2"><span class="avatar">MC</span><span><b>Maya Chen · Volunteer</b><span class="sub">Browse and sign up for shifts, track hours</span></span></button>
+    <button class="demo-btn" data-act="demo" data-v="1"><span class="avatar">JR</span><span><b>Jordan Reyes · Coordinator</b><span class="sub">Manage events, check-in, and reports</span></span></button>
+  </div>`;
+  const signup = `<div class="login-card">
+    <div><h2 style="font-size:1.6rem">Create an account</h2><p class="muted">It takes less than a minute.</p></div>
+    <form id="signupForm" class="stack" novalidate>
+      <div class="field"><label for="su-name">Full name</label><input id="su-name" name="name" autocomplete="name"><span class="ferr" id="e-name"></span></div>
+      <div class="field"><label for="su-email">Email</label><input id="su-email" name="email" type="email" autocomplete="email"><span class="ferr" id="e-email"></span></div>
+      <div class="field"><label for="su-phone">Phone <span class="muted">(optional)</span></label><input id="su-phone" name="phone" type="tel" placeholder="555-123-4567"><span class="ferr" id="e-phone"></span></div>
+      <div class="field"><span class="lbl">I want to</span><div class="checks" role="radiogroup">
+        <label class="check"><input type="radio" name="role" value="volunteer" checked> Volunteer</label>
+        <label class="check"><input type="radio" name="role" value="coordinator"> Coordinate volunteers</label></div></div>
+      <div class="field"><label for="su-pass">Password</label><input id="su-pass" name="password" type="password" autocomplete="new-password" placeholder="8+ characters with a letter and a number"><span class="ferr" id="e-password"></span></div>
+      <div class="field"><label for="su-pass2">Confirm password</label><input id="su-pass2" name="confirm" type="password" autocomplete="new-password"><span class="ferr" id="e-confirm"></span></div>
+      <button class="btn" type="submit">Create account</button>
+    </form>
+    <p class="small">Already have an account? <button class="linkbtn" data-act="authmode" data-v="login">Log in</button></p>
+  </div>`;
+  return `<div class="login">${brand}<section class="login-panel">${ui.authMode === "login" ? login : signup}</section></div>`;
+}
+
+/* ---------- Validation ---------- */
+const V = {
+  name: v => !v.trim() ? "Enter your name." : v.trim().length < 2 ? "Name must be at least 2 characters." : "",
+  email: v => !/^[\w.+-]+@[\w-]+\.[\w.-]+$/.test(v.trim()) ? "Enter a valid email, like name@example.org." : "",
+  phone: v => { const d = v.replace(/[\s\-().]/g, ""); return d && !/^\d{10}$/.test(d) ? "Phone must be 10 digits, like 555-123-4567." : ""; },
+  password: v => v.length < 8 ? "Password must be at least 8 characters." : (!/\d/.test(v) || !/[A-Za-z]/.test(v)) ? "Password needs at least one letter and one number." : "",
+};
+function showErrors(form, errs, prefix = "e-"){
+  form.querySelectorAll(".ferr").forEach(el => el.textContent = "");
+  form.querySelectorAll("[aria-invalid]").forEach(el => el.removeAttribute("aria-invalid"));
+  let first = null;
+  Object.entries(errs).forEach(([k, msg]) => {
+    if (!msg) return;
+    const slot = form.querySelector(`#${prefix}${k}`); if (slot) slot.textContent = msg;
+    const inp = form.querySelector(`[name="${k}"]`); if (inp){ inp.setAttribute("aria-invalid", "true"); if (!first) first = inp; }
+  });
+  if (first) first.focus();
+  return !first;
+}
+
+/* ---------- Volunteer views ---------- */
+function eventMini(e, right = ""){
+  return `<div class="mini">${dateChip(e.date)}<div style="min-width:0"><h3>${esc(e.title)}</h3><p>${timeRange(e)} · ${esc(e.location)}</p></div><div>${right}</div></div>`;
+}
+function vHome(u){
+  const s = userStats(u.id), pct = Math.min(100, Math.round(s.hours / HOUR_GOAL * 100));
+  const up = s.upcoming.map(r => eventById(r.eventId)).sort(byDate);
+  const recs = state.events.filter(e => e.date >= TODAY && spotsLeft(e) > 0 && !activeRegs(e.id).some(r => r.userId === u.id) && e.skills.some(k => u.skills.includes(k))).sort(byDate).slice(0, 3);
+  const next = up[0];
+  return `<div class="head"><div><span class="eyebrow">${fmtDate(TODAY, {weekday:"long", month:"long", day:"numeric"})}</span><h1>Welcome back, ${esc(u.name.split(" ")[0])}</h1></div><button class="btn" data-act="nav" data-v="find">Find opportunities</button></div>
+  <section class="tiles">
+    ${tile("Service hours", fmtH(s.hours), "Approved by coordinators", "hrs")}
+    ${tile("Events attended", s.attended, s.noShows ? `${s.noShows} missed` : "No missed shifts")}
+    ${tile("Upcoming shifts", up.length, next ? `Next: ${fmtDate(next.date)}` : "Nothing scheduled")}
+    <div class="card tile"><span class="lab">Hour goal</span><span class="val">${pct}<small>%</small></span><div class="meter ${pct >= 100 ? "full" : ""}"><span style="width:${pct}%"></span></div><span class="sub">${fmtH(s.hours)} of ${HOUR_GOAL} hours</span></div>
+  </section>
+  <div class="cols">
+    <section class="card"><div class="spread"><h2>Your next shifts</h2><button class="linkbtn small" data-act="nav" data-v="shifts">See all</button></div>
+      ${up.length ? up.slice(0, 4).map(e => eventMini(e, `<span class="pill accent">Signed up</span>`)).join("") : `<div class="empty" style="margin-top:12px">You have no upcoming shifts. <button class="linkbtn" data-act="nav" data-v="find">Find one</button></div>`}</section>
+    <section class="card"><h2>Recommended for you</h2><p class="muted small">Open shifts that need your skills: ${esc(u.skills.join(", ") || "add skills on your profile")}</p>
+      ${recs.length ? recs.map(e => eventMini(e, `<button class="btn sm" data-act="signup" data-id="${e.id}">Sign up</button>`)).join("") : `<div class="empty" style="margin-top:12px">No matching open shifts right now.</div>`}</section>
+  </div>`;
+}
+
+function vFind(u){
+  const f = ui.find, q = f.q.trim().toLowerCase();
+  let list = state.events.filter(e => e.date >= TODAY).sort(byDate);
+  if (f.cat !== "all") list = list.filter(e => e.category === f.cat);
+  if (q) list = list.filter(e => (e.title + " " + e.location + " " + e.desc).toLowerCase().includes(q));
+  if (f.match) list = list.filter(e => e.skills.length === 0 || e.skills.some(k => u.skills.includes(k)));
+  if (f.hideFull) list = list.filter(e => spotsLeft(e) > 0);
+  const card = e => {
+    const regs = activeRegs(e.id), mine = regs.some(r => r.userId === u.id), left = e.slots - regs.length;
+    const match = e.skills.some(k => u.skills.includes(k));
+    return `<article class="card ev">${dateChip(e.date)}
+      <div class="ev-body">
+        <div class="tags"><span class="pill">${esc(e.category)}</span>${match ? `<span class="pill good">Matches your skills</span>` : ""}${e.date === TODAY ? `<span class="pill mark">Today</span>` : ""}</div>
+        <h3>${esc(e.title)}</h3>
+        <p class="muted small">${fmtDate(e.date)} · ${timeRange(e)} · ${fmtH(duration(e))} hrs · ${esc(e.location)}</p>
+        <p>${esc(e.desc)}</p>
+        ${e.skills.length ? `<p class="small"><b>Helpful skills:</b> ${esc(e.skills.join(", "))}</p>` : `<p class="small muted">No special skills needed.</p>`}
+      </div>
+      <div class="ev-side">
+        <div class="spots">${fillMeter(e)}<span>${left > 0 ? `<b>${left}</b> of ${e.slots} spots open` : "<b>Full</b>"}</span></div>
+        ${mine ? `<span class="pill good" style="justify-content:center;padding:8px">You're signed up</span>` : left > 0 ? `<button class="btn" data-act="signup" data-id="${e.id}">Sign up</button>` : `<button class="btn" disabled>Full</button>`}
+      </div></article>`;
+  };
+  return `<div class="head"><div><h1>Find opportunities</h1><p class="muted">${list.length} upcoming ${list.length === 1 ? "shift" : "shifts"} match your filters.</p></div></div>
+  <div class="card filters" role="search">
+    <div class="field grow"><label for="f-q">Search</label><input id="f-q" data-filter="find.q" value="${esc(f.q)}" placeholder="Search by name, place, or description"></div>
+    <div class="field"><label for="f-cat">Cause</label><select id="f-cat" data-filter="find.cat"><option value="all">All causes</option>${CATS.map(c => `<option ${f.cat === c ? "selected" : ""}>${c}</option>`).join("")}</select></div>
+    <label class="toggle-inline"><input type="checkbox" id="f-match" data-filter="find.match" ${f.match ? "checked" : ""}> Matches my skills</label>
+    <label class="toggle-inline"><input type="checkbox" id="f-full" data-filter="find.hideFull" ${f.hideFull ? "checked" : ""}> Hide full events</label>
+  </div>
+  <div class="evlist">${list.length ? list.map(card).join("") : `<div class="empty">No shifts match these filters. Try clearing the search or choosing "All causes".</div>`}</div>`;
+}
+
+function vShifts(u){
+  const mine = state.regs.filter(r => r.userId === u.id && r.status !== "cancelled").map(r => ({r, e:eventById(r.eventId)}));
+  const up = mine.filter(x => x.e.date >= TODAY && x.r.status === "registered").sort((a,b) => byDate(a.e,b.e));
+  const past = mine.filter(x => x.e.date < TODAY || x.r.status !== "registered").sort((a,b) => byDate(b.e,a.e));
+  return `<div class="head"><div><h1>My shifts</h1><p class="muted">Cancel at least 24 hours ahead when you can so someone else can take your spot.</p></div></div>
+  <section class="card"><h2>Upcoming</h2>
+    ${up.length ? up.map(({r, e}) => eventMini(e, armBtn(`cancel:${r.id}`, "Cancel", "Confirm cancel"))).join("") : `<div class="empty" style="margin-top:12px">No upcoming shifts. <button class="linkbtn" data-act="nav" data-v="find">Browse opportunities</button></div>`}
+  </section>
+  <section><h2 style="margin-bottom:10px">History</h2>
+    <div class="tablewrap"><table><thead><tr><th>Date</th><th>Event</th><th>Status</th><th class="num">Hours</th></tr></thead><tbody>
+    ${past.length ? past.map(({r, e}) => `<tr><td class="num" style="text-align:left">${fmtDate(e.date, {month:"short", day:"numeric", year:"numeric"})}</td><td>${esc(e.title)}<span class="sub">${esc(e.location)}</span></td><td>${e.date < TODAY && r.status === "registered" ? `<span class="pill warn">Awaiting check-in</span>` : statusPill(r.status)}</td><td class="num">${r.status === "attended" ? fmtH(r.hours) : "—"}</td></tr>`).join("") : `<tr><td colspan="4" class="muted">No past shifts yet.</td></tr>`}
+    </tbody></table></div></section>`;
+}
+
+function vHours(u){
+  const rs = state.regs.filter(r => r.userId === u.id && r.status === "attended").map(r => ({r, e:eventById(r.eventId)})).sort((a,b) => byDate(b.e,a.e));
+  const total = sum(rs.map(x => x.r.hours));
+  const byCat = CATS.map(c => ({label:c, value:sum(rs.filter(x => x.e.category === c).map(x => x.r.hours))})).filter(x => x.value > 0).sort((a,b) => b.value - a.value);
+  ui.csv = () => toCSV([["Date","Event","Cause","Location","Hours"], ...rs.map(({r, e}) => [e.date, e.title, e.category, e.location, r.hours]), ["","","","Total", total]]);
+  return `<div class="head"><div><h1>My hours</h1><p class="muted">Your verified service record. Hours count once a coordinator checks you in.</p></div><button class="btn secondary" data-act="csv">Copy as CSV</button></div>
+  <section class="tiles">${tile("Total hours", fmtH(total), "", "hrs")}${tile("Events", rs.length)}${tile("Average shift", rs.length ? fmtH(total / rs.length) : "0", "", "hrs")}${tile("Goal progress", Math.min(100, Math.round(total / HOUR_GOAL * 100)), `${HOUR_GOAL}-hour goal`, "%")}</section>
+  <div class="cols">
+    <section class="card stack"><h2>Hours by month</h2>${colChart(hoursByMonth(state.regs.filter(r => r.userId === u.id)), "")}</section>
+    <section class="card stack"><h2>Hours by cause</h2>${hbars(byCat, " h")}</section>
+  </div>
+  <div class="tablewrap"><table><thead><tr><th>Date</th><th>Event</th><th>Cause</th><th class="num">Hours</th></tr></thead><tbody>
+    ${rs.length ? rs.map(({r, e}) => `<tr><td>${fmtDate(e.date, {month:"short", day:"numeric", year:"numeric"})}</td><td>${esc(e.title)}</td><td>${esc(e.category)}</td><td class="num">${fmtH(r.hours)}</td></tr>`).join("") : `<tr><td colspan="4" class="muted">No verified hours yet.</td></tr>`}
+    ${rs.length ? `<tr><td colspan="3"><b>Total</b></td><td class="num"><b>${fmtH(total)}</b></td></tr>` : ""}
+  </tbody></table></div>`;
+}
+
+function vProfile(u){
+  return `<div class="head"><div><h1>Profile</h1><p class="muted">Your skills and availability help us recommend the right shifts.</p></div></div>
+  <form id="profileForm" class="card stack" novalidate style="max-width:720px">
+    <div class="grid2">
+      <div class="field"><label for="p-name">Full name</label><input id="p-name" name="name" value="${esc(u.name)}"><span class="ferr" id="e-name"></span></div>
+      <div class="field"><label for="p-email">Email</label><input id="p-email" value="${esc(u.email)}" disabled><span class="muted small">Contact a coordinator to change your email.</span></div>
+      <div class="field"><label for="p-phone">Phone</label><input id="p-phone" name="phone" value="${esc(u.phone)}"><span class="ferr" id="e-phone"></span></div>
+    </div>
+    <div class="field"><span class="lbl">Skills</span><div class="checks">${SKILLS.map(s => `<label class="check"><input type="checkbox" name="skills" value="${s}" ${u.skills.includes(s) ? "checked" : ""}> ${s}</label>`).join("")}</div></div>
+    <div class="field"><span class="lbl">Availability</span><div class="checks">${AVAIL.map(s => `<label class="check"><input type="checkbox" name="availability" value="${s}" ${u.availability.includes(s) ? "checked" : ""}> ${s}</label>`).join("")}</div></div>
+    <div class="row"><button class="btn" type="submit">Save profile</button></div>
+  </form>`;
+}
+
+/* ---------- Coordinator views ---------- */
+function cHome(){
+  const d30 = addDays(-30), d90 = addDays(-90);
+  const inRange = (r, a) => { const e = eventById(r.eventId); return e.date >= a && e.date <= TODAY; };
+  const hours30 = sum(state.regs.filter(r => r.status === "attended" && inRange(r, d30)).map(r => r.hours));
+  const active = new Set(state.regs.filter(r => r.status === "attended" && inRange(r, d90)).map(r => r.userId)).size;
+  const att90 = state.regs.filter(r => r.status === "attended" && inRange(r, d90)).length;
+  const ns90 = state.regs.filter(r => r.status === "no-show" && inRange(r, d90)).length;
+  const upcoming = state.events.filter(e => e.date >= TODAY).sort(byDate);
+  const fill = upcoming.length ? Math.round(sum(upcoming.map(e => Math.min(1, activeRegs(e.id).length / e.slots))) / upcoming.length * 100) : 0;
+  const needs = upcoming.filter(e => activeRegs(e.id).length / e.slots < 0.5);
+  const pending = state.events.filter(e => e.date <= TODAY && activeRegs(e.id).some(r => r.status === "registered")).sort(byDate);
+  const top = Object.entries(state.regs.filter(r => r.status === "attended" && inRange(r, d90)).reduce((m, r) => (m[r.userId] = (m[r.userId] || 0) + r.hours, m), {})).map(([id, v]) => ({label:userById(+id).name, value:v})).sort((a,b) => b.value - a.value).slice(0, 6);
+  return `<div class="head"><div><span class="eyebrow">${fmtDate(TODAY, {weekday:"long", month:"long", day:"numeric"})}</span><h1>Program overview</h1></div><button class="btn" data-act="newEvent">New event</button></div>
+  <section class="tiles">
+    ${tile("Active volunteers", active, "Attended in the last 90 days")}
+    ${tile("Hours served", fmtH(hours30), "Last 30 days", "hrs")}
+    ${tile("Upcoming events", upcoming.length, `${needs.length} need volunteers`)}
+    ${tile("Average fill rate", fill, "Upcoming events", "%")}
+    ${tile("No-show rate", att90 + ns90 ? Math.round(ns90 / (att90 + ns90) * 100) : 0, "Last 90 days", "%")}
+  </section>
+  ${pending.length ? `<section class="card" style="border-color:var(--mark)"><div class="spread"><div><h2>Check-in needed</h2><p class="muted small">These events have volunteers who haven't been marked present or absent.</p></div></div>
+    ${pending.map(e => eventMini(e, `<button class="btn sm" data-act="goCheckin" data-id="${e.id}">Open check-in</button>`)).join("")}</section>` : ""}
+  <div class="cols">
+    <section class="card"><h2>Needs volunteers</h2><p class="muted small">Upcoming events under half full.</p>
+      ${needs.length ? needs.map(e => eventMini(e, `<div class="fillcell" style="min-width:110px">${fillMeter(e)}<span class="small num">${activeRegs(e.id).length}/${e.slots}</span></div>`)).join("") : `<div class="empty" style="margin-top:12px">Every upcoming event is at least half full.</div>`}</section>
+    <section class="card stack"><h2>Hours served by month</h2>${colChart(hoursByMonth(state.regs))}</section>
+  </div>
+  <section class="card stack"><div class="spread"><h2>Top volunteers, last 90 days</h2><button class="linkbtn small" data-act="nav" data-v="reports">Open reports</button></div>${hbars(top, " h")}</section>`;
+}
+
+function cEvents(){
+  const t = ui.ev.tab, q = ui.ev.q.trim().toLowerCase();
+  let list = state.events.filter(e => t === "upcoming" ? e.date >= TODAY : e.date < TODAY);
+  list.sort(t === "upcoming" ? byDate : (a,b) => byDate(b,a));
+  if (q) list = list.filter(e => (e.title + " " + e.location + " " + e.category).toLowerCase().includes(q));
+  return `<div class="head"><div><h1>Events</h1><p class="muted">Create shifts, set how many volunteers you need, and track sign-ups.</p></div><button class="btn" data-act="newEvent">New event</button></div>
+  <div class="spread"><div class="tabs" role="tablist">
+    <button role="tab" aria-selected="${t === "upcoming"}" data-act="evtab" data-v="upcoming">Upcoming (${state.events.filter(e => e.date >= TODAY).length})</button>
+    <button role="tab" aria-selected="${t === "past"}" data-act="evtab" data-v="past">Past (${state.events.filter(e => e.date < TODAY).length})</button></div>
+    <div class="field" style="min-width:240px;flex:0 1 320px"><label for="ev-q" class="small">Search events</label><input id="ev-q" data-filter="ev.q" value="${esc(ui.ev.q)}" placeholder="Title, place, or cause"></div></div>
+  <div class="tablewrap"><table><thead><tr><th>Date</th><th>Event</th><th>Cause</th><th>Volunteers</th><th class="num">Actions</th></tr></thead><tbody>
+  ${list.length ? list.map(e => { const n = activeRegs(e.id).length; return `<tr>
+    <td style="white-space:nowrap"><b>${fmtDate(e.date)}</b><span class="sub">${timeRange(e)}</span></td>
+    <td>${esc(e.title)}<span class="sub">${esc(e.location)}</span></td>
+    <td><span class="pill">${esc(e.category)}</span></td>
+    <td><div class="fillcell">${fillMeter(e)}<span class="num small">${n}/${e.slots}</span></div></td>
+    <td><div class="actions"><button class="btn secondary sm" data-act="goCheckin" data-id="${e.id}">Roster</button><button class="btn secondary sm" data-act="editEvent" data-id="${e.id}">Edit</button>${armBtn(`delete:${e.id}`, "Delete", "Confirm delete")}</div></td></tr>`; }).join("") : `<tr><td colspan="5" class="muted">No events found.</td></tr>`}
+  </tbody></table></div>`;
+}
+
+function eventForm(e){
+  const isNew = !e; e = e || {title:"", category:CATS[0], date:addDays(7), start:"09:00", end:"12:00", location:"", slots:8, skills:[], desc:""};
+  return `<form id="eventForm" class="stack" novalidate data-id="${isNew ? "" : e.id}">
+    <div class="spread"><h2>${isNew ? "New event" : "Edit event"}</h2><button type="button" class="btn secondary sm" data-act="close">Close</button></div>
+    <p class="formerr" id="ef-err"></p>
+    <div class="field"><label for="ef-title">Event name</label><input id="ef-title" name="title" value="${esc(e.title)}" placeholder="e.g. Saturday Food Sort"><span class="ferr" id="e-title"></span></div>
+    <div class="grid2">
+      <div class="field"><label for="ef-cat">Cause</label><select id="ef-cat" name="category">${CATS.map(c => `<option ${c === e.category ? "selected" : ""}>${c}</option>`).join("")}</select></div>
+      <div class="field"><label for="ef-loc">Location</label><input id="ef-loc" name="location" value="${esc(e.location)}"><span class="ferr" id="e-location"></span></div>
+    </div>
+    <div class="grid3">
+      <div class="field"><label for="ef-date">Date</label><input id="ef-date" name="date" type="date" value="${e.date}"><span class="ferr" id="e-date"></span></div>
+      <div class="field"><label for="ef-start">Start</label><input id="ef-start" name="start" type="time" value="${e.start}"><span class="ferr" id="e-start"></span></div>
+      <div class="field"><label for="ef-end">End</label><input id="ef-end" name="end" type="time" value="${e.end}"><span class="ferr" id="e-end"></span></div>
+      <div class="field"><label for="ef-slots">Volunteers needed</label><input id="ef-slots" name="slots" type="number" min="1" max="200" value="${e.slots}"><span class="ferr" id="e-slots"></span></div>
+    </div>
+    <div class="field"><span class="lbl">Helpful skills</span><div class="checks">${SKILLS.map(s => `<label class="check"><input type="checkbox" name="skills" value="${s}" ${e.skills.includes(s) ? "checked" : ""}> ${s}</label>`).join("")}</div></div>
+    <div class="field"><label for="ef-desc">Description</label><textarea id="ef-desc" name="desc" rows="3">${esc(e.desc)}</textarea></div>
+    <div class="row" style="justify-content:flex-end"><button type="button" class="btn secondary" data-act="close">Cancel</button><button class="btn" type="submit">${isNew ? "Create event" : "Save changes"}</button></div>
+  </form>`;
+}
+
+function cCheckin(){
+  const pickable = state.events.filter(e => e.date >= addDays(-45)).sort(byDate);
+  if (!ui.ciEvent || !eventById(ui.ciEvent)){
+    const past = state.events.filter(e => e.date <= TODAY).sort((a,b) => byDate(b,a));
+    ui.ciEvent = (past[0] || pickable[0] || {}).id;
+  }
+  const e = eventById(ui.ciEvent);
+  if (!e) return `<h1>Check-in</h1><div class="empty">No events yet.</div>`;
+  if (!pickable.includes(e)) pickable.unshift(e);
+  const roster = activeRegs(e.id).map(r => ({r, u:userById(r.userId)})).sort((a,b) => a.u.name.localeCompare(b.u.name));
+  const locked = e.date > TODAY;
+  const present = roster.filter(x => x.r.status === "attended").length, absent = roster.filter(x => x.r.status === "no-show").length;
+  const others = state.users.filter(u => u.role === "volunteer" && !roster.some(x => x.u.id === u.id)).sort((a,b) => a.name.localeCompare(b.name));
+  return `<div class="head"><div><h1>Check-in</h1><p class="muted">Mark who showed up. Hours are credited to each volunteer automatically.</p></div></div>
+  <div class="card stack">
+    <div class="field"><label for="ci-ev">Event</label><select id="ci-ev" data-filter="ciEvent">${pickable.map(x => `<option value="${x.id}" ${x.id === e.id ? "selected" : ""}>${fmtDate(x.date)} · ${esc(x.title)}${x.date === TODAY ? " (today)" : ""}</option>`).join("")}</select></div>
+    <div class="row small"><span class="pill">${esc(e.category)}</span><span class="muted">${fmtDate(e.date, {weekday:"long", month:"long", day:"numeric"})} · ${timeRange(e)} · ${esc(e.location)}</span></div>
+    <div class="row"><span class="pill accent num">${roster.length}/${e.slots} signed up</span><span class="pill good num">${present} present</span><span class="pill bad num">${absent} no-show</span><span class="pill num">${roster.length - present - absent} not marked</span></div>
+    ${locked ? `<p class="formerr" style="background:var(--warn-soft);color:var(--warn)">Check-in opens on the day of the event (${fmtDate(e.date)}). You can still view the roster.</p>` : ""}
+  </div>
+  <div class="spread"><h2>Roster</h2>${!locked && roster.some(x => x.r.status === "registered") ? `<button class="btn secondary sm" data-act="allPresent" data-id="${e.id}">Mark everyone else present</button>` : ""}</div>
+  <div class="tablewrap"><table><thead><tr><th>Volunteer</th><th>Status</th><th class="num">Hours</th><th class="num">Actions</th></tr></thead><tbody>
+  ${roster.length ? roster.map(({r, u}) => `<tr><td><b>${esc(u.name)}</b><span class="sub">${esc(u.phone || u.email)}</span></td>
+    <td>${statusPill(r.status)}</td>
+    <td class="num">${r.status === "attended" ? `<input class="hours-in" type="number" step="0.25" min="0.25" max="12" value="${r.hours}" data-hours="${r.id}" aria-label="Hours for ${esc(u.name)}" ${locked ? "disabled" : ""}>` : "—"}</td>
+    <td><div class="actions">${locked ? `<span class="muted small">Not open yet</span>` : r.status === "registered"
+      ? `<button class="btn sm" data-act="mark" data-v="attended" data-id="${r.id}">Present</button><button class="btn danger sm" data-act="mark" data-v="no-show" data-id="${r.id}">No-show</button>`
+      : `<button class="btn secondary sm" data-act="mark" data-v="registered" data-id="${r.id}">Undo</button>`}</div></td></tr>`).join("") : `<tr><td colspan="4" class="muted">Nobody has signed up yet.</td></tr>`}
+  </tbody></table></div>
+  ${locked ? "" : `<section class="card"><h2>Add a walk-in</h2><p class="muted small">Someone showed up without signing up? Add them here and they'll be marked present.</p>
+    <form id="walkinForm" class="row" style="margin-top:12px" novalidate><select id="wi-user" name="user" style="flex:1;min-width:200px"><option value="">Choose a volunteer…</option>${others.map(u => `<option value="${u.id}">${esc(u.name)}</option>`).join("")}</select><button class="btn" type="submit">Add walk-in</button></form></section>`}`;
+}
+
+function cVolunteers(){
+  const q = ui.vq.trim().toLowerCase();
+  let vols = state.users.filter(u => u.role === "volunteer").map(u => ({u, s:userStats(u.id)}));
+  if (q) vols = vols.filter(({u}) => (u.name + " " + u.email + " " + u.skills.join(" ")).toLowerCase().includes(q));
+  vols.sort((a,b) => b.s.hours - a.s.hours);
+  ui.csv = () => toCSV([["Name","Email","Phone","Skills","Availability","Events attended","Hours","No-shows","Reliability %"], ...vols.map(({u, s}) => [u.name, u.email, u.phone, u.skills.join("; "), u.availability.join("; "), s.attended, s.hours, s.noShows, s.attended + s.noShows ? Math.round(s.attended / (s.attended + s.noShows) * 100) : ""])]);
+  return `<div class="head"><div><h1>Volunteers</h1><p class="muted">${vols.length} volunteers. Reliability is the share of shifts they showed up for.</p></div><button class="btn secondary" data-act="csv">Copy as CSV</button></div>
+  <div class="field" style="max-width:380px"><label for="v-q">Search volunteers</label><input id="v-q" data-filter="vq" value="${esc(ui.vq)}" placeholder="Name, email, or skill"></div>
+  <div class="tablewrap"><table><thead><tr><th>Volunteer</th><th>Skills</th><th>Availability</th><th class="num">Events</th><th class="num">Hours</th><th class="num">Reliability</th></tr></thead><tbody>
+  ${vols.length ? vols.map(({u, s}) => { const tot = s.attended + s.noShows, rel = tot ? Math.round(s.attended / tot * 100) : null;
+    return `<tr><td><b>${esc(u.name)}</b><span class="sub">${esc(u.email)}</span></td><td><div class="tags">${u.skills.map(k => `<span class="pill">${esc(k)}</span>`).join("") || `<span class="muted small">None listed</span>`}</div></td><td class="small">${esc(u.availability.join(", ") || "—")}</td><td class="num">${s.attended}</td><td class="num"><b>${fmtH(s.hours)}</b></td><td class="num">${rel === null ? "—" : `<span class="pill ${rel >= 90 ? "good" : rel >= 75 ? "warn" : "bad"}">${rel}%</span>`}</td></tr>`; }).join("") : `<tr><td colspan="6" class="muted">No volunteers match.</td></tr>`}
+  </tbody></table></div>`;
+}
+
+function reportRows(f){
+  const evs = state.events.filter(e => e.date >= f.from && e.date <= f.to && (f.cat === "all" || e.category === f.cat));
+  const ids = new Set(evs.map(e => e.id));
+  const rs = state.regs.filter(r => ids.has(r.eventId) && (r.status === "attended" || r.status === "no-show"));
+  const keyOf = r => { const e = eventById(r.eventId);
+    return f.group === "volunteer" ? userById(r.userId).name : f.group === "event" ? `${e.title} (${fmtDate(e.date, {month:"short", day:"numeric"})})` : f.group === "month" ? monthKey(e.date) : e.category; };
+  const m = {};
+  rs.forEach(r => { const k = keyOf(r); m[k] = m[k] || {key:k, hours:0, attended:0, noShows:0}; if (r.status === "attended"){ m[k].hours += r.hours; m[k].attended++; } else m[k].noShows++; });
+  let rows = Object.values(m);
+  rows = f.group === "month" ? rows.sort((a,b) => a.key.localeCompare(b.key)).map(r => ({...r, key: parseDate(r.key + "-01").toLocaleDateString("en-US", {month:"long", year:"numeric"})})) : rows.sort((a,b) => b.hours - a.hours);
+  return {rows, events:evs.length};
+}
+function cReports(){
+  const f = ui.rep;
+  const err = !f.from || !f.to ? "Choose both a start and end date." : f.from > f.to ? "The start date must be on or before the end date." : "";
+  const groupName = {volunteer:"Volunteer", event:"Event", month:"Month", category:"Cause"}[f.group];
+  let body = `<p class="formerr">${err}</p>`;
+  if (!err){
+    const {rows, events} = reportRows(f);
+    const hours = sum(rows.map(r => r.hours)), att = sum(rows.map(r => r.attended)), ns = sum(rows.map(r => r.noShows));
+    ui.csv = () => toCSV([[`VolunteerHub report: hours by ${groupName.toLowerCase()}`], [`${f.from} to ${f.to}`, f.cat === "all" ? "All causes" : f.cat], [], [groupName, "Hours", "Attended", "No-shows"], ...rows.map(r => [r.key, fmtH(r.hours), r.attended, r.noShows]), ["Total", fmtH(hours), att, ns]]);
+    body = `<section class="tiles">${tile("Total hours", fmtH(hours), "", "hrs")}${tile("Events in range", events)}${tile("Volunteer shifts", att, "Attended")}${tile("No-show rate", att + ns ? Math.round(ns / (att + ns) * 100) : 0, `${ns} missed shifts`, "%")}</section>
+    <section class="card stack"><h2>Hours by ${groupName.toLowerCase()}</h2>${f.group === "month" ? (rows.length ? colChart(rows.map(r => ({label:r.key.split(" ")[0].slice(0,3), value:r.hours}))) : hbars([])) : hbars(rows.slice(0, 12).map(r => ({label:r.key, value:r.hours})), " h")}${f.group !== "month" && rows.length > 12 ? `<p class="muted small">Showing the top 12. The table has all ${rows.length}.</p>` : ""}</section>
+    <div class="tablewrap"><table><thead><tr><th>${groupName}</th><th class="num">Hours</th><th class="num">Attended</th><th class="num">No-shows</th></tr></thead><tbody>
+      ${rows.length ? rows.map(r => `<tr><td>${esc(r.key)}</td><td class="num"><b>${fmtH(r.hours)}</b></td><td class="num">${r.attended}</td><td class="num">${r.noShows}</td></tr>`).join("") + `<tr><td><b>Total</b></td><td class="num"><b>${fmtH(hours)}</b></td><td class="num"><b>${att}</b></td><td class="num"><b>${ns}</b></td></tr>` : `<tr><td colspan="4" class="muted">No completed shifts in this range.</td></tr>`}
+    </tbody></table></div>`;
+  }
+  const preset = (label, days) => `<button class="btn secondary sm" data-act="preset" data-v="${days}">${label}</button>`;
+  return `<div class="head"><div><h1>Reports</h1><p class="muted">Service hours and attendance for board updates, grant applications, and recognition.</p></div><button class="btn secondary" data-act="csv" ${err ? "disabled" : ""}>Copy as CSV</button></div>
+  <div class="card stack">
+    <div class="filters">
+      <div class="field"><label for="r-from">From</label><input type="date" id="r-from" data-filter="rep.from" value="${f.from}"></div>
+      <div class="field"><label for="r-to">To</label><input type="date" id="r-to" data-filter="rep.to" value="${f.to}"></div>
+      <div class="field"><label for="r-cat">Cause</label><select id="r-cat" data-filter="rep.cat"><option value="all">All causes</option>${CATS.map(c => `<option ${f.cat === c ? "selected" : ""}>${c}</option>`).join("")}</select></div>
+      <div class="field"><label for="r-group">Group by</label><select id="r-group" data-filter="rep.group">${[["volunteer","Volunteer"],["event","Event"],["month","Month"],["category","Cause"]].map(([v, l]) => `<option value="${v}" ${f.group === v ? "selected" : ""}>${l}</option>`).join("")}</select></div>
+    </div>
+    <div class="row small"><span class="muted">Quick ranges:</span>${preset("Last 30 days", 30)}${preset("Last 90 days", 90)}${preset("Last 12 months", 365)}</div>
+  </div>
+  ${body}`;
+}
+
+/* ---------- Help ---------- */
+function helpView(u){
+  const coord = u.role === "coordinator";
+  const steps = coord
+    ? [["Post an event","Go to Events and choose New event. Set the date, time, and how many volunteers you need."],["Watch sign-ups","The Overview lists events under half full so you can recruit early."],["Check people in","On event day, open Check-in and mark each volunteer present or a no-show."],["Report results","Use Reports to total hours by volunteer, event, month, or cause, then copy the data."]]
+    : [["Set up your profile","Add your skills and availability so we can recommend shifts."],["Find a shift","Browse Find opportunities and filter by cause or your skills."],["Show up","Check in with the coordinator on site. They'll record your hours."],["Track your hours","See your verified hours, and copy them for school or club forms."]];
+  const faq = coord ? [
+    ["Why can't I check people in for a future event?","Check-in opens on the day of the event so no one gets credit for hours they haven't served yet."],
+    ["Can I lower the number of volunteers needed?","Yes, as long as the new number isn't below the people already signed up. Contact some volunteers first if you need to."],
+    ["What does reliability mean?","It's the share of a volunteer's completed shifts they showed up for. No-shows lower it; cancellations don't."],
+    ["How do I get report data into Excel?","On Reports, choose Copy as CSV, then paste into Excel or Google Sheets."],
+  ] : [
+    ["Why can't I sign up for an event?","It may be full, or it may overlap with another shift you've signed up for. You'll see a message explaining which."],
+    ["When do my hours show up?","Once a coordinator marks you present at the event."],
+    ["How do I cancel?","Go to My shifts, choose Cancel, then Confirm cancel. Your spot opens up for someone else."],
+    ["Can I export my hours?","Yes. On My hours, choose Copy as CSV and paste it into a spreadsheet or form."],
+  ];
+  return `<div class="head"><div><h1>Help</h1><p class="muted">How VolunteerHub works for ${coord ? "coordinators" : "volunteers"}.</p></div></div>
+  <section class="steps">${steps.map(([t, d], i) => `<div class="card step"><span class="n">${i+1}</span><h3>${t}</h3><p class="muted small">${d}</p></div>`).join("")}</section>
+  <section><h2 style="margin-bottom:10px">Common questions</h2>${faq.map(([q, a]) => `<details><summary>${q}</summary><p>${a}</p></details>`).join("")}</section>
+  <section class="card stack"><h2>Accessibility</h2>
+    <p class="muted">Use <b>A−</b> and <b>A+</b> at the top to change the text size, and <b>High contrast</b> for stronger borders and text. Every action works with a keyboard: <kbd>Tab</kbd> moves between controls, <kbd>Enter</kbd> activates them, and <kbd>Esc</kbd> closes pop-up forms.</p></section>`;
+}
+
+/* ---------- Actions ---------- */
+function signup(eid){
+  const u = currentUser(), e = eventById(eid);
+  if (e.date < TODAY) return toast("This event has already happened.", "bad");
+  if (spotsLeft(e) <= 0) return toast("Sorry, this event just filled up.", "bad");
+  const existing = state.regs.find(r => r.userId === u.id && r.eventId === eid);
+  if (existing && existing.status !== "cancelled") return toast("You're already signed up for this event.", "bad");
+  const clash = state.regs.filter(r => r.userId === u.id && r.status === "registered").map(r => eventById(r.eventId)).find(o => o.id !== e.id && o.date === e.date && o.start < e.end && e.start < o.end);
+  if (clash) return toast(`This overlaps with ${clash.title} (${timeRange(clash)}) that day.`, "bad");
+  if (existing){ existing.status = "registered"; existing.hours = 0; }
+  else state.regs.push({id:nid(state.regs), userId:u.id, eventId:eid, status:"registered", hours:0});
+  save(); render(); toast(`You're signed up for ${e.title} on ${fmtDate(e.date)}.`);
+}
+
+function saveEventForm(form){
+  const fd = new FormData(form), id = form.dataset.id ? +form.dataset.id : null, old = id ? eventById(id) : null;
+  const d = {title:fd.get("title").trim(), category:fd.get("category"), location:fd.get("location").trim(), date:fd.get("date"), start:fd.get("start"), end:fd.get("end"), slots:fd.get("slots"), skills:fd.getAll("skills"), desc:fd.get("desc").trim()};
+  const n = Number(d.slots), signed = old ? activeRegs(old.id).length : 0;
+  const errs = {
+    title: !d.title ? "Give the event a name." : d.title.length < 3 ? "Use at least 3 characters." : d.title.length > 80 ? "Keep the name under 80 characters." : "",
+    location: !d.location ? "Enter where volunteers should go." : "",
+    date: !/^\d{4}-\d{2}-\d{2}$/.test(d.date) ? "Choose a date." : (d.date < TODAY && (!old || old.date !== d.date)) ? "The date can't be in the past." : "",
+    start: !/^\d{2}:\d{2}$/.test(d.start) ? "Choose a start time." : "",
+    end: !/^\d{2}:\d{2}$/.test(d.end) ? "Choose an end time." : (d.start && d.end <= d.start) ? "End time must be after the start time." : "",
+    slots: !Number.isInteger(n) || n < 1 ? "Enter a whole number of at least 1." : n > 200 ? "The maximum is 200 volunteers." : n < signed ? `${signed} people are already signed up, so you need at least ${signed} spots.` : "",
+  };
+  if (!showErrors(form, errs)) { $("#ef-err").textContent = "Fix the highlighted fields to continue."; return; }
+  const ev = {...d, slots:n};
+  if (old) Object.assign(old, ev); else state.events.push({id:nid(state.events), ...ev});
+  save(); closeModal(); render(); toast(old ? "Event updated." : `${ev.title} was created.`);
+}
+
+const handlers = {
+  nav: (v) => { ui.view = v; ui.armed = null; render(); const m = $("#main"); if (m) m.focus({preventScroll:true}); window.scrollTo(0, 0); },
+  authmode: (v) => { ui.authMode = v; render(); },
+  demo: (v) => { state.session.userId = +v; ui.view = "dashboard"; save(); render(); toast(`Signed in as ${userById(+v).name}.`); },
+  logout: () => { state.session.userId = null; ui.authMode = "login"; ui.armed = null; save(); render(); },
+  font: (v) => { state.prefs.font = Math.max(13, Math.min(21, state.prefs.font + +v)); save(); applyPrefs(); },
+  contrast: () => { state.prefs.hc = !state.prefs.hc; save(); render(); },
+  signup: (_, id) => signup(+id),
+  arm: (v) => { ui.armed = v; render(); },
+  confirm: (v) => {
+    const [kind, id] = v.split(":"); ui.armed = null;
+    if (kind === "cancel"){ const r = state.regs.find(x => x.id === +id); r.status = "cancelled"; toast("Your shift was cancelled."); }
+    if (kind === "delete"){ const e = eventById(+id); state.events = state.events.filter(x => x.id !== +id); state.regs = state.regs.filter(r => r.eventId !== +id); toast(`${e.title} was deleted.`); }
+    if (kind === "reset"){ const prefs = state.prefs, uid = state.session.userId; state = seed(); state.prefs = prefs; state.session.userId = uid; toast("Demo data was reset."); }
+    save(); render();
+  },
+  newEvent: () => openModal(eventForm(null)),
+  editEvent: (_, id) => openModal(eventForm(eventById(+id))),
+  close: () => closeModal(),
+  overlay: (_, __, ev) => { if (ev.target.classList.contains("overlay")) closeModal(); },
+  evtab: (v) => { ui.ev.tab = v; render(); },
+  goCheckin: (_, id) => { ui.ciEvent = +id; handlers.nav("checkin"); },
+  mark: (v, id) => { const r = state.regs.find(x => x.id === +id), e = eventById(r.eventId); r.status = v; r.hours = v === "attended" ? duration(e) : 0; save(); render(); },
+  allPresent: (_, id) => { const e = eventById(+id); let k = 0; activeRegs(e.id).forEach(r => { if (r.status === "registered"){ r.status = "attended"; r.hours = duration(e); k++; } }); save(); render(); toast(`Marked ${k} ${k === 1 ? "volunteer" : "volunteers"} present.`); },
+  preset: (v) => { ui.rep.from = addDays(-+v); ui.rep.to = TODAY; render(); },
+  csv: () => { if (ui.csv) copyCSV(ui.csv()); },
+};
+
+document.addEventListener("click", ev => {
+  const el = ev.target.closest("[data-act]"); if (!el || el.disabled) return;
+  const act = el.dataset.act;
+  if (ui.armed && act !== "confirm" && act !== "arm") ui.armed = null;
+  if (handlers[act]){ if (act !== "overlay") ev.preventDefault(); handlers[act](el.dataset.v, el.dataset.id, ev); }
+});
+
+function setFilter(path, value){
+  const parts = path.split("."); let o = ui; while (parts.length > 1) o = o[parts.shift()]; o[parts[0]] = value;
+}
+document.addEventListener("input", ev => {
+  const el = ev.target;
+  if (el.dataset.filter && el.type !== "checkbox" && el.tagName === "INPUT" && el.type !== "date"){ setFilter(el.dataset.filter, el.value); render(); }
+});
+document.addEventListener("change", ev => {
+  const el = ev.target;
+  if (el.dataset.filter && (el.tagName === "SELECT" || el.type === "checkbox" || el.type === "date")){
+    let v = el.type === "checkbox" ? el.checked : el.value;
+    if (el.dataset.filter === "ciEvent") v = +v;
+    setFilter(el.dataset.filter, v); render();
+  }
+  if (el.dataset.hours){
+    const r = state.regs.find(x => x.id === +el.dataset.hours), h = Number(el.value);
+    if (!(h >= 0.25 && h <= 12)){ toast("Hours must be between 0.25 and 12.", "bad"); el.value = r.hours; return; }
+    r.hours = Math.round(h * 4) / 4; save(); toast(`Hours updated for ${userById(r.userId).name}.`);
+  }
+});
+
+document.addEventListener("submit", ev => {
+  const form = ev.target; ev.preventDefault();
+  if (form.id === "loginForm"){
+    const fd = new FormData(form), email = String(fd.get("email")).trim().toLowerCase(), pw = String(fd.get("password"));
+    if (!email || !pw){ $("#li-err").textContent = "Enter your email and password."; return; }
+    const u = state.users.find(x => x.email === email && x.password === pw);
+    if (!u){ $("#li-err").textContent = "That email and password don't match. Try a demo account below."; return; }
+    state.session.userId = u.id; ui.view = "dashboard"; save(); render();
+  }
+  if (form.id === "signupForm"){
+    const fd = new FormData(form), d = Object.fromEntries(fd.entries());
+    const errs = {name:V.name(d.name), email:V.email(d.email), phone:V.phone(d.phone), password:V.password(d.password), confirm: d.password !== d.confirm ? "Passwords don't match." : ""};
+    if (!errs.email && state.users.some(u => u.email === d.email.trim().toLowerCase())) errs.email = "An account with this email already exists. Try logging in.";
+    if (!showErrors(form, errs)) return;
+    const u = {id:nid(state.users), name:d.name.trim(), email:d.email.trim().toLowerCase(), phone:d.phone.trim(), role:d.role, password:d.password, skills:[], availability:[]};
+    state.users.push(u); state.session.userId = u.id; ui.view = u.role === "volunteer" ? "profile" : "dashboard"; save(); render();
+    toast(u.role === "volunteer" ? "Welcome! Add your skills so we can recommend shifts." : "Welcome! Create your first event to get started.");
+  }
+  if (form.id === "profileForm"){
+    const fd = new FormData(form), u = currentUser();
+    const errs = {name:V.name(fd.get("name")), phone:V.phone(fd.get("phone"))};
+    if (!showErrors(form, errs)) return;
+    u.name = fd.get("name").trim(); u.phone = fd.get("phone").trim(); u.skills = fd.getAll("skills"); u.availability = fd.getAll("availability");
+    save(); render(); toast("Profile saved.");
+  }
+  if (form.id === "eventForm") saveEventForm(form);
+  if (form.id === "walkinForm"){
+    const uid = +new FormData(form).get("user"), e = eventById(ui.ciEvent);
+    if (!uid) return toast("Choose a volunteer first.", "bad");
+    if (spotsLeft(e) <= 0) return toast("This event is full. Raise the number of volunteers needed in Events first.", "bad");
+    const ex = state.regs.find(r => r.userId === uid && r.eventId === e.id);
+    if (ex){ ex.status = "attended"; ex.hours = duration(e); } else state.regs.push({id:nid(state.regs), userId:uid, eventId:e.id, status:"attended", hours:duration(e)});
+    save(); render(); toast(`${userById(uid).name} was added and marked present.`);
+  }
+});
+
+document.addEventListener("keydown", ev => { if (ev.key === "Escape" && $("#modal").innerHTML) closeModal(); });
+
+render();
+})();
+</script>
+</body>
+</html>

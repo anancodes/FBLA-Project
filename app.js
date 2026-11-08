@@ -15,22 +15,31 @@ function render(){
   const u = currentUser();
   ui.csv = null;
   $("#app").innerHTML = u ? shell(u) : loginView();
+  // Keep an open event pop-up in sync (e.g. it shows "You're signed up" right after signing up).
+  const m = $("#modal .modal");
+  if (m && ui.modalEvent && eventById(ui.modalEvent) && u){
+    const e = eventById(ui.modalEvent);
+    m.innerHTML = u.role === "coordinator" ? eventDetail(e) : `<div class="spread"><h2>Event details</h2><button class="btn secondary sm" data-act="close">Close</button></div>${eventCard(e, u)}`;
+  }
   if (fid){ const el = document.getElementById(fid); if (el){ el.focus(); try { if (sel) el.setSelectionRange(sel[0], sel[1]); } catch(e){} } }
 }
 
 const NAV = {
-  volunteer: [["dashboard","Home"],["find","Find opportunities"],["shifts","My shifts"],["hours","My hours"],["profile","Profile"],["help","Help"]],
-  coordinator: [["dashboard","Overview"],["events","Events"],["checkin","Check-in"],["volunteers","Volunteers"],["reports","Reports"],["help","Help"]],
+  volunteer: [["dashboard","Home"],["find","Find opportunities"],["shifts","My shifts"],["hours","My hours"],["news","Announcements"],["profile","Profile"],["help","Help"]],
+  coordinator: [["dashboard","Overview"],["events","Events"],["checkin","Check-in"],["volunteers","Volunteers"],["reports","Reports"],["news","Announcements"],["help","Help"]],
 };
 const VIEWS = {
-  volunteer: {dashboard:vHome, find:vFind, shifts:vShifts, hours:vHours, profile:vProfile, help:helpView},
-  coordinator: {dashboard:cHome, events:cEvents, checkin:cCheckin, volunteers:cVolunteers, reports:cReports, help:helpView},
+  volunteer: {dashboard:vHome, find:vFind, shifts:vShifts, hours:vHours, news:newsView, profile:vProfile, help:helpView},
+  coordinator: {dashboard:cHome, events:cEvents, checkin:cCheckin, volunteers:cVolunteers, reports:cReports, news:newsView, help:helpView},
 };
 
 function shell(u){
   const nav = NAV[u.role];
   if (!nav.some(n => n[0] === ui.view)) ui.view = "dashboard";
   const upCount = u.role === "volunteer" ? userStats(u.id).upcoming.length : 0;
+  const unread = unreadCount(u);
+  const badge = k => k === "shifts" && upCount ? `<span class="count" aria-label="${upCount} upcoming">${upCount}</span>`
+                   : k === "news" && unread ? `<span class="count" aria-label="${unread} new">${unread}</span>` : "";
   return `<div class="shell">
     <header class="top">
       <div class="brand">${LOGO}<div><strong>VolunteerHub</strong><span>Riverbend Community Pantry</span></div></div>
@@ -47,11 +56,12 @@ function shell(u){
     <div class="frame">
       <nav class="rail" aria-label="Main">
         <span class="rail-label">${u.role === "coordinator" ? "Coordinator" : "Volunteer"}</span>
-        ${nav.map(([k, l]) => `<button data-act="nav" data-v="${k}" ${ui.view === k ? 'aria-current="page"' : ""}><span>${l}</span>${k === "shifts" && upCount ? `<span class="count">${upCount}</span>` : ""}</button>`).join("")}
+        ${nav.map(([k, l]) => `<button data-act="nav" data-v="${k}" ${ui.view === k ? 'aria-current="page"' : ""} class="${ui.tour && ui.view === k ? "tour-hl" : ""}"><span>${l}</span>${badge(k)}</button>`).join("")}
       </nav>
       <main id="main" tabindex="-1"><div class="page">${VIEWS[u.role][ui.view](u)}</div></main>
     </div>
     <footer class="foot"><span>Demo with sample data for a fictional nonprofit. Changes are saved in this browser only.</span>${armBtn("reset", "Reset demo data", "Click again to reset", "secondary sm")}</footer>
+    ${tourCard(u)}
   </div>`;
 }
 
@@ -90,7 +100,7 @@ document.addEventListener("submit", ev => {
     if (!email || !pw){ $("#li-err").textContent = "Enter your email and password."; return; }
     const u = state.users.find(x => x.email === email && x.password === pw);
     if (!u){ $("#li-err").textContent = "That email and password don't match. Try a demo account below."; return; }
-    state.session.userId = u.id; ui.view = "dashboard"; save(); render();
+    state.session.userId = u.id; ui.view = "dashboard"; save(); render(); maybeStartTour();
   }
   if (form.id === "signupForm"){
     const fd = new FormData(form), d = Object.fromEntries(fd.entries());
@@ -100,6 +110,7 @@ document.addEventListener("submit", ev => {
     const u = {id:nid(state.users), name:d.name.trim(), email:d.email.trim().toLowerCase(), phone:d.phone.trim(), role:d.role, password:d.password, skills:[], availability:[]};
     state.users.push(u); state.session.userId = u.id; ui.view = u.role === "volunteer" ? "profile" : "dashboard"; save(); render();
     toast(u.role === "volunteer" ? "Welcome! Add your skills so we can recommend shifts." : "Welcome! Create your first event to get started.");
+    maybeStartTour();
   }
   if (form.id === "profileForm"){
     const fd = new FormData(form), u = currentUser();
@@ -109,6 +120,7 @@ document.addEventListener("submit", ev => {
     save(); render(); toast("Profile saved.");
   }
   if (form.id === "eventForm") saveEventForm(form);
+  if (form.id === "annForm") postAnnouncement(form);
   if (form.id === "walkinForm"){
     const uid = +new FormData(form).get("user"), e = eventById(ui.ciEvent);
     if (!uid) return toast("Choose a volunteer first.", "bad");
@@ -119,6 +131,10 @@ document.addEventListener("submit", ev => {
   }
 });
 
-document.addEventListener("keydown", ev => { if (ev.key === "Escape" && $("#modal").innerHTML) closeModal(); });
+document.addEventListener("keydown", ev => {
+  if (ev.key !== "Escape") return;
+  if ($("#modal").innerHTML) closeModal();
+  else if (ui.tour) endTour();
+});
 
 render();

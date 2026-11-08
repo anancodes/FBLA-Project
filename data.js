@@ -9,7 +9,7 @@ const KEY = "volunteerhub-demo-v1";
 const CATS = ["Food Pantry","Tutoring","Environment","Senior Support","Fundraising"];
 const SKILLS = ["Lifting","Driving","Spanish","Tutoring","Cooking","Tech","First Aid"];
 const AVAIL = ["Weekday mornings","Weekday evenings","Weekends"];
-const HOUR_GOAL = 40;
+const HOUR_GOAL = 60;   // service-hour goal shown to volunteers
 
 function seed(){
   let s = 11; const rnd = () => (s = (s * 9301 + 49297) % 233280) / 233280;
@@ -42,16 +42,36 @@ function seed(){
   events.forEach(e => {
     const past = e.date < TODAY;
     let n = Math.round(e.slots * (past ? 0.6 + rnd()*0.35 : 0.3 + rnd()*0.55));
-    if (!past && e.slots <= 4) n = e.slots;            // one full upcoming event
+    const fullDemo = e.date === addDays(5);               // one full upcoming event, to demo the waitlist
+    if (fullDemo) n = e.slots;
     n = Math.min(n, vols.length);
     const pool = [...vols].sort(() => rnd() - 0.5);
     if (past && !pool.slice(0, n).includes(2) && rnd() < 0.55) pool.unshift(2);   // give Maya a history
     if (!past && e.category === "Tutoring") { const k = pool.indexOf(2); if (k > -1 && k < n) pool.splice(k, 1); } // leave tutoring open for her
+    if (fullDemo) { const k = pool.indexOf(2); if (k > -1) pool.splice(k, 1); }  // so she can try the waitlist
+    if (e.date === addDays(2) && !pool.slice(0, n).includes(2)) pool.unshift(2);  // a shift soon, to demo reminders
     [...new Set(pool)].slice(0, n).forEach(uid => {
       let status = "registered", hours = 0;
       if (past) { status = rnd() < 0.87 ? "attended" : "no-show"; hours = status === "attended" ? duration(e) : 0; }
       regs.push({id:regs.length+1, userId:uid, eventId:e.id, status, hours});
     });
   });
-  return {v:1, users, events, regs, session:{userId:null}, prefs:{font:15, hc:false}};
+  // Waitlists on upcoming events that are already full
+  events.filter(e => e.date >= TODAY).forEach(e => {
+    const taken = regs.filter(r => r.eventId === e.id);
+    if (taken.length < e.slots) return;
+    vols.filter(id => id !== 2 && !taken.some(r => r.userId === id)).slice(0, 2)
+      .forEach(uid => regs.push({id:regs.length+1, userId:uid, eventId:e.id, status:"waitlist", hours:0}));
+  });
+
+  // Sample announcements from the coordinator
+  const ago = days => new Date(Date.now() - days * 86400000).toISOString();
+  const announcements = [
+    {id:1, title:"Thank you for a record fall season", body:"Our volunteers served more hours this season than any season before. Every food sort, delivery, and tutoring session made a difference for our neighbors.", audience:"all", authorId:1, at:ago(6)},
+    {id:2, title:"Winter coat drive starts next month", body:"We'll collect new and gently used coats at every Saturday Food Sort. Sign up for a sort shift if you'd like to help with intake and sizing.", audience:"all", authorId:1, at:ago(2)},
+  ];
+  const mp = events.find(e => e.date >= TODAY && e.title === "Mobile Pantry Distribution");
+  if (mp) announcements.push({id:3, title:"Parking change for Mobile Pantry", body:`For the ${fmtDate(mp.date)} distribution, please park on Elm Street. The school lot will be full of produce trucks.`, audience:String(mp.id), authorId:1, at:ago(1)});
+
+  return {v:2, users, events, regs, announcements, notices:[], reads:{}, toured:{}, session:{userId:null}, prefs:{font:15, hc:false}};
 }

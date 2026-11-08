@@ -17,11 +17,11 @@ All data is sample data for a fictional organization. It is saved in your browse
 
 ## Features
 
-**Volunteers:** find and filter opportunities, sign up (blocks full events and overlapping shifts), cancel shifts, track verified hours toward a goal, edit skills and availability.
+**Volunteers:** find opportunities as a list or calendar, filter by cause and skills, sign up (blocks overlapping shifts), join a waitlist for full events and get the spot automatically when someone cancels, reminders for shifts in the next 3 days, track verified hours toward a goal, print a service certificate, download hours as CSV, read announcements, edit skills and availability.
 
-**Coordinators:** program overview, create/edit/delete events, check-in (present, no-show, walk-ins), volunteer directory with reliability, reports grouped by volunteer, event, month, or cause, with CSV export.
+**Coordinators:** program overview, create/edit/delete events (list or calendar), waitlists that fill automatically when spots open, check-in (present, no-show, walk-ins) with roster download and print, volunteer directory with reliability and certificates, reports filtered by dates, cause, and volunteer and grouped by volunteer, event, month, or cause, with CSV download, copy, and print, and announcements to everyone or to one event's volunteers.
 
-**Everyone:** help page and FAQ, adjustable text size, high-contrast mode, dark mode, full keyboard support.
+**Everyone:** guided tour on first login (replay from Help), help page and FAQ, adjustable text size, high-contrast mode, dark mode, full keyboard support.
 
 ## Project structure
 
@@ -31,13 +31,15 @@ All data is sample data for a fictional organization. It is saved in your browse
 | `css/styles.css` | All styling, with colors defined once as variables |
 | `js/utils.js` | General helpers: dates, times, HTML escaping, CSV |
 | `js/data.js` | Constants and the sample (seed) data |
-| `js/store.js` | App data, saving/loading with localStorage, query helpers |
+| `js/store.js` | App data, saving/loading with localStorage, waitlist logic, query helpers |
 | `js/validation.js` | Input validation and error display |
-| `js/components.js` | Reusable pieces: charts, tiles, pills, pop-ups, messages |
+| `js/components.js` | Reusable pieces: charts, calendar, tiles, pop-ups, messages, CSV export, printing |
 | `js/views/auth.js` | Login and create-account screens |
 | `js/views/volunteer.js` | Volunteer screens |
 | `js/views/coordinator.js` | Coordinator screens and report calculations |
 | `js/views/help.js` | Help screen |
+| `js/views/news.js` | Announcements screen (post for coordinators, read for volunteers) |
+| `js/tour.js` | First-login guided tour |
 | `js/actions.js` | What each button does |
 | `js/app.js` | Starts the app, draws screens, routes clicks and form submits |
 

@@ -1,0 +1,89 @@
+rules_version = '2';
+
+// VolunteerHub database rules: who can read or change what.
+// Paste this whole file into Firebase console > Firestore Database > Rules, then Publish.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn()      { return request.auth != null; }
+    function me()            { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
+    function isCoord()       { return signedIn() && me().role == 'coordinator'; }
+    function isVerified()    { return isCoord() && (me().verified == true || me().admin == true); }
+    function isAdmin()       { return signedIn() && me().admin == true; }
+    function onlyChanges(keys) { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys); }
+    function ownsEvent(eventId) {
+      return get(/databases/$(database)/documents/events/$(string(eventId))).data.postedBy == request.auth.uid;
+    }
+
+    // People. Volunteers' contact details are visible only to themselves and verified coordinators.
+    // Coordinators' profiles are visible to everyone signed in (they're the contact on events).
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isVerified() || resource.data.role == 'coordinator');
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.id == uid
+        && request.resource.data.role in ['volunteer', 'coordinator']
+        && request.resource.data.verified == false
+        && !('admin' in request.resource.data);
+      // You can edit your own profile, but not your role, verification, or admin status.
+      // Site admins can verify organizers.
+      allow update: if signedIn() && (
+        (request.auth.uid == uid && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['id', 'role', 'verified', 'verifiedAt', 'admin']))
+        || (isAdmin() && onlyChanges(['verified', 'verifiedAt'])));
+      allow delete: if signedIn() && request.auth.uid == uid;
+    }
+
+    // Events: anyone signed in can see them; coordinators post them; the poster,
+    // a verified coordinator, or an admin can change or delete them.
+    match /events/{id} {
+      allow read: if signedIn();
+      allow create: if isCoord() && request.resource.data.postedBy == request.auth.uid;
+      allow update, delete: if isCoord() && (resource.data.postedBy == request.auth.uid || isVerified());
+    }
+
+    // Sign-ups. They hold only ids and a status, so everyone signed in can count them.
+    match /regs/{id} {
+      allow read: if signedIn();
+      // Volunteers sign themselves up or join a waitlist. Coordinators add walk-ins.
+      allow create: if signedIn() && (
+        (request.resource.data.userId == request.auth.uid
+          && request.resource.data.status in ['registered', 'waitlist']
+          && request.resource.data.hours == 0)
+        || isVerified() || (isCoord() && ownsEvent(request.resource.data.eventId)));
+      // Volunteers can cancel or move off the waitlist, but can't mark attendance or hours.
+      allow update: if signedIn() && (
+        (resource.data.userId == request.auth.uid
+          && onlyChanges(['status'])
+          && request.resource.data.status in ['registered', 'waitlist', 'cancelled']
+          && !(resource.data.status in ['attended', 'no-show']))
+        || isVerified() || (isCoord() && ownsEvent(resource.data.eventId)));
+      allow delete: if isVerified() || (isCoord() && ownsEvent(resource.data.eventId));
+    }
+
+    // Personal updates ("a spot opened up"). Only the person can read theirs.
+    match /notices/{id} {
+      allow read: if signedIn() && resource.data.userId == request.auth.uid;
+      allow create: if signedIn() && (request.resource.data.userId == request.auth.uid || isVerified());
+      allow update: if signedIn() && resource.data.userId == request.auth.uid && onlyChanges(['read']);
+    }
+
+    // Announcements from verified coordinators.
+    match /announcements/{id} {
+      allow read: if signedIn();
+      allow create: if isVerified() && request.resource.data.authorId == request.auth.uid;
+      allow delete: if isVerified();
+    }
+
+    // Reported concerns about listings.
+    match /concerns/{id} {
+      allow read: if signedIn() && (resource.data.userId == request.auth.uid || isVerified());
+      allow create: if signedIn() && request.resource.data.userId == request.auth.uid && request.resource.data.status == 'open';
+      allow update: if isVerified() && onlyChanges(['status']);
+    }
+
+    // Organization name, home ZIP, description, and waiver. Public so the login page can show them.
+    match /settings/{doc} {
+      allow read: if true;
+      allow write: if isVerified() && doc == 'org';
+    }
+  }
+}

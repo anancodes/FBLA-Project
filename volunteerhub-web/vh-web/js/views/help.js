@@ -15,6 +15,8 @@ function helpView(u){
     ["What does reliability mean?","It's the share of a volunteer's completed shifts they showed up for. No-shows lower it; cancellations don't."],
     ["How do I get report data into Excel?","On Reports, choose Download CSV and open the file in Excel or Google Sheets. Copy works too, if you'd rather paste."],
     ["How does the waitlist work?","When an event is full, volunteers can join a waitlist. If someone cancels, or you add spots by editing the event, the first person in line is signed up automatically and gets an update."],
+    ["How do I verify a new organizer?","Site admins see an Organizers screen. Follow its checklist (call the organization at a number you look up yourself and confirm they're a real nonprofit), then choose Verify."],
+    ["What happens when I change or delete an event?","Everyone signed up or on the waitlist gets an update on their Home page explaining what changed."],
     ["How do I change the organization name?","Go to Settings and enter your organization's name, town, and a short description. They update across the whole site right away."],
     ["What does Verified organizer mean?","Coordinators who VolunteerHub has checked show a Verified badge, and volunteers see only verified listings unless they turn that filter off. New coordinator accounts start unverified."],
     ["What do I do with a reported concern?","Reported concerns appear at the top of the Overview. Open the listing, fix or delete it if needed, then choose Mark resolved."],
@@ -27,6 +29,7 @@ function helpView(u){
     ["How do I get a certificate of my hours?","Go to My hours and choose View certificate, then Print certificate. You can also save it as a PDF from the print window."],
     ["When do my hours show up?","Once a coordinator marks you present at the event."],
     ["How do I cancel?","Go to My shifts, choose Cancel, then Confirm cancel. Your spot opens up for someone else."],
+    ["Who can see my information?","Your phone number, ZIP code, and emergency contact are shown only to you and verified coordinators. You can delete your account anytime from Profile."],
     ["Can I export my hours?","Yes. On My hours, choose Download CSV to get a spreadsheet file."],
   ];
   return `<div class="head"><div><h1>Help</h1><p class="muted">How VolunteerHub works for ${coord ? "coordinators" : "volunteers"}.</p></div></div>

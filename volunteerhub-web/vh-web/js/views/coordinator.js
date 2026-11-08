@@ -6,7 +6,7 @@
  */
 "use strict";
 
-function cHome(){
+function cHome(u){
   const d30 = addDays(-30), d90 = addDays(-90);
   const inRange = (r, a) => { const e = eventById(r.eventId); return e.date >= a && e.date <= TODAY; };
   const hours30 = sum(state.regs.filter(r => r.status === "attended" && inRange(r, d30)).map(r => r.hours));
@@ -20,7 +20,8 @@ function cHome(){
   const top = Object.entries(state.regs.filter(r => r.status === "attended" && inRange(r, d90)).reduce((m, r) => (m[r.userId] = (m[r.userId] || 0) + r.hours, m), {})).map(([id, v]) => ({label:userById(+id).name, value:v})).sort((a,b) => b.value - a.value).slice(0, 6);
   const notSetUp = state.org.name === "Your Organization";
   return `<div class="head"><div><span class="eyebrow">${fmtDate(TODAY, {weekday:"long", month:"long", day:"numeric"})}</span><h1>Program overview</h1></div><button class="btn" data-act="newEvent">New event</button></div>
-  ${notSetUp ? `<div class="banner reminder"><span class="banner-icon" aria-hidden="true">✎</span><div><b>Make it yours: add your organization's name and town.</b><span>They appear on the login page, the header, event details, certificates, and reports.</span></div><button class="btn sm" data-act="nav" data-v="settings">Open Settings</button></div>` : ""}
+  ${u.role === "coordinator" && !u.verified && !u.admin ? `<div class="banner reminder"><span class="banner-icon" aria-hidden="true">⏳</span><div><b>Your organizer account is waiting for verification.</b><span>You can post events now, but they show as "Unverified organizer," and volunteers' contact details stay hidden until a site admin verifies you.</span></div></div>` : ""}
+  ${notSetUp && DB.isVerifiedCoordinator(u) ? `<div class="banner reminder"><span class="banner-icon" aria-hidden="true">✎</span><div><b>Make it yours: add your organization's name and town.</b><span>They appear on the login page, the header, event details, certificates, and reports.</span></div><button class="btn sm" data-act="nav" data-v="settings">Open Settings</button></div>` : ""}
   <section class="tiles">
     ${tile("Active volunteers", active, "Attended in the last 90 days")}
     ${tile("Hours served", fmtH(hours30), "Last 30 days", "hrs")}
@@ -60,20 +61,21 @@ function cEvents(){
     <td>${esc(e.title)}${isVerified(e) ? "" : ` <span class="pill warn">Unverified organizer</span>`}<span class="sub">${esc(e.location)} · ${esc(eventZipInfo(e).zip)}</span></td>
     <td><span class="pill">${esc(e.category)}</span></td>
     <td><div class="fillcell">${fillMeter(e)}<span class="num small">${n}/${e.slots}</span></div>${waitlistFor(e.id).length ? `<span class="sub">+${waitlistFor(e.id).length} on waitlist</span>` : ""}</td>
-    <td><div class="actions"><button class="btn secondary sm" data-act="goCheckin" data-id="${e.id}">Roster</button><button class="btn secondary sm" data-act="editEvent" data-id="${e.id}">Edit</button>${armBtn(`delete:${e.id}`, "Delete", "Confirm delete")}</div></td></tr>`; }).join("") : `<tr><td colspan="5" class="muted">No events found.</td></tr>`}
+    <td><div class="actions"><button class="btn secondary sm" data-act="goCheckin" data-id="${e.id}">Roster</button><button class="btn secondary sm" data-act="dupEvent" data-id="${e.id}" title="Make a copy one week later">Copy</button><button class="btn secondary sm" data-act="editEvent" data-id="${e.id}">Edit</button>${armBtn(`delete:${e.id}`, "Delete", "Confirm delete")}</div></td></tr>`; }).join("") : `<tr><td colspan="5" class="muted">No events found.</td></tr>`}
   </tbody></table></div>`;
 }
 
 function eventForm(e){
-  const isNew = !e; e = e || {title:"", category:CATS[0], date:addDays(7), start:"09:00", end:"12:00", location:"", zip:"", slots:8, skills:[], desc:"", bring:"", wear:"", minAge:""};
+  const isCopy = !!e && e.id == null, isNew = !e || isCopy;   // a copy is a new event filled in from an old one
+  e = e || {title:"", category:CATS[0], date:addDays(7), start:"09:00", end:"12:00", location:"", zip:"", slots:8, skills:[], desc:"", bring:"", wear:"", minAge:""};
   return `<form id="eventForm" class="stack" novalidate data-id="${isNew ? "" : e.id}">
-    <div class="spread"><h2>${isNew ? "New event" : "Edit event"}</h2><button type="button" class="btn secondary sm" data-act="close">Close</button></div>
+    <div class="spread"><h2>${isCopy ? `Copy of ${esc(e.title)}` : isNew ? "New event" : "Edit event"}</h2><button type="button" class="btn secondary sm" data-act="close">Close</button></div>
     <p class="formerr" id="ef-err"></p>
     <div class="field"><label for="ef-title">Event name</label><input id="ef-title" name="title" value="${esc(e.title)}" placeholder="e.g. Saturday Food Sort"><span class="ferr" id="e-title"></span></div>
     <div class="grid2">
       <div class="field"><label for="ef-cat">Cause</label><select id="ef-cat" name="category">${CATS.map(c => `<option ${c === e.category ? "selected" : ""}>${c}</option>`).join("")}</select></div>
       <div class="field"><label for="ef-loc">Location</label><input id="ef-loc" name="location" list="venue-list" value="${esc(e.location)}" placeholder="Pick a saved place or type a new one"><datalist id="venue-list">${VENUES.map(v => `<option value="${esc(v.name)}"></option>`).join("")}</datalist><span class="ferr" id="e-location"></span></div>
-      <div class="field"><label for="ef-zip">ZIP code</label><input id="ef-zip" name="zip" inputmode="numeric" maxlength="5" value="${esc(isNew ? "" : eventZipInfo(e).zip)}" placeholder="Filled in for saved places"><span class="muted small">Volunteers use this to find shifts near them.</span><span class="ferr" id="e-zip"></span></div>
+      <div class="field"><label for="ef-zip">ZIP code</label><input id="ef-zip" name="zip" inputmode="numeric" maxlength="5" value="${esc(isNew && !isCopy ? "" : eventZipInfo(e).zip)}" placeholder="Filled in for saved places"><span class="muted small">Volunteers use this to find shifts near them.</span><span class="ferr" id="e-zip"></span></div>
     </div>
     <div class="grid3">
       <div class="field"><label for="ef-date">Date</label><input id="ef-date" name="date" type="date" value="${e.date}"><span class="ferr" id="e-date"></span></div>
@@ -88,6 +90,7 @@ function eventForm(e){
       <div class="field"><label for="ef-wear">What to wear</label><input id="ef-wear" name="wear" maxlength="120" value="${esc(e.wear || "")}" placeholder="e.g. Closed-toe shoes"><span class="ferr" id="e-wear"></span></div>
       <div class="field"><label for="ef-age">Minimum age <span class="muted">(optional)</span></label><input id="ef-age" name="minAge" type="number" min="0" max="21" value="${e.minAge || ""}"><span class="ferr" id="e-minAge"></span></div>
     </div>
+    ${isNew ? `<div class="field" style="max-width:320px"><label for="ef-repeat">Repeat weekly</label><select id="ef-repeat" name="repeat">${[0,1,2,3,4,5,6,7,8,10,12].map(n => `<option value="${n}">${n ? `For ${n} more ${n === 1 ? "week" : "weeks"}` : "Just this once"}</option>`).join("")}</select><span class="muted small">Creates a separate event for each week, so people sign up week by week.</span><span class="ferr" id="e-repeat"></span></div>` : `<p class="muted small">If you change the date, time, or place, everyone signed up gets an update.</p>`}
     <div class="row" style="justify-content:flex-end"><button type="button" class="btn secondary" data-act="close">Cancel</button><button class="btn" type="submit">${isNew ? "Create event" : "Save changes"}</button></div>
   </form>`;
 }
@@ -114,9 +117,9 @@ function cCheckin(){
     <div class="row"><span class="pill accent num">${roster.length}/${e.slots} signed up</span><span class="pill good num">${present} present</span><span class="pill bad num">${absent} no-show</span><span class="pill num">${roster.length - present - absent} not marked</span></div>
     ${locked ? `<p class="formerr" style="background:var(--warn-soft);color:var(--warn)">Check-in opens on the day of the event (${fmtDate(e.date)}). You can still view the roster.</p>` : ""}
   </div>
-  <div class="spread"><h2>Roster</h2><div class="row">${!locked && roster.some(x => x.r.status === "registered") ? `<button class="btn secondary sm" data-act="allPresent" data-id="${e.id}">Mark everyone else present</button>` : ""}${exportBar()}</div></div>
+  <div class="spread"><h2>Roster</h2><div class="row">${!locked && roster.some(x => x.r.status === "registered") ? `<button class="btn secondary sm" data-act="allPresent" data-id="${e.id}">Mark everyone else present</button>` : ""}<button class="btn secondary" data-act="copyEmails" data-id="${e.id}">Copy emails</button>${exportBar()}</div></div>
   <div class="tablewrap"><table><thead><tr><th>Volunteer</th><th>Status</th><th class="num">Hours</th><th class="num">Actions</th></tr></thead><tbody>
-  ${roster.length ? roster.map(({r, u}) => `<tr><td><b>${esc(u.name)}</b><span class="sub">${esc(u.phone || u.email)}</span></td>
+  ${roster.length ? roster.map(({r, u}) => `<tr><td><b>${esc(u.name)}</b><span class="sub">${esc(u.phone || u.email)}</span>${u.emergency ? `<span class="sub">Emergency: ${esc(u.emergency)}</span>` : ""}</td>
     <td>${statusPill(r.status)}</td>
     <td class="num">${r.status === "attended" ? `<input class="hours-in" type="number" step="0.25" min="0.25" max="12" value="${r.hours}" data-hours="${r.id}" aria-label="Hours for ${esc(u.name)}" ${locked ? "disabled" : ""}>` : "—"}</td>
     <td><div class="actions">${locked ? `<span class="muted small">Not open yet</span>` : r.status === "registered"

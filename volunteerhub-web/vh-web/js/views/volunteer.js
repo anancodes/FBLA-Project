@@ -204,10 +204,17 @@ function vProfile(u){
       <div class="field"><label for="p-name">Full name</label><input id="p-name" name="name" value="${esc(u.name)}"><span class="ferr" id="e-name"></span></div>
       <div class="field"><label for="p-email">Email</label><input id="p-email" value="${esc(u.email)}" disabled><span class="muted small">Contact a coordinator to change your email.</span></div>
       <div class="field"><label for="p-phone">Phone</label><input id="p-phone" name="phone" value="${esc(u.phone)}"><span class="ferr" id="e-phone"></span></div>
+      <div class="field"><label for="p-emergency">Emergency contact <span class="muted">(optional)</span></label><input id="p-emergency" name="emergency" maxlength="100" value="${esc(u.emergency || "")}" placeholder="Name and phone, e.g. Ana Chen 555-201-3344"><span class="muted small">Only verified coordinators can see this.</span><span class="ferr" id="e-emergency"></span></div>
       <div class="field"><label for="p-zip">Home ZIP code <span class="muted">(optional)</span></label><input id="p-zip" name="zip" inputmode="numeric" maxlength="5" value="${esc(u.zip || "")}" placeholder="e.g. 20001"><span class="muted small">Used to show shifts near you first.</span><span class="ferr" id="e-zip"></span></div>
     </div>
     <div class="field"><span class="lbl">Skills</span><div class="checks">${SKILLS.map(s => `<label class="check"><input type="checkbox" name="skills" value="${s}" ${u.skills.includes(s) ? "checked" : ""}> ${s}</label>`).join("")}</div></div>
     <div class="field"><span class="lbl">Availability</span><div class="checks">${AVAIL.map(s => `<label class="check"><input type="checkbox" name="availability" value="${s}" ${u.availability.includes(s) ? "checked" : ""}> ${s}</label>`).join("")}</div></div>
     <div class="row"><button class="btn" type="submit">Save profile</button><button class="btn secondary" type="button" data-act="tour">Replay the tour</button></div>
-  </form>`;
+  </form>
+  <section class="card stack" style="max-width:720px">
+    <h2>Privacy and your account</h2>
+    <p class="muted">${u.waiverAt ? `You accepted the <button class="linkbtn" data-act="waiver">volunteer waiver</button> on ${new Date(u.waiverAt).toLocaleDateString("en-US", {month:"long", day:"numeric", year:"numeric"})}. ` : `Read the <button class="linkbtn" data-act="waiver">volunteer waiver</button>. `}Your phone, ZIP code, and emergency contact are only shown to you and verified coordinators.</p>
+    <div class="row">${armBtn("delacct:me", "Delete my account", "Yes, delete it permanently")}</div>
+    <p class="muted small">This cancels your upcoming shifts and removes your profile. Hours you've already served stay in the organization's records.</p>
+  </section>`;
 }

@@ -1,7 +1,9 @@
 /*
  * store.js
  * The app's data layer. Holds `state` (users, events, registrations, announcements,
- * notices, preferences), saves/loads it with the browser's localStorage, keeps
+ * notices, preferences). In demo mode it saves/loads everything with localStorage; in
+ * live mode only this device's preferences are saved here (the rest lives in Firebase,
+ * see db.js and cloud.js). Also keeps
  * temporary screen state in `ui`, and provides query helpers such as spotsLeft(),
  * userStats(), and the waitlist logic.
  *
@@ -14,7 +16,7 @@
  */
 "use strict";
 
-const DATA_VERSION = 5;   // bump this when the data shape changes so old saved data is replaced
+const DATA_VERSION = 6;   // bump this when the data shape changes so old saved data is replaced
 
 function load(){
   try {
@@ -23,12 +25,22 @@ function load(){
   } catch(e){}
   return null;
 }
-function save(){ try { localStorage.setItem(KEY, JSON.stringify(state)); } catch(e){} }
-let state = load() || seed();
+// Preferences (text size, contrast, theme) belong to this device in both modes.
+function loadPrefs(){ try { return Object.assign({font:15, hc:false, theme:"auto"}, JSON.parse(localStorage.getItem(KEY + "-prefs") || "{}")); } catch(e){ return {font:15, hc:false, theme:"auto"}; } }
+function save(){
+  try {
+    localStorage.setItem(KEY + "-prefs", JSON.stringify(state.prefs));
+    if (!DB.live && !ui.liveShell) localStorage.setItem(KEY, JSON.stringify(state));   // demo data only
+  } catch(e){}
+}
+function demoState(){ const s = load() || seed(); s.prefs = loadPrefs(); return s; }
+let state = demoState();
 
 // Temporary screen state (filters, open tabs, calendar month). Not saved.
 const ui = {
   view:"dashboard", authMode:"login", armed:null, csv:null, tour:null,
+  demo:false,        // true while exploring sample data on a site that also has live mode
+  liveShell:false,   // true while showing live-mode data (signed in or on the live login page)
   find:{q:"", cat:"all", zip:null, radius:"25", match:false, hideFull:false, verifiedOnly:true, mode:"list"},   // zip:null = start from the volunteer's saved ZIP
   ev:{tab:"upcoming", q:"", mode:"list"}, cal:TODAY.slice(0, 7),
   ciEvent:null, vq:"",
@@ -37,9 +49,11 @@ const ui = {
 
 /* ----- Lookups ----- */
 const currentUser = () => state.users.find(u => u.id === state.session.userId) || null;
-const userById = id => state.users.find(u => u.id === id);
+// Unknown or hidden users (for example, when the database doesn't let you see someone's
+// contact details) come back as a plain placeholder so screens never break.
+const userById = id => state.users.find(u => u.id === id) || {id, name:"Volunteer", email:"", phone:"", role:"volunteer", skills:[], availability:[], hidden:true};
 const eventById = id => state.events.find(e => e.id === id);
-const coordinatorName = () => (state.users.find(u => u.role === "coordinator") || {name:"Volunteer Coordinator"}).name;
+const coordinatorName = () => (state.users.find(u => u.role === "coordinator" && u.admin) || state.users.find(u => u.role === "coordinator" && u.verified) || {name:"Volunteer Coordinator"}).name;
 
 /* ----- Registrations ----- */
 // People holding a real spot (waitlisted and cancelled people don't count).
@@ -61,23 +75,28 @@ function findClash(uid, e){
 }
 
 // When spots open up, move people off the waitlist in order.
-// Skips anyone who now has a clashing shift. Returns the promoted registrations.
+// Skips anyone who now has a clashing shift. Stops at anyone this person isn't allowed
+// to change, so nobody jumps the line. Returns the promoted registrations.
 function fillFromWaitlist(e){
   const promoted = [];
   if (e.date < TODAY) return promoted;
   for (const r of waitlistFor(e.id)){
     if (spotsLeft(e) <= 0) break;
     if (findClash(r.userId, e)) continue;
-    r.status = "registered";
-    notify(r.userId, `A spot opened up. You're now signed up for ${e.title} on ${fmtDate(e.date)}.`);
+    if (!DB.canManageReg(r)) break;
+    DB.update("regs", r, {status:"registered"});
+    // Same id on every device, so if two devices promote at once the person still gets one notice
+    notify(r.userId, `A spot opened up. You're now signed up for ${e.title} on ${fmtDate(e.date)}.`, `spot-${r.id}`);
     promoted.push(r);
   }
   return promoted;
 }
 
 /* ----- Notices (personal updates) and announcements ----- */
-function notify(uid, text){
-  state.notices.push({id:nid(state.notices), userId:uid, text, at:new Date().toISOString(), read:false});
+function notify(uid, text, key){
+  if (!DB.canNotify(uid)) return;
+  if (key && state.notices.some(n => n.id === key)) return;
+  DB.add("notices", {id:key || DB.newId("notices"), userId:uid, text, at:new Date().toISOString(), read:false});
 }
 const noticesFor = uid => state.notices.filter(n => n.userId === uid).sort((a, b) => b.at.localeCompare(a.at));
 
@@ -87,15 +106,16 @@ function announcementsFor(u){
     .filter(a => u.role === "coordinator" || a.audience === "all" || activeRegs(+a.audience).some(r => r.userId === u.id) || waitlistFor(+a.audience).some(r => r.userId === u.id))
     .sort((a, b) => b.at.localeCompare(a.at));
 }
-const readSet = uid => new Set(state.reads[uid] || []);
+const readSet = uid => new Set(userById(uid).reads || []);
 function unreadCount(u){
   if (u.role === "coordinator") return 0;
   const seen = readSet(u.id);
   return announcementsFor(u).filter(a => !seen.has(a.id)).length + noticesFor(u.id).filter(n => !n.read).length;
 }
 function markAllRead(u){
-  state.reads[u.id] = announcementsFor(u).map(a => a.id);
-  noticesFor(u.id).forEach(n => n.read = true);
+  const ids = announcementsFor(u).map(a => a.id), seen = readSet(u.id);
+  if (ids.some(id => !seen.has(id))) DB.update("users", u, {reads:ids});
+  noticesFor(u.id).filter(n => !n.read).forEach(n => DB.update("notices", n, {read:true}));
 }
 
 /* ----- Trust ----- */

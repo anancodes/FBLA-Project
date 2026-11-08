@@ -15,7 +15,14 @@ const CATS = ["Food Pantry","Tutoring","Environment","Senior Support","Fundraisi
 const SKILLS = ["Lifting","Driving","Spanish","Tutoring","Cooking","Tech","First Aid"];
 const AVAIL = ["Weekday mornings","Weekday evenings","Weekends"];
 const HOUR_GOAL = 60;   // service-hour goal shown to volunteers
-const DEFAULT_HOME_ZIP = "20001";   // sample home ZIP until a coordinator sets their own in Settings
+const DEFAULT_HOME_ZIP = "20001";
+// Starting waiver text. Each organization should replace it with its own in Settings
+// (ideally reviewed by a lawyer); this is a plain-language example.
+const DEFAULT_WAIVER = `I am volunteering by choice and will not be paid. I will follow the instructions of staff and coordinators and use safe practices.
+I understand some activities involve lifting, standing, driving, or working outdoors, and I will only do what I can do safely. I will tell a coordinator about any injury right away.
+I give permission for photos taken at events to be used to share the organization's work, unless I tell a coordinator I'd rather not be photographed.
+I will keep private any personal information about the people we serve.
+If I am under 18, a parent or guardian will sign at check-in.`;   // sample home ZIP until a coordinator sets their own in Settings
 
 const VENUES = [
   {name:"Main Pantry Warehouse", east:0, north:0, address:"1420 Mill Street", parking:"Free lot behind the building.", access:"Ground floor and wheelchair accessible. Most tasks involve standing."},
@@ -46,14 +53,14 @@ const EVENT_INFO = {
 function seed(){
   let s = 11; const rnd = () => (s = (s * 9301 + 49297) % 233280) / 233280;
   const users = [
-    {id:1, name:"Jordan Reyes", email:"coordinator@demo.org", phone:"555-201-4410", role:"coordinator", password:"demo1234", skills:[], availability:[],
-     org:"", verified:true, verifiedAt:addDays(-60)},
-    {id:2, name:"Maya Chen", email:"volunteer@demo.org", phone:"555-318-0927", role:"volunteer", password:"demo1234", skills:["Tutoring","Tech","Spanish"], availability:["Weekday evenings","Weekends"]},
+    {id:1, name:"Jordan Reyes", email:"coordinator@demo.org", phone:"555-201-4410", role:"coordinator", skills:[], availability:[],
+     org:"", verified:true, verifiedAt:addDays(-60), admin:true},   // admin: can verify other organizers
+    {id:2, name:"Maya Chen", email:"volunteer@demo.org", phone:"555-318-0927", role:"volunteer", skills:["Tutoring","Tech","Spanish"], availability:["Weekday evenings","Weekends"]},
   ];
   const people = [["Liam Okafor",["Lifting","Driving"]],["Sofia Martinez",["Spanish","Cooking"]],["Ethan Brooks",["Tech","Tutoring"]],["Aisha Rahman",["First Aid","Cooking"]],["Noah Kim",["Lifting"]],["Grace Thompson",["Tutoring","Spanish"]],["Lucas Silva",["Driving","Lifting"]],["Priya Patel",["Tech","First Aid"]],["Owen Murphy",["Cooking","Lifting"]],["Zoe Williams",["Tutoring"]],["Daniel Nguyen",["Driving","Tech"]],["Hannah Lee",["First Aid","Spanish"]]];
   people.forEach(([n, sk], i) => users.push({
     id:i+3, name:n, email:n.toLowerCase().replace(" ", ".") + "@example.org",
-    phone:`555-${410 + i*23}-${String(1200 + i*617).slice(0,4)}`, role:"volunteer", password:"demo1234",
+    phone:`555-${410 + i*23}-${String(1200 + i*617).slice(0,4)}`, role:"volunteer",
     skills:sk, availability:[AVAIL[i%3], AVAIL[(i+1)%3]]
   }));
   const tpl = [
@@ -100,7 +107,7 @@ function seed(){
   });
 
   // A second organizer who has NOT been verified yet, with one listing (shows the "unverified" warning)
-  const casey = {id:users.length+1, name:"Casey Morgan", email:"casey@example.org", phone:"555-640-2291", role:"coordinator", password:"demo1234", skills:[], availability:[], org:"Northgate Holiday Helpers", verified:false};
+  const casey = {id:users.length+1, name:"Casey Morgan", email:"casey@example.org", phone:"555-640-2291", role:"coordinator", skills:[], availability:[], org:"Northgate Holiday Helpers", verified:false};
   users.push(casey);
   events.push({id:events.length+1, title:"Holiday Gift Wrapping Booth", category:"Fundraising", date:addDays(9), start:"11:00", end:"15:00",
     location:"Northgate Mall, Center Court", slots:6, skills:[], desc:"Wrap gifts for shoppers in exchange for donations to local families.",
@@ -115,9 +122,11 @@ function seed(){
   const mp = events.find(e => e.date >= TODAY && e.title === "Mobile Pantry Distribution");
   if (mp) announcements.push({id:3, title:"Parking change for Mobile Pantry", body:`For the ${fmtDate(mp.date)} distribution, please park on Elm Street. The school lot will be full of produce trucks.`, audience:String(mp.id), authorId:1, at:ago(1)});
 
-  const org = {name:"Your Organization", zip:DEFAULT_HOME_ZIP, about:""};   // coordinators change these in Settings
+  const org = {name:"Your Organization", zip:DEFAULT_HOME_ZIP, about:"", waiver:DEFAULT_WAIVER};   // coordinators change these in Settings
   // Maya lives near the Eastside Library, so her ZIP search starts there
   const home = lookupZip(org.zip), near = offsetPoint(home, 3.4, 0.6);
   users.find(u => u.id === 2).zip = nearestZip(near.lat, near.lon).zip;
+  // Every sample account uses the password demo1234, stored only as a salted hash
+  users.forEach(u => { const h = hashPassword("demo1234", "demo" + u.id); u.passSalt = h.salt; u.passHash = h.hash; u.reads = []; u.toured = false; u.emergency = ""; });
   return {v:DATA_VERSION, org, users, events, regs, announcements, notices:[], reads:{}, toured:{}, concerns:[], session:{userId:null}, prefs:{font:15, hc:false}};
 }

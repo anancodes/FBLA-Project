@@ -45,14 +45,14 @@ function tourStep(delta){
 }
 function endTour(){
   const u = currentUser();
-  state.toured[u.id] = true;
+  if (!u.toured) DB.update("users", u, {toured:true});
   ui.tour = null;
   save(); render();
 }
 // Starts the tour if this person hasn't seen it yet.
 function maybeStartTour(){
   const u = currentUser();
-  if (u && !state.toured[u.id]) startTour();
+  if (u && !u.toured) startTour();
 }
 
 function tourCard(u){

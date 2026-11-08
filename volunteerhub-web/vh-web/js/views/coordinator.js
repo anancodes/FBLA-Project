@@ -18,7 +18,9 @@ function cHome(){
   const needs = upcoming.filter(e => activeRegs(e.id).length / e.slots < 0.5);
   const pending = state.events.filter(e => e.date <= TODAY && activeRegs(e.id).some(r => r.status === "registered")).sort(byDate);
   const top = Object.entries(state.regs.filter(r => r.status === "attended" && inRange(r, d90)).reduce((m, r) => (m[r.userId] = (m[r.userId] || 0) + r.hours, m), {})).map(([id, v]) => ({label:userById(+id).name, value:v})).sort((a,b) => b.value - a.value).slice(0, 6);
+  const notSetUp = state.org.name === "Your Organization";
   return `<div class="head"><div><span class="eyebrow">${fmtDate(TODAY, {weekday:"long", month:"long", day:"numeric"})}</span><h1>Program overview</h1></div><button class="btn" data-act="newEvent">New event</button></div>
+  ${notSetUp ? `<div class="banner reminder"><span class="banner-icon" aria-hidden="true">✎</span><div><b>Make it yours: add your organization's name and town.</b><span>They appear on the login page, the header, event details, certificates, and reports.</span></div><button class="btn sm" data-act="nav" data-v="settings">Open Settings</button></div>` : ""}
   <section class="tiles">
     ${tile("Active volunteers", active, "Attended in the last 90 days")}
     ${tile("Hours served", fmtH(hours30), "Last 30 days", "hrs")}
@@ -163,7 +165,7 @@ function cReports(){
     const hours = sum(rows.map(r => r.hours)), att = sum(rows.map(r => r.attended)), ns = sum(rows.map(r => r.noShows));
     const volName = f.vol === "all" ? "All volunteers" : userById(+f.vol).name;
     ui.csv = {name:`report-by-${f.group}-${f.from}-to-${f.to}.csv`, build:() => toCSV([[`VolunteerHub report: hours by ${groupName.toLowerCase()}`], [`${f.from} to ${f.to}`, f.cat === "all" ? "All causes" : f.cat, volName], [], [groupName, "Hours", "Attended", "No-shows"], ...rows.map(r => [r.key, fmtH(r.hours), r.attended, r.noShows]), ["Total", fmtH(hours), att, ns]])};
-    body = `<p class="print-only"><b>Riverbend Community Pantry · Volunteer report</b><br>${fmtDate(f.from, {month:"short", day:"numeric", year:"numeric"})} to ${fmtDate(f.to, {month:"short", day:"numeric", year:"numeric"})} · ${f.cat === "all" ? "All causes" : esc(f.cat)} · ${esc(volName)} · Grouped by ${groupName.toLowerCase()}</p>
+    body = `<p class="print-only"><b>${esc(state.org.name)} · Volunteer report</b><br>${fmtDate(f.from, {month:"short", day:"numeric", year:"numeric"})} to ${fmtDate(f.to, {month:"short", day:"numeric", year:"numeric"})} · ${f.cat === "all" ? "All causes" : esc(f.cat)} · ${esc(volName)} · Grouped by ${groupName.toLowerCase()}</p>
     <section class="tiles">${tile("Total hours", fmtH(hours), "", "hrs")}${tile("Events in range", events)}${tile("Volunteer shifts", att, "Attended")}${tile("No-show rate", att + ns ? Math.round(ns / (att + ns) * 100) : 0, `${ns} missed shifts`, "%")}</section>
     <section class="card stack"><h2>Hours by ${groupName.toLowerCase()}</h2>${f.group === "month" ? (rows.length ? colChart(rows.map(r => ({label:r.key.split(" ")[0].slice(0,3), value:r.hours}))) : hbars([])) : hbars(rows.slice(0, 12).map(r => ({label:r.key, value:r.hours})), " h")}${f.group !== "month" && rows.length > 12 ? `<p class="muted small">Showing the top 12. The table has all ${rows.length}.</p>` : ""}</section>
     <div class="tablewrap"><table><thead><tr><th>${groupName}</th><th class="num">Hours</th><th class="num">Attended</th><th class="num">No-shows</th></tr></thead><tbody>

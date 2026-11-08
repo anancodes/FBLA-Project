@@ -4,7 +4,8 @@
  * VENUES describes each place events happen (area, address, parking, accessibility).
  * EVENT_INFO adds practical details per event type (what to bring and wear, minimum age).
  * seed() builds a fictional nonprofit with volunteers, events, and sign-up history.
- * All names, places, and addresses are made up for the demo.
+ * All names, places, and addresses are made up for the demo. The organization's own
+ * name and town come from Settings (state.org), so any nonprofit can make it theirs.
  */
 "use strict";
 
@@ -16,14 +17,14 @@ const HOUR_GOAL = 60;   // service-hour goal shown to volunteers
 const AREAS = ["Downtown","Eastside","North Side","Riverside","West Side"];
 
 const VENUES = [
-  {name:"Riverbend Pantry Warehouse", area:"Downtown", address:"1420 Mill Street, Riverbend", parking:"Free lot behind the building.", access:"Ground floor and wheelchair accessible. Most tasks involve standing."},
-  {name:"St. Mark's Community Kitchen", area:"Downtown", address:"310 Church Street, Riverbend", parking:"Street parking on Church Street; free after 5 PM.", access:"Ramp at the side entrance. Kitchen work is standing."},
-  {name:"Eastside Library", area:"Eastside", address:"88 Harper Avenue, Riverbend", parking:"City lot across the street.", access:"Elevator to all floors and accessible restrooms."},
-  {name:"Lincoln Elementary Parking Lot", area:"Eastside", address:"700 Lincoln Way, Riverbend", parking:"Park on Elm Street; the lot is used for the event.", access:"Outdoors on pavement. Some lifting of 20-pound boxes."},
-  {name:"Miller Creek Trailhead", area:"North Side", address:"Miller Creek Road at Route 9, Riverbend", parking:"Gravel lot at the trailhead.", access:"Unpaved, uneven trail. Not wheelchair accessible."},
-  {name:"Northgate Mall, Center Court", area:"North Side", address:"4400 Northgate Boulevard, Riverbend", parking:"Mall parking garage, levels 2–4.", access:"Indoors, step-free."},
-  {name:"Riverside Park Pavilion", area:"Riverside", address:"5 Front Street, Riverbend", parking:"Free parking along Front Street.", access:"Paved paths to the pavilion. Outdoors."},
-  {name:"Oakwood Senior Center", area:"West Side", address:"2050 Oakwood Drive, Riverbend", parking:"Visitor spaces at the main entrance.", access:"Step-free building with accessible restrooms."},
+  {name:"Main Pantry Warehouse", area:"Downtown", address:"1420 Mill Street", parking:"Free lot behind the building.", access:"Ground floor and wheelchair accessible. Most tasks involve standing."},
+  {name:"St. Mark's Community Kitchen", area:"Downtown", address:"310 Church Street", parking:"Street parking on Church Street; free after 5 PM.", access:"Ramp at the side entrance. Kitchen work is standing."},
+  {name:"Eastside Library", area:"Eastside", address:"88 Harper Avenue", parking:"City lot across the street.", access:"Elevator to all floors and accessible restrooms."},
+  {name:"Lincoln Elementary Parking Lot", area:"Eastside", address:"700 Lincoln Way", parking:"Park on Elm Street; the lot is used for the event.", access:"Outdoors on pavement. Some lifting of 20-pound boxes."},
+  {name:"Miller Creek Trailhead", area:"North Side", address:"Miller Creek Road at Route 9", parking:"Gravel lot at the trailhead.", access:"Unpaved, uneven trail. Not wheelchair accessible."},
+  {name:"Northgate Mall, Center Court", area:"North Side", address:"4400 Northgate Boulevard", parking:"Mall parking garage, levels 2–4.", access:"Indoors, step-free."},
+  {name:"Riverside Park Pavilion", area:"Riverside", address:"5 Front Street", parking:"Free parking along Front Street.", access:"Paved paths to the pavilion. Outdoors."},
+  {name:"Oakwood Senior Center", area:"West Side", address:"2050 Oakwood Drive", parking:"Visitor spaces at the main entrance.", access:"Step-free building with accessible restrooms."},
 ];
 // Matches "Eastside Library, Room B" to the "Eastside Library" venue.
 const venueOf = e => VENUES.find(v => e.location === v.name || e.location.startsWith(v.name + ",")) || {name:e.location, area:e.area || "Other", address:"", parking:"", access:""};
@@ -45,7 +46,7 @@ function seed(){
   let s = 11; const rnd = () => (s = (s * 9301 + 49297) % 233280) / 233280;
   const users = [
     {id:1, name:"Jordan Reyes", email:"coordinator@demo.org", phone:"555-201-4410", role:"coordinator", password:"demo1234", skills:[], availability:[],
-     org:"Riverbend Community Pantry", verified:true, verifiedAt:addDays(-60)},
+     org:"", verified:true, verifiedAt:addDays(-60)},
     {id:2, name:"Maya Chen", email:"volunteer@demo.org", phone:"555-318-0927", role:"volunteer", password:"demo1234", skills:["Tutoring","Tech","Spanish"], availability:["Weekday evenings","Weekends"]},
   ];
   const people = [["Liam Okafor",["Lifting","Driving"]],["Sofia Martinez",["Spanish","Cooking"]],["Ethan Brooks",["Tech","Tutoring"]],["Aisha Rahman",["First Aid","Cooking"]],["Noah Kim",["Lifting"]],["Grace Thompson",["Tutoring","Spanish"]],["Lucas Silva",["Driving","Lifting"]],["Priya Patel",["Tech","First Aid"]],["Owen Murphy",["Cooking","Lifting"]],["Zoe Williams",["Tutoring"]],["Daniel Nguyen",["Driving","Tech"]],["Hannah Lee",["First Aid","Spanish"]]];
@@ -55,10 +56,10 @@ function seed(){
     skills:sk, availability:[AVAIL[i%3], AVAIL[(i+1)%3]]
   }));
   const tpl = [
-    ["Saturday Food Sort","Food Pantry","09:00","12:00","Riverbend Pantry Warehouse",12,["Lifting"],"Sort and shelve donated groceries for the weekly distribution."],
+    ["Saturday Food Sort","Food Pantry","09:00","12:00","Main Pantry Warehouse",12,["Lifting"],"Sort and shelve donated groceries for the weekly distribution."],
     ["After-School Homework Help","Tutoring","15:30","17:30","Eastside Library, Room B",6,["Tutoring"],"Help students in grades 3–8 with homework and reading."],
     ["Miller Creek Cleanup","Environment","08:00","11:00","Miller Creek Trailhead",15,[],"Pick up litter and clear invasive plants along the creek trail. Gloves provided."],
-    ["Senior Grocery Delivery","Senior Support","10:00","13:00","Riverbend Pantry Warehouse",5,["Driving"],"Deliver grocery boxes to homebound seniors on the north-side route."],
+    ["Senior Grocery Delivery","Senior Support","10:00","13:00","Main Pantry Warehouse",5,["Driving"],"Deliver grocery boxes to homebound seniors on the north-side route."],
     ["Community Dinner Prep","Food Pantry","16:00","19:00","St. Mark's Community Kitchen",8,["Cooking"],"Prep and serve a hot meal for about 120 neighbors."],
     ["Tech Help Desk for Seniors","Senior Support","13:00","15:00","Oakwood Senior Center",4,["Tech"],"Help older adults with phones, email, and video calls."],
     ["Fall 5K Check-In","Fundraising","07:00","10:00","Riverside Park Pavilion",10,[],"Staff registration tables and water stations at our annual fundraiser run."],
@@ -113,5 +114,6 @@ function seed(){
   const mp = events.find(e => e.date >= TODAY && e.title === "Mobile Pantry Distribution");
   if (mp) announcements.push({id:3, title:"Parking change for Mobile Pantry", body:`For the ${fmtDate(mp.date)} distribution, please park on Elm Street. The school lot will be full of produce trucks.`, audience:String(mp.id), authorId:1, at:ago(1)});
 
-  return {v:DATA_VERSION, users, events, regs, announcements, notices:[], reads:{}, toured:{}, concerns:[], session:{userId:null}, prefs:{font:15, hc:false}};
+  const org = {name:"Your Organization", city:"Your City", about:""};   // coordinators change these in Settings
+  return {v:DATA_VERSION, org, users, events, regs, announcements, notices:[], reads:{}, toured:{}, concerns:[], session:{userId:null}, prefs:{font:15, hc:false}};
 }

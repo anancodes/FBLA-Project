@@ -13,7 +13,7 @@ Demo accounts (password `demo1234`):
 - Volunteer: `volunteer@demo.org`
 - Coordinator: `coordinator@demo.org`
 
-All data is sample data for a fictional organization. It is saved in your browser only. Use **Reset demo data** at the bottom of the app to start over.
+All volunteers, events, and places are sample data. Set your organization's name in Settings. It is saved in your browser only. Use **Reset demo data** at the bottom of the app to start over.
 
 ## Features
 
@@ -22,6 +22,8 @@ All data is sample data for a fictional organization. It is saved in your browse
 **Coordinators:** program overview, create/edit/delete events (list or calendar), waitlists that fill automatically when spots open, check-in (present, no-show, walk-ins) with roster download and print, volunteer directory with reliability and certificates, reports filtered by dates, cause, and volunteer and grouped by volunteer, event, month, or cause, with CSV download, copy, and print, announcements to everyone or to one event's volunteers, and a review list for concerns volunteers report.
 
 **Trust and safety:** every listing shows who posted it and when. Listings from verified organizers carry a badge, and volunteers see only verified listings unless they turn that filter off. Unverified listings show a safety warning. Volunteers can report a concern on any listing.
+
+**Settings:** coordinators enter their organization's name, town, and description, and they appear across the whole site, so any nonprofit can use it as its own.
 
 **Everyone:** guided tour on first login (replay from Help), help page and FAQ, adjustable text size, high-contrast mode, dark mode, full keyboard support.
 
@@ -40,6 +42,7 @@ All data is sample data for a fictional organization. It is saved in your browse
 | `js/views/volunteer.js` | Volunteer screens |
 | `js/views/coordinator.js` | Coordinator screens and report calculations |
 | `js/views/help.js` | Help screen |
+| `js/views/settings.js` | Organization settings (name, town, description) |
 | `js/views/news.js` | Announcements screen (post for coordinators, read for volunteers) |
 | `js/tour.js` | First-login guided tour |
 | `js/actions.js` | What each button does |

@@ -156,14 +156,14 @@ function certificate(u){
   const total = sum(rs.map(x => x.r.hours));
   const byCat = CATS.map(c => ({c, h:sum(rs.filter(x => x.e.category === c).map(x => x.r.hours))})).filter(x => x.h > 0);
   const range = rs.length ? `${fmtDate(rs[0].e.date, {month:"long", day:"numeric", year:"numeric"})} through ${fmtDate(rs[rs.length - 1].e.date, {month:"long", day:"numeric", year:"numeric"})}` : "";
-  const certNo = `RCP-${new Date().getFullYear()}-${String(u.id).padStart(4, "0")}`;
+  const certNo = `${orgCode()}-${new Date().getFullYear()}-${String(u.id).padStart(4, "0")}`;
   return `<div class="spread no-print"><h2>Service certificate</h2><div class="row"><button class="btn" data-act="printCert">Print certificate</button><button class="btn secondary" data-act="close">Close</button></div></div>
   <div class="cert">
-    <div class="cert-top">${LOGO}<span>Riverbend Community Pantry</span></div>
+    <div class="cert-top">${LOGO}<span>${esc(state.org.name)}</span></div>
     <p class="cert-kicker">Certificate of Volunteer Service</p>
     <p class="cert-presented">This certifies that</p>
     <p class="cert-name">${esc(u.name)}</p>
-    ${rs.length ? `<p class="cert-body">completed <b>${fmtH(total)} hours</b> of verified volunteer service across <b>${rs.length} ${rs.length === 1 ? "event" : "events"}</b>, from ${range}.</p>
+    ${rs.length ? `<p class="cert-body">completed <b>${fmtH(total)} hours</b> of verified volunteer service with ${esc(state.org.name)} across <b>${rs.length} ${rs.length === 1 ? "event" : "events"}</b>, from ${range}.</p>
     <div class="cert-break">${byCat.map(x => `<span><b>${fmtH(x.h)}</b> hrs ${esc(x.c)}</span>`).join("")}</div>` : `<p class="cert-body">has no verified volunteer hours yet.</p>`}
     <div class="cert-sign"><div><span class="cert-line"></span>${esc(coordinatorName())}<small>Volunteer Coordinator</small></div><div><span class="cert-line"></span>${fmtDate(TODAY, {month:"long", day:"numeric", year:"numeric"})}<small>Date issued</small></div></div>
     <p class="cert-no">Certificate no. ${certNo} · Hours verified through check-in records</p>

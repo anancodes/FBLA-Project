@@ -93,6 +93,19 @@ function submitConcern(form){
   save(); closeModal(); render(); toast("Thanks for reporting. A coordinator will review this listing.");
 }
 
+// Save the organization's name, town, and description from Settings.
+function saveOrgSettings(form){
+  const fd = new FormData(form), name = fd.get("name").trim(), city = fd.get("city").trim(), about = fd.get("about").trim();
+  const errs = {
+    name: name.length < 2 ? "Enter your organization's name (at least 2 characters)." : !/[A-Za-z]/.test(name) ? "The name needs at least one letter." : "",
+    city: city.length < 2 ? "Enter your city or town." : "",
+    about: about.length > 160 ? "Keep the description under 160 characters." : "",
+  };
+  if (!showErrors(form, errs)) return;
+  state.org = {name, city, about};
+  save(); render(); toast(`Saved. The site now shows ${name}.`);
+}
+
 // Two-step confirm actions (the button says "Confirm ..." after the first click).
 function confirmAction(kind, id){
   if (kind === "cancel" || kind === "leave"){
@@ -111,7 +124,7 @@ function confirmAction(kind, id){
   }
   if (kind === "ann"){ state.announcements = state.announcements.filter(a => a.id !== id); toast("Announcement deleted."); }
   if (kind === "reset"){
-    const keep = {prefs:state.prefs, session:state.session, toured:state.toured};
+    const keep = {prefs:state.prefs, session:state.session, toured:state.toured, org:state.org};   // keep your organization settings
     state = Object.assign(seed(), keep);
     toast("Demo data was reset.");
   }

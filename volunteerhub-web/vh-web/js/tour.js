@@ -23,6 +23,7 @@ const TOURS = {
     {view:"volunteers", title:"Volunteers", text:"Your volunteer directory, with skills, hours, and reliability. Open any volunteer's service certificate from here."},
     {view:"reports", title:"Reports", text:"Total hours and attendance by volunteer, event, month, or cause. Filter by dates, cause, or one volunteer, then download, copy, or print."},
     {view:"news", title:"Announcements", text:"Post news to all volunteers, or only to the people signed up for one event."},
+    {view:"settings", title:"Make it yours", text:"Enter your organization's name and town here. They show up across the whole site, from the header to certificates and reports."},
     {view:"help", title:"Help is always here", text:"Answers to common questions and accessibility settings. You can replay this tour from Help anytime."},
   ],
 };

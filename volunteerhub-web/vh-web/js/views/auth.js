@@ -8,13 +8,13 @@ function loginView(){
   const brand = `<section class="login-brand"><span class="ring" aria-hidden="true"></span>
     <div class="row">${LOGO}<span style="color:#fff;font-family:var(--f-display);font-weight:700;font-size:1.2rem">VolunteerHub</span></div>
     <h1>Every shift filled. Every hour counted.</h1>
-    <p class="lead">Riverbend Community Pantry posts its volunteer needs here. Volunteers sign up in a few clicks, and coordinators check people in and report the hours.</p>
+    <p class="lead">${esc(state.org.name)} posts its volunteer needs here.${state.org.about ? ` ${esc(state.org.about)}` : ""} Volunteers sign up in a few clicks, and coordinators check people in and report the hours.</p>
     <ul>
       <li><span class="tick">✓</span><span><b>Find a shift that fits.</b> Filter by cause, date, and your skills.</span></li>
       <li><span class="tick">✓</span><span><b>Track your service hours</b> for school, scouts, or your résumé.</span></li>
       <li><span class="tick">✓</span><span><b>Run the program.</b> Coordinators manage events, attendance, and reports.</span></li>
     </ul>
-    <p class="fine">Riverbend Community Pantry is a fictional organization used for this demo.</p></section>`;
+    <p class="fine">This demo uses sample volunteers, events, and places. They are not real.</p></section>`;
   const login = `<div class="login-card">
     <div><h2 style="font-size:1.6rem">Log in</h2><p class="muted">Welcome back.</p></div>
     <form id="loginForm" class="stack" novalidate>

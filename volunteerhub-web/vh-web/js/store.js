@@ -14,7 +14,7 @@
  */
 "use strict";
 
-const DATA_VERSION = 3;   // bump this when the data shape changes so old saved data is replaced
+const DATA_VERSION = 4;   // bump this when the data shape changes so old saved data is replaced
 
 function load(){
   try {
@@ -100,7 +100,12 @@ function markAllRead(u){
 
 /* ----- Trust ----- */
 // An event is from a verified organizer if the coordinator who posted it is verified.
-const posterOf = e => userById(e.postedBy) || {name:"Unknown organizer", org:"", verified:false};
+// Coordinators with no org of their own belong to the organization set in Settings.
+const posterOf = e => { const p = userById(e.postedBy) || {name:"Unknown organizer", org:"(unknown)", verified:false}; return {...p, org:p.org || state.org.name}; };
+// Street address plus the town from Settings.
+const fullAddress = v => v.address ? `${v.address}, ${state.org.city}` : "";
+// Short code from the organization's initials, used on certificate numbers.
+const orgCode = () => (state.org.name.match(/[A-Za-z]+/g) || ["VH"]).map(w => w[0]).join("").slice(0, 4).toUpperCase();
 const isVerified = e => !!posterOf(e).verified;
 const openConcerns = () => state.concerns.filter(c => c.status === "open").sort((a, b) => b.at.localeCompare(a.at));
 

@@ -25,11 +25,11 @@ function render(){
 
 const NAV = {
   volunteer: [["dashboard","Home"],["find","Find opportunities"],["shifts","My shifts"],["hours","My hours"],["news","Announcements"],["profile","Profile"],["help","Help"]],
-  coordinator: [["dashboard","Overview"],["events","Events"],["checkin","Check-in"],["volunteers","Volunteers"],["reports","Reports"],["news","Announcements"],["help","Help"]],
+  coordinator: [["dashboard","Overview"],["events","Events"],["checkin","Check-in"],["volunteers","Volunteers"],["reports","Reports"],["news","Announcements"],["settings","Settings"],["help","Help"]],
 };
 const VIEWS = {
   volunteer: {dashboard:vHome, find:vFind, shifts:vShifts, hours:vHours, news:newsView, profile:vProfile, help:helpView},
-  coordinator: {dashboard:cHome, events:cEvents, checkin:cCheckin, volunteers:cVolunteers, reports:cReports, news:newsView, help:helpView},
+  coordinator: {dashboard:cHome, events:cEvents, checkin:cCheckin, volunteers:cVolunteers, reports:cReports, news:newsView, settings:cSettings, help:helpView},
 };
 
 function shell(u){
@@ -41,7 +41,7 @@ function shell(u){
                    : k === "news" && unread ? `<span class="count" aria-label="${unread} new">${unread}</span>` : "";
   return `<div class="shell">
     <header class="top">
-      <div class="brand">${LOGO}<div><strong>VolunteerHub</strong><span>Riverbend Community Pantry</span></div></div>
+      <div class="brand">${LOGO}<div><strong>VolunteerHub</strong><span>${esc(state.org.name)}</span></div></div>
       <div class="tools">
         <div class="seg" role="group" aria-label="Text size">
           <button data-act="font" data-v="-2" aria-label="Smaller text">A−</button>
@@ -59,7 +59,7 @@ function shell(u){
       </nav>
       <main id="main" tabindex="-1"><div class="page">${VIEWS[u.role][ui.view](u)}</div></main>
     </div>
-    <footer class="foot"><span>Demo with sample data for a fictional nonprofit. Changes are saved in this browser only.</span>${armBtn("reset", "Reset demo data", "Click again to reset", "secondary sm")}</footer>
+    <footer class="foot"><span>Demo with sample data. Changes are saved in this browser only.</span>${armBtn("reset", "Reset demo data", "Click again to reset", "secondary sm")}</footer>
     ${tourCard(u)}
   </div>`;
 }
@@ -124,6 +124,7 @@ document.addEventListener("submit", ev => {
   if (form.id === "eventForm") saveEventForm(form);
   if (form.id === "annForm") postAnnouncement(form);
   if (form.id === "concernForm") submitConcern(form);
+  if (form.id === "orgForm") saveOrgSettings(form);
   if (form.id === "walkinForm"){
     const uid = +new FormData(form).get("user"), e = eventById(ui.ciEvent);
     if (!uid) return toast("Choose a volunteer first.", "bad");

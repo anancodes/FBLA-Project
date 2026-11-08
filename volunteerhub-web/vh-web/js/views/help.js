@@ -15,6 +15,7 @@ function helpView(u){
     ["What does reliability mean?","It's the share of a volunteer's completed shifts they showed up for. No-shows lower it; cancellations don't."],
     ["How do I get report data into Excel?","On Reports, choose Download CSV and open the file in Excel or Google Sheets. Copy works too, if you'd rather paste."],
     ["How does the waitlist work?","When an event is full, volunteers can join a waitlist. If someone cancels, or you add spots by editing the event, the first person in line is signed up automatically and gets an update."],
+    ["How do I change the organization name?","Go to Settings and enter your organization's name, town, and a short description. They update across the whole site right away."],
     ["What does Verified organizer mean?","Coordinators who VolunteerHub has checked show a Verified badge, and volunteers see only verified listings unless they turn that filter off. New coordinator accounts start unverified."],
     ["What do I do with a reported concern?","Reported concerns appear at the top of the Overview. Open the listing, fix or delete it if needed, then choose Mark resolved."],
     ["Who sees my announcements?","Choose All volunteers, or pick one event to reach only the people signed up for it or waiting for a spot."],

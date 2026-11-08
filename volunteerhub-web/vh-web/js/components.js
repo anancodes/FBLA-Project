@@ -68,7 +68,7 @@ function downloadICS(e){
   const ics = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//VolunteerHub//EN", "BEGIN:VEVENT",
     `UID:volunteerhub-event-${e.id}`, `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, "").slice(0, 15)}Z`,
     `DTSTART:${stamp(e.date, e.start)}`, `DTEND:${stamp(e.date, e.end)}`,
-    `SUMMARY:${icsText("Volunteer: " + e.title)}`, `LOCATION:${icsText(v.address ? `${e.location}, ${v.address}` : e.location)}`,
+    `SUMMARY:${icsText("Volunteer: " + e.title)}`, `LOCATION:${icsText(v.address ? `${e.location}, ${fullAddress(v)}` : e.location)}`,
     `DESCRIPTION:${icsText(`${e.desc} Bring: ${e.bring || "nothing special"}.`)}`, "END:VEVENT", "END:VCALENDAR"].join("\r\n");
   if (downloadFile(`${e.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${e.date}.ics`, ics, "text/calendar")) toast("Calendar file downloaded. Open it to add the shift to your calendar.");
   else toast("Your browser blocked the download.", "bad");
@@ -90,7 +90,7 @@ function eventFacts(e){
     <div class="stack">
       <h3>Where</h3>
       ${fact("Place", esc(e.location))}
-      ${fact("Address", esc(v.address))}
+      ${fact("Address", esc(fullAddress(v)))}
       ${fact("Area", esc(e.area || v.area))}
       ${fact("Parking", esc(v.parking))}
       ${fact("Accessibility", esc(v.access))}

@@ -1,7 +1,8 @@
 /*
  * data.js
  * App-wide constants (causes, skills, availability) and the sample data used for the demo.
- * VENUES describes each place events happen (area, address, parking, accessibility).
+ * VENUES describes each place events happen: street address, parking, accessibility, and
+ * where it sits in miles east/north of the organization's home ZIP (set in Settings).
  * EVENT_INFO adds practical details per event type (what to bring and wear, minimum age).
  * seed() builds a fictional nonprofit with volunteers, events, and sign-up history.
  * All names, places, and addresses are made up for the demo. The organization's own
@@ -14,20 +15,20 @@ const CATS = ["Food Pantry","Tutoring","Environment","Senior Support","Fundraisi
 const SKILLS = ["Lifting","Driving","Spanish","Tutoring","Cooking","Tech","First Aid"];
 const AVAIL = ["Weekday mornings","Weekday evenings","Weekends"];
 const HOUR_GOAL = 60;   // service-hour goal shown to volunteers
-const AREAS = ["Downtown","Eastside","North Side","Riverside","West Side"];
+const DEFAULT_HOME_ZIP = "20001";   // sample home ZIP until a coordinator sets their own in Settings
 
 const VENUES = [
-  {name:"Main Pantry Warehouse", area:"Downtown", address:"1420 Mill Street", parking:"Free lot behind the building.", access:"Ground floor and wheelchair accessible. Most tasks involve standing."},
-  {name:"St. Mark's Community Kitchen", area:"Downtown", address:"310 Church Street", parking:"Street parking on Church Street; free after 5 PM.", access:"Ramp at the side entrance. Kitchen work is standing."},
-  {name:"Eastside Library", area:"Eastside", address:"88 Harper Avenue", parking:"City lot across the street.", access:"Elevator to all floors and accessible restrooms."},
-  {name:"Lincoln Elementary Parking Lot", area:"Eastside", address:"700 Lincoln Way", parking:"Park on Elm Street; the lot is used for the event.", access:"Outdoors on pavement. Some lifting of 20-pound boxes."},
-  {name:"Miller Creek Trailhead", area:"North Side", address:"Miller Creek Road at Route 9", parking:"Gravel lot at the trailhead.", access:"Unpaved, uneven trail. Not wheelchair accessible."},
-  {name:"Northgate Mall, Center Court", area:"North Side", address:"4400 Northgate Boulevard", parking:"Mall parking garage, levels 2–4.", access:"Indoors, step-free."},
-  {name:"Riverside Park Pavilion", area:"Riverside", address:"5 Front Street", parking:"Free parking along Front Street.", access:"Paved paths to the pavilion. Outdoors."},
-  {name:"Oakwood Senior Center", area:"West Side", address:"2050 Oakwood Drive", parking:"Visitor spaces at the main entrance.", access:"Step-free building with accessible restrooms."},
+  {name:"Main Pantry Warehouse", east:0, north:0, address:"1420 Mill Street", parking:"Free lot behind the building.", access:"Ground floor and wheelchair accessible. Most tasks involve standing."},
+  {name:"St. Mark's Community Kitchen", east:0.6, north:-0.4, address:"310 Church Street", parking:"Street parking on Church Street; free after 5 PM.", access:"Ramp at the side entrance. Kitchen work is standing."},
+  {name:"Eastside Library", east:3.5, north:0.5, address:"88 Harper Avenue", parking:"City lot across the street.", access:"Elevator to all floors and accessible restrooms."},
+  {name:"Lincoln Elementary Parking Lot", east:4.2, north:-1.0, address:"700 Lincoln Way", parking:"Park on Elm Street; the lot is used for the event.", access:"Outdoors on pavement. Some lifting of 20-pound boxes."},
+  {name:"Miller Creek Trailhead", east:1.0, north:9.0, address:"Miller Creek Road at Route 9", parking:"Gravel lot at the trailhead.", access:"Unpaved, uneven trail. Not wheelchair accessible."},
+  {name:"Northgate Mall, Center Court", east:-0.5, north:6.5, address:"4400 Northgate Boulevard", parking:"Mall parking garage, levels 2–4.", access:"Indoors, step-free."},
+  {name:"Riverside Park Pavilion", east:0.8, north:-2.5, address:"5 Front Street", parking:"Free parking along Front Street.", access:"Paved paths to the pavilion. Outdoors."},
+  {name:"Oakwood Senior Center", east:-7.5, north:0.8, address:"2050 Oakwood Drive", parking:"Visitor spaces at the main entrance.", access:"Step-free building with accessible restrooms."},
 ];
 // Matches "Eastside Library, Room B" to the "Eastside Library" venue.
-const venueOf = e => VENUES.find(v => e.location === v.name || e.location.startsWith(v.name + ",")) || {name:e.location, area:e.area || "Other", address:"", parking:"", access:""};
+const venueOf = e => VENUES.find(v => e.location === v.name || e.location.startsWith(v.name + ",")) || {name:e.location, address:"", parking:"", access:""};
 
 const EVENT_INFO = {
   "Saturday Food Sort":          {bring:"A water bottle.", wear:"Closed-toe shoes and clothes that can get dusty.", minAge:14},
@@ -70,7 +71,7 @@ function seed(){
   const offsets = [-154,-147,-140,-133,-126,-119,-112,-105,-98,-91,-84,-77,-70,-63,-56,-49,-42,-35,-28,-21,-14,-9,-5,-2,0,2,5,8,12,15,19,26];
   const events = offsets.map((o, i) => { const t = tpl[i % tpl.length];
     const date = addDays(o), posted = addDays(Math.min(0, o - 14));
-    return {id:i+1, title:t[0], category:t[1], start:t[2], end:t[3], location:t[4], area:venueOf({location:t[4]}).area, slots:t[5], skills:t[6], desc:t[7], date,
+    return {id:i+1, title:t[0], category:t[1], start:t[2], end:t[3], location:t[4], slots:t[5], skills:t[6], desc:t[7], date,
             ...EVENT_INFO[t[0]], postedBy:1, postedAt:posted, updatedAt:posted}; });
   const regs = []; const vols = users.filter(u => u.role === "volunteer").map(u => u.id);
   events.forEach(e => {
@@ -102,7 +103,7 @@ function seed(){
   const casey = {id:users.length+1, name:"Casey Morgan", email:"casey@example.org", phone:"555-640-2291", role:"coordinator", password:"demo1234", skills:[], availability:[], org:"Northgate Holiday Helpers", verified:false};
   users.push(casey);
   events.push({id:events.length+1, title:"Holiday Gift Wrapping Booth", category:"Fundraising", date:addDays(9), start:"11:00", end:"15:00",
-    location:"Northgate Mall, Center Court", area:"North Side", slots:6, skills:[], desc:"Wrap gifts for shoppers in exchange for donations to local families.",
+    location:"Northgate Mall, Center Court", slots:6, skills:[], desc:"Wrap gifts for shoppers in exchange for donations to local families.",
     bring:"Scissors, if you have them.", wear:"Something festive.", minAge:16, postedBy:casey.id, postedAt:addDays(-1), updatedAt:addDays(-1)});
 
   // Sample announcements from the coordinator
@@ -114,6 +115,9 @@ function seed(){
   const mp = events.find(e => e.date >= TODAY && e.title === "Mobile Pantry Distribution");
   if (mp) announcements.push({id:3, title:"Parking change for Mobile Pantry", body:`For the ${fmtDate(mp.date)} distribution, please park on Elm Street. The school lot will be full of produce trucks.`, audience:String(mp.id), authorId:1, at:ago(1)});
 
-  const org = {name:"Your Organization", city:"Your City", about:""};   // coordinators change these in Settings
+  const org = {name:"Your Organization", zip:DEFAULT_HOME_ZIP, about:""};   // coordinators change these in Settings
+  // Maya lives near the Eastside Library, so her ZIP search starts there
+  const home = lookupZip(org.zip), near = offsetPoint(home, 3.4, 0.6);
+  users.find(u => u.id === 2).zip = nearestZip(near.lat, near.lon).zip;
   return {v:DATA_VERSION, org, users, events, regs, announcements, notices:[], reads:{}, toured:{}, concerns:[], session:{userId:null}, prefs:{font:15, hc:false}};
 }

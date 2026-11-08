@@ -57,7 +57,7 @@ function cEvents(){
   <div class="tablewrap"><table><thead><tr><th>Date</th><th>Event</th><th>Cause</th><th>Volunteers</th><th class="num">Actions</th></tr></thead><tbody>
   ${list.length ? list.map(e => { const n = activeRegs(e.id).length; return `<tr>
     <td style="white-space:nowrap"><b>${fmtDate(e.date)}</b><span class="sub">${timeRange(e)}</span></td>
-    <td>${esc(e.title)}${isVerified(e) ? "" : ` <span class="pill warn">Unverified organizer</span>`}<span class="sub">${esc(e.location)} · ${esc(e.area || venueOf(e).area)}</span></td>
+    <td>${esc(e.title)}${isVerified(e) ? "" : ` <span class="pill warn">Unverified organizer</span>`}<span class="sub">${esc(e.location)} · ${esc(eventZipInfo(e).zip)}</span></td>
     <td><span class="pill">${esc(e.category)}</span></td>
     <td><div class="fillcell">${fillMeter(e)}<span class="num small">${n}/${e.slots}</span></div>${waitlistFor(e.id).length ? `<span class="sub">+${waitlistFor(e.id).length} on waitlist</span>` : ""}</td>
     <td><div class="actions"><button class="btn secondary sm" data-act="goCheckin" data-id="${e.id}">Roster</button><button class="btn secondary sm" data-act="editEvent" data-id="${e.id}">Edit</button>${armBtn(`delete:${e.id}`, "Delete", "Confirm delete")}</div></td></tr>`; }).join("") : `<tr><td colspan="5" class="muted">No events found.</td></tr>`}
@@ -65,7 +65,7 @@ function cEvents(){
 }
 
 function eventForm(e){
-  const isNew = !e; e = e || {title:"", category:CATS[0], date:addDays(7), start:"09:00", end:"12:00", location:"", area:"", slots:8, skills:[], desc:"", bring:"", wear:"", minAge:""};
+  const isNew = !e; e = e || {title:"", category:CATS[0], date:addDays(7), start:"09:00", end:"12:00", location:"", zip:"", slots:8, skills:[], desc:"", bring:"", wear:"", minAge:""};
   return `<form id="eventForm" class="stack" novalidate data-id="${isNew ? "" : e.id}">
     <div class="spread"><h2>${isNew ? "New event" : "Edit event"}</h2><button type="button" class="btn secondary sm" data-act="close">Close</button></div>
     <p class="formerr" id="ef-err"></p>
@@ -73,7 +73,7 @@ function eventForm(e){
     <div class="grid2">
       <div class="field"><label for="ef-cat">Cause</label><select id="ef-cat" name="category">${CATS.map(c => `<option ${c === e.category ? "selected" : ""}>${c}</option>`).join("")}</select></div>
       <div class="field"><label for="ef-loc">Location</label><input id="ef-loc" name="location" list="venue-list" value="${esc(e.location)}" placeholder="Pick a saved place or type a new one"><datalist id="venue-list">${VENUES.map(v => `<option value="${esc(v.name)}"></option>`).join("")}</datalist><span class="ferr" id="e-location"></span></div>
-      <div class="field"><label for="ef-area">Area</label><select id="ef-area" name="area"><option value="">Choose an area…</option>${[...AREAS, "Other"].map(a => `<option ${(e.area || "") === a ? "selected" : ""}>${a}</option>`).join("")}</select><span class="ferr" id="e-area"></span></div>
+      <div class="field"><label for="ef-zip">ZIP code</label><input id="ef-zip" name="zip" inputmode="numeric" maxlength="5" value="${esc(isNew ? "" : eventZipInfo(e).zip)}" placeholder="Filled in for saved places"><span class="muted small">Volunteers use this to find shifts near them.</span><span class="ferr" id="e-zip"></span></div>
     </div>
     <div class="grid3">
       <div class="field"><label for="ef-date">Date</label><input id="ef-date" name="date" type="date" value="${e.date}"><span class="ferr" id="e-date"></span></div>

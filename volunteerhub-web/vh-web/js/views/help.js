@@ -23,7 +23,7 @@ function helpView(u){
     ["Why can't I sign up for an event?","It may be full, or it may overlap with another shift you've signed up for. You'll see a message explaining which. If it's full, you can join the waitlist."],
     ["How does the waitlist work?","If someone cancels, the first person in line gets the spot automatically. You'll see an update on your Home page and in Announcements."],
     ["How do I know an opportunity is real?","Look for the Verified organizer badge. It means VolunteerHub has checked that the coordinator works with a real organization. Open More info to see who posted it, when, and how to reach them. Real listings never ask you to pay, share bank details, or send ID numbers. If something seems off, choose Report a concern."],
-    ["Can I find shifts near me?","Yes. On Find opportunities, pick an Area of town and then a specific Location. More info shows the address, parking, and accessibility for each place."],
+    ["Can I find shifts near me?","Yes. On Find opportunities, type your ZIP code and choose a distance. Shifts are sorted nearest first and show how far away they are. Save your ZIP on your Profile so the search starts there every time."],
     ["How do I get a certificate of my hours?","Go to My hours and choose View certificate, then Print certificate. You can also save it as a PDF from the print window."],
     ["When do my hours show up?","Once a coordinator marks you present at the event."],
     ["How do I cancel?","Go to My shifts, choose Cancel, then Confirm cancel. Your spot opens up for someone else."],

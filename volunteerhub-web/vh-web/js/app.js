@@ -84,7 +84,6 @@ document.addEventListener("change", ev => {
     let v = el.type === "checkbox" ? el.checked : el.value;
     if (el.dataset.filter === "ciEvent") v = +v;
     setFilter(el.dataset.filter, v);
-    if (el.dataset.filter === "find.area") ui.find.venue = "all";    // a new area resets the location choice
     render();
   }
   if (el.dataset.hours){
@@ -116,9 +115,11 @@ document.addEventListener("submit", ev => {
   }
   if (form.id === "profileForm"){
     const fd = new FormData(form), u = currentUser();
-    const errs = {name:V.name(fd.get("name")), phone:V.phone(fd.get("phone"))};
+    const zip = fd.get("zip").trim();
+    const errs = {name:V.name(fd.get("name")), phone:V.phone(fd.get("phone")), zip: zip ? zipError(zip) : ""};
     if (!showErrors(form, errs)) return;
     u.name = fd.get("name").trim(); u.phone = fd.get("phone").trim(); u.skills = fd.getAll("skills"); u.availability = fd.getAll("availability");
+    u.zip = zip; ui.find.zip = zip;                                   // search near the new ZIP
     save(); render(); toast("Profile saved.");
   }
   if (form.id === "eventForm") saveEventForm(form);

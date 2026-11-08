@@ -1,7 +1,7 @@
 /*
  * views/volunteer.js
- * Screens for volunteers: Home, Find opportunities (list or calendar, with area, venue,
- * and verified-organizer filters), the event details pop-up, My shifts,
+ * Screens for volunteers: Home, Find opportunities (list or calendar, with ZIP code +
+ * distance search and a verified-organizer filter), the event details pop-up, My shifts,
  * My hours (with certificate), and Profile. Each function takes the logged-in user
  * and returns that screen's HTML. eventCard() and certificate() are also used
  * by pop-ups and by the coordinator screens.
@@ -23,13 +23,19 @@ function signupControl(e, u){
   return `<button class="btn secondary" data-act="waitlist" data-id="${e.id}">Join waitlist</button><span class="small muted" style="text-align:center">${line ? `${line} ${line === 1 ? "person" : "people"} waiting` : "Be first in line"}</span>`;
 }
 
+// Shows how far away an event is when a ZIP search is active, otherwise its town and ZIP.
+function placePill(e){
+  const o = searchOrigin();
+  return o ? `<span class="pill accent num">${fmtMiles(milesTo(e, o))} away</span>` : `<span class="pill">${esc(eventZipInfo(e).city)} ${esc(eventZipInfo(e).zip)}</span>`;
+}
+
 // Full event card used on Find opportunities and in the calendar pop-up.
 function eventCard(e, u){
   const regs = activeRegs(e.id), left = e.slots - regs.length;
   const match = e.skills.some(k => u.skills.includes(k));
   return `<article class="card ev">${dateChip(e.date)}
     <div class="ev-body">
-      <div class="tags"><span class="pill">${esc(e.category)}</span><span class="pill">${esc(e.area || venueOf(e).area)}</span>${isVerified(e) ? `<span class="pill good">✓ Verified organizer</span>` : `<span class="pill warn">⚠ Unverified organizer</span>`}${match ? `<span class="pill accent">Matches your skills</span>` : ""}${e.date === TODAY ? `<span class="pill mark">Today</span>` : ""}</div>
+      <div class="tags"><span class="pill">${esc(e.category)}</span>${placePill(e)}${isVerified(e) ? `<span class="pill good">✓ Verified organizer</span>` : `<span class="pill warn">⚠ Unverified organizer</span>`}${match ? `<span class="pill accent">Matches your skills</span>` : ""}${e.date === TODAY ? `<span class="pill mark">Today</span>` : ""}</div>
       <h3>${esc(e.title)}</h3>
       <p class="muted small">${fmtDate(e.date)} · ${timeRange(e)} · ${fmtH(duration(e))} hrs · ${esc(e.location)}</p>
       <p>${esc(e.desc)}</p>
@@ -46,7 +52,7 @@ function eventCard(e, u){
 function volunteerEventPopup(e, u){
   const going = activeRegs(e.id).length, left = spotsLeft(e), r = myReg(u.id, e.id);
   return `<div class="spread"><h2>${esc(e.title)}</h2><button class="btn secondary sm" data-act="close">Close</button></div>
-    <div class="tags"><span class="pill">${esc(e.category)}</span><span class="pill">${esc(e.area || venueOf(e).area)}</span>${e.date === TODAY ? `<span class="pill mark">Today</span>` : ""}</div>
+    <div class="tags"><span class="pill">${esc(e.category)}</span>${placePill(e)}${e.date === TODAY ? `<span class="pill mark">Today</span>` : ""}</div>
     <p><b>${fmtDate(e.date, {weekday:"long", month:"long", day:"numeric"})}</b> · ${timeRange(e)}</p>
     <p>${esc(e.desc)}</p>
     ${trustBox(e)}
@@ -101,12 +107,17 @@ function vHome(u){
 
 function vFind(u){
   const f = ui.find, q = f.q.trim().toLowerCase();
+  if (f.zip === null) f.zip = u.zip || "";                   // start from the volunteer's saved ZIP
+  const zipTyped = String(f.zip).trim(), zipMsg = zipTyped.length >= 5 || /\D/.test(zipTyped) ? zipError(zipTyped) : "";
+  const origin = searchOrigin();
   let list = state.events.filter(e => e.date >= TODAY).sort(byDate);
   if (f.cat !== "all") list = list.filter(e => e.category === f.cat);
-  if (f.area !== "all") list = list.filter(e => (e.area || venueOf(e).area) === f.area);
-  if (f.venue !== "all") list = list.filter(e => venueOf(e).name === f.venue);
   if (f.verifiedOnly) list = list.filter(isVerified);
-  if (q) list = list.filter(e => (e.title + " " + e.location + " " + e.desc).toLowerCase().includes(q));
+  if (q) list = list.filter(e => (e.title + " " + e.location + " " + e.desc + " " + addressOf(e)).toLowerCase().includes(q));
+  if (origin){
+    if (f.radius !== "any") list = list.filter(e => milesTo(e, origin) <= +f.radius);
+    list.sort((a, b) => milesTo(a, origin) - milesTo(b, origin) || byDate(a, b));   // nearest first
+  }
   if (f.match) list = list.filter(e => e.skills.length === 0 || e.skills.some(k => u.skills.includes(k)));
   if (f.hideFull) list = list.filter(e => spotsLeft(e) > 0);
   const chip = e => { const r = myReg(u.id, e.id);
@@ -114,15 +125,13 @@ function vFind(u){
     if (r && r.status === "waitlist") return calChip(e, "wait", "on waitlist");
     return spotsLeft(e) > 0 ? calChip(e, "open", "open") : calChip(e, "full", "full"); };
   const legend = `<div class="cal-legend small"><span><i class="sw mine"></i>Signed up</span><span><i class="sw open"></i>Open</span><span><i class="sw wait"></i>On waitlist</span><span><i class="sw full"></i>Full</span></div>`;
-  // Venue choices narrow to the chosen area
-  const venues = [...new Set(state.events.filter(e => e.date >= TODAY && (f.area === "all" || (e.area || venueOf(e).area) === f.area)).map(e => venueOf(e).name))].sort();
   const hiddenUnverified = f.verifiedOnly ? state.events.filter(e => e.date >= TODAY && !isVerified(e)).length : 0;
-  return `<div class="head"><div><h1>Find opportunities</h1><p class="muted">${list.length} upcoming ${list.length === 1 ? "shift" : "shifts"} match your filters.${hiddenUnverified ? ` ${hiddenUnverified} from unverified organizers ${hiddenUnverified === 1 ? "is" : "are"} hidden.` : ""}</p></div>${listCalToggle(f.mode, "find")}</div>
+  return `<div class="head"><div><h1>Find opportunities</h1><p class="muted">${list.length} upcoming ${list.length === 1 ? "shift" : "shifts"}${origin ? ` ${f.radius === "any" ? "sorted by distance from" : `within ${f.radius} miles of`} ${esc(origin.zip)} (${esc(placeName(origin))}), nearest first.` : " match your filters."}${hiddenUnverified ? ` ${hiddenUnverified} from unverified organizers ${hiddenUnverified === 1 ? "is" : "are"} hidden.` : ""}</p></div>${listCalToggle(f.mode, "find")}</div>
   <div class="card filters" role="search">
     <div class="field grow"><label for="f-q">Search</label><input id="f-q" data-filter="find.q" value="${esc(f.q)}" placeholder="Search by name, place, or description"></div>
     <div class="field"><label for="f-cat">Cause</label><select id="f-cat" data-filter="find.cat"><option value="all">All causes</option>${CATS.map(c => `<option ${f.cat === c ? "selected" : ""}>${c}</option>`).join("")}</select></div>
-    <div class="field"><label for="f-area">Area</label><select id="f-area" data-filter="find.area"><option value="all">All areas</option>${AREAS.map(a => `<option ${f.area === a ? "selected" : ""}>${a}</option>`).join("")}</select></div>
-    <div class="field"><label for="f-venue">Location</label><select id="f-venue" data-filter="find.venue"><option value="all">All locations</option>${venues.map(v => `<option ${f.venue === v ? "selected" : ""}>${esc(v)}</option>`).join("")}</select></div>
+    <div class="field zipfield"><label for="f-zip">ZIP code</label><input id="f-zip" data-filter="find.zip" value="${esc(f.zip)}" inputmode="numeric" maxlength="5" autocomplete="postal-code" placeholder="e.g. 20001" ${zipMsg ? 'aria-invalid="true" aria-describedby="f-zip-err"' : ""}><span class="ferr" id="f-zip-err">${esc(zipMsg)}</span></div>
+    <div class="field"><label for="f-radius">Distance</label><select id="f-radius" data-filter="find.radius" ${origin ? "" : "disabled"}>${[["5","Within 5 miles"],["10","Within 10 miles"],["25","Within 25 miles"],["50","Within 50 miles"],["any","Any distance"]].map(([v, l]) => `<option value="${v}" ${f.radius === v ? "selected" : ""}>${l}</option>`).join("")}</select></div>
     <div class="filter-checks">
       <label class="toggle-inline"><input type="checkbox" id="f-verified" data-filter="find.verifiedOnly" ${f.verifiedOnly ? "checked" : ""}> Verified organizers only</label>
       <label class="toggle-inline"><input type="checkbox" id="f-match" data-filter="find.match" ${f.match ? "checked" : ""}> Matches my skills</label>
@@ -130,7 +139,7 @@ function vFind(u){
     </div>
   </div>
   ${f.mode === "calendar" ? calendarView(list, chip, legend)
-    : `<div class="evlist">${list.length ? list.map(e => eventCard(e, u)).join("") : `<div class="empty">No shifts match these filters. Try clearing the search or choosing "All causes".</div>`}</div>`}`;
+    : `<div class="evlist">${list.length ? list.map(e => eventCard(e, u)).join("") : `<div class="empty">${origin && f.radius !== "any" ? `No shifts within ${f.radius} miles of ${esc(origin.zip)}. Try a larger distance.` : `No shifts match these filters. Try clearing the search or choosing "All causes".`}</div>`}</div>`}`;
 }
 
 function vShifts(u){
@@ -195,6 +204,7 @@ function vProfile(u){
       <div class="field"><label for="p-name">Full name</label><input id="p-name" name="name" value="${esc(u.name)}"><span class="ferr" id="e-name"></span></div>
       <div class="field"><label for="p-email">Email</label><input id="p-email" value="${esc(u.email)}" disabled><span class="muted small">Contact a coordinator to change your email.</span></div>
       <div class="field"><label for="p-phone">Phone</label><input id="p-phone" name="phone" value="${esc(u.phone)}"><span class="ferr" id="e-phone"></span></div>
+      <div class="field"><label for="p-zip">Home ZIP code <span class="muted">(optional)</span></label><input id="p-zip" name="zip" inputmode="numeric" maxlength="5" value="${esc(u.zip || "")}" placeholder="e.g. 20001"><span class="muted small">Used to show shifts near you first.</span><span class="ferr" id="e-zip"></span></div>
     </div>
     <div class="field"><span class="lbl">Skills</span><div class="checks">${SKILLS.map(s => `<label class="check"><input type="checkbox" name="skills" value="${s}" ${u.skills.includes(s) ? "checked" : ""}> ${s}</label>`).join("")}</div></div>
     <div class="field"><span class="lbl">Availability</span><div class="checks">${AVAIL.map(s => `<label class="check"><input type="checkbox" name="availability" value="${s}" ${u.availability.includes(s) ? "checked" : ""}> ${s}</label>`).join("")}</div></div>

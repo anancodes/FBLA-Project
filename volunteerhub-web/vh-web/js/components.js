@@ -64,11 +64,10 @@ function downloadFile(name, text, type){
 function downloadICS(e){
   const icsText = s => String(s).replace(/\\/g, "\\\\").replace(/[,;]/g, m => "\\" + m).replace(/\n/g, "\\n");
   const stamp = (d, t) => d.replace(/-/g, "") + "T" + t.replace(":", "") + "00";
-  const v = venueOf(e);
   const ics = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//VolunteerHub//EN", "BEGIN:VEVENT",
     `UID:volunteerhub-event-${e.id}`, `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, "").slice(0, 15)}Z`,
     `DTSTART:${stamp(e.date, e.start)}`, `DTEND:${stamp(e.date, e.end)}`,
-    `SUMMARY:${icsText("Volunteer: " + e.title)}`, `LOCATION:${icsText(v.address ? `${e.location}, ${fullAddress(v)}` : e.location)}`,
+    `SUMMARY:${icsText("Volunteer: " + e.title)}`, `LOCATION:${icsText(`${e.location}, ${addressOf(e)}`)}`,
     `DESCRIPTION:${icsText(`${e.desc} Bring: ${e.bring || "nothing special"}.`)}`, "END:VEVENT", "END:VCALENDAR"].join("\r\n");
   if (downloadFile(`${e.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${e.date}.ics`, ics, "text/calendar")) toast("Calendar file downloaded. Open it to add the shift to your calendar.");
   else toast("Your browser blocked the download.", "bad");
@@ -90,8 +89,8 @@ function eventFacts(e){
     <div class="stack">
       <h3>Where</h3>
       ${fact("Place", esc(e.location))}
-      ${fact("Address", esc(fullAddress(v)))}
-      ${fact("Area", esc(e.area || v.area))}
+      ${fact("Address", esc(addressOf(e)))}
+      ${searchOrigin() ? fact("Distance", `${fmtMiles(milesTo(e, searchOrigin()))} from ${esc(searchOrigin().zip)}`) : ""}
       ${fact("Parking", esc(v.parking))}
       ${fact("Accessibility", esc(v.access))}
       ${fact("Contact", `${esc(p.name)}${p.org ? `, ${esc(p.org)}` : ""}<br><span class="muted">${esc(p.phone || "")}${p.phone && p.email ? " · " : ""}${esc(p.email || "")}</span>`)}

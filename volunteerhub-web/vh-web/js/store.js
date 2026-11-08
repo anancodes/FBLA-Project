@@ -14,7 +14,7 @@
  */
 "use strict";
 
-const DATA_VERSION = 4;   // bump this when the data shape changes so old saved data is replaced
+const DATA_VERSION = 5;   // bump this when the data shape changes so old saved data is replaced
 
 function load(){
   try {
@@ -29,7 +29,7 @@ let state = load() || seed();
 // Temporary screen state (filters, open tabs, calendar month). Not saved.
 const ui = {
   view:"dashboard", authMode:"login", armed:null, csv:null, tour:null,
-  find:{q:"", cat:"all", area:"all", venue:"all", match:false, hideFull:false, verifiedOnly:true, mode:"list"},
+  find:{q:"", cat:"all", zip:null, radius:"25", match:false, hideFull:false, verifiedOnly:true, mode:"list"},   // zip:null = start from the volunteer's saved ZIP
   ev:{tab:"upcoming", q:"", mode:"list"}, cal:TODAY.slice(0, 7),
   ciEvent:null, vq:"",
   rep:{from:addDays(-90), to:TODAY, cat:"all", group:"volunteer", vol:"all"},
@@ -102,8 +102,27 @@ function markAllRead(u){
 // An event is from a verified organizer if the coordinator who posted it is verified.
 // Coordinators with no org of their own belong to the organization set in Settings.
 const posterOf = e => { const p = userById(e.postedBy) || {name:"Unknown organizer", org:"(unknown)", verified:false}; return {...p, org:p.org || state.org.name}; };
-// Street address plus the town from Settings.
-const fullAddress = v => v.address ? `${v.address}, ${state.org.city}` : "";
+/* ----- Locations ----- */
+const homeZip = () => lookupZip(state.org.zip) || lookupZip(DEFAULT_HOME_ZIP);
+const orgPlace = () => placeName(homeZip());
+// Where an event is: the ZIP a coordinator typed for it, or its saved place's position around the home ZIP.
+function eventPoint(e){
+  if (e.zip && lookupZip(e.zip)) return lookupZip(e.zip);
+  const v = venueOf(e);
+  return v.east !== undefined ? offsetPoint(homeZip(), v.east, v.north) : homeZip();
+}
+function eventZipInfo(e){
+  if (e.zip && lookupZip(e.zip)) return lookupZip(e.zip);
+  const p = eventPoint(e);
+  return nearestZip(p.lat, p.lon);
+}
+function addressOf(e){
+  const v = venueOf(e), z = eventZipInfo(e);
+  return `${v.address ? v.address + ", " : ""}${z.city}, ${z.st} ${z.zip}`;
+}
+// The ZIP typed on Find opportunities, if it's a real one.
+function searchOrigin(){ const z = String(ui.find.zip || "").trim(); return /^\d{5}$/.test(z) ? lookupZip(z) : null; }
+const milesTo = (e, origin) => distanceMiles(origin, eventPoint(e));
 // Short code from the organization's initials, used on certificate numbers.
 const orgCode = () => (state.org.name.match(/[A-Za-z]+/g) || ["VH"]).map(w => w[0]).join("").slice(0, 4).toUpperCase();
 const isVerified = e => !!posterOf(e).verified;

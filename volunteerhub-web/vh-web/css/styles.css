@@ -358,3 +358,4 @@ textarea{resize:vertical}
 .popup-actions{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:14px}
 .popup-actions .pill{padding:8px 12px}
 .modal{max-width:720px}
+.filters .field.zipfield{flex:0 1 150px;min-width:130px}

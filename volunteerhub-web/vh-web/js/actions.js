@@ -35,16 +35,17 @@ function joinWaitlist(eid){
 
 function saveEventForm(form){
   const fd = new FormData(form), id = form.dataset.id ? +form.dataset.id : null, old = id ? eventById(id) : null;
-  const d = {title:fd.get("title").trim(), category:fd.get("category"), location:fd.get("location").trim(), area:fd.get("area"), date:fd.get("date"), start:fd.get("start"), end:fd.get("end"), slots:fd.get("slots"), skills:fd.getAll("skills"), desc:fd.get("desc").trim(),
+  const d = {title:fd.get("title").trim(), category:fd.get("category"), location:fd.get("location").trim(), zip:fd.get("zip").trim(), date:fd.get("date"), start:fd.get("start"), end:fd.get("end"), slots:fd.get("slots"), skills:fd.getAll("skills"), desc:fd.get("desc").trim(),
              bring:fd.get("bring").trim(), wear:fd.get("wear").trim(), minAge:fd.get("minAge").trim()};
   const n = Number(d.slots), signed = old ? activeRegs(old.id).length : 0, age = d.minAge === "" ? null : Number(d.minAge);
-  // If they picked a saved place, fill in its area automatically
+  // Saved places already have a location. Only store a ZIP when it's needed or different.
   const known = VENUES.find(v => d.location === v.name || d.location.startsWith(v.name + ","));
-  if (!d.area && known) d.area = known.area;
+  const knownZip = known ? eventZipInfo({location:d.location}).zip : "";
+  if (known && (!d.zip || d.zip === knownZip)) d.zip = "";
   const errs = {
     title: !d.title ? "Give the event a name." : d.title.length < 3 ? "Use at least 3 characters." : d.title.length > 80 ? "Keep the name under 80 characters." : "",
     location: !d.location ? "Enter where volunteers should go." : "",
-    area: !d.area ? "Choose the area of town, so volunteers can filter by location." : "",
+    zip: !d.zip && !known ? "Enter the ZIP code so volunteers nearby can find this shift." : d.zip ? zipError(d.zip) : "",
     minAge: age !== null && (!Number.isInteger(age) || age < 0 || age > 21) ? "Enter a whole number from 0 to 21, or leave it blank." : "",
     date: !/^\d{4}-\d{2}-\d{2}$/.test(d.date) ? "Choose a date." : (d.date < TODAY && (!old || old.date !== d.date)) ? "The date can't be in the past." : "",
     start: !/^\d{2}:\d{2}$/.test(d.start) ? "Choose a start time." : "",
@@ -93,17 +94,17 @@ function submitConcern(form){
   save(); closeModal(); render(); toast("Thanks for reporting. A coordinator will review this listing.");
 }
 
-// Save the organization's name, town, and description from Settings.
+// Save the organization's name, home ZIP, and description from Settings.
 function saveOrgSettings(form){
-  const fd = new FormData(form), name = fd.get("name").trim(), city = fd.get("city").trim(), about = fd.get("about").trim();
+  const fd = new FormData(form), name = fd.get("name").trim(), zip = fd.get("zip").trim(), about = fd.get("about").trim();
   const errs = {
     name: name.length < 2 ? "Enter your organization's name (at least 2 characters)." : !/[A-Za-z]/.test(name) ? "The name needs at least one letter." : "",
-    city: city.length < 2 ? "Enter your city or town." : "",
+    zip: zipError(zip),
     about: about.length > 160 ? "Keep the description under 160 characters." : "",
   };
   if (!showErrors(form, errs)) return;
-  state.org = {name, city, about};
-  save(); render(); toast(`Saved. The site now shows ${name}.`);
+  state.org = {name, zip, about};
+  save(); render(); toast(`Saved. ${name} in ${placeName(lookupZip(zip))}.`);
 }
 
 // Two-step confirm actions (the button says "Confirm ..." after the first click).
@@ -151,7 +152,7 @@ const handlers = {
   },
   authmode: (v) => { ui.authMode = v; render(); },
   demo: (v) => { state.session.userId = +v; ui.view = "dashboard"; save(); render(); toast(`Signed in as ${userById(+v).name}.`); maybeStartTour(); },
-  logout: () => { state.session.userId = null; ui.authMode = "login"; ui.armed = null; ui.tour = null; ui.cal = TODAY.slice(0, 7); ui.find.mode = ui.ev.mode = "list"; save(); render(); },
+  logout: () => { state.session.userId = null; ui.authMode = "login"; ui.armed = null; ui.tour = null; ui.cal = TODAY.slice(0, 7); ui.find.mode = ui.ev.mode = "list"; ui.find.zip = null; save(); render(); },
   font: (v) => { state.prefs.font = Math.max(13, Math.min(21, state.prefs.font + +v)); save(); applyPrefs(); },
   contrast: () => { state.prefs.hc = !state.prefs.hc; save(); render(); },
 

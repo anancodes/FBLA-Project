@@ -35,6 +35,14 @@ Until you finish these steps, the site keeps working as an offline demo.
 2. Optional: click **Add 6 sample events** to try things out.
 3. When other coordinators sign up, verify them in **Organizers** after checking they're real.
 
+## 7. Set up your school clubs
+1. Go to **Clubs** and choose **New club** for each club, like HOSA and NHS. Set the hour requirement and term dates.
+2. Share each club's join code with its members. Students join from **My clubs**.
+3. Next to a student's name, choose **Make officer** so they can approve hours and run club events.
+
+## When rules change
+If an update to the site includes a new `firestore.rules`, paste it into **Firestore Database → Rules** again and click **Publish**.
+
 ## Good to know
 - **Cost:** Firebase's free plan has daily limits that are plenty for a school project or a small nonprofit. You won't be charged unless you add a payment method.
 - **Competition day:** if the internet is unreliable, use the demo buttons on the login page. Demo mode works offline and never touches your live data.

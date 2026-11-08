@@ -14,7 +14,7 @@ function loginView(){
     <p class="lead">${esc(state.org.name)} posts its volunteer needs here.${state.org.about ? ` ${esc(state.org.about)}` : ""} Volunteers sign up in a few clicks, and coordinators check people in and report the hours.</p>
     <ul>
       <li><span class="tick">✓</span><span><b>Find a shift near you.</b> Search by ZIP code, cause, and your skills.</span></li>
-      <li><span class="tick">✓</span><span><b>Track your service hours</b> for school, scouts, or your résumé.</span></li>
+      <li><span class="tick">✓</span><span><b>Track club hours</b> for HOSA, NHS, and more, including service you log for approval.</span></li>
       <li><span class="tick">✓</span><span><b>Run the program.</b> Coordinators manage events, attendance, and reports.</span></li>
     </ul>
     <p class="fine">${live ? "Your account and sign-ups are saved securely and work on any device." : "This demo uses sample volunteers, events, and places. They are not real."}</p></section>`;

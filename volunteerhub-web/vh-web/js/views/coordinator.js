@@ -66,13 +66,14 @@ function cEvents(){
 }
 
 function eventForm(e){
-  const isCopy = !!e && e.id == null, isNew = !e || isCopy;   // a copy is a new event filled in from an old one
+  const isNew = !e || e.id == null, isCopy = isNew && !!e && !!e.title;   // a copy is a new event filled in from an old one
   e = e || {title:"", category:CATS[0], date:addDays(7), start:"09:00", end:"12:00", location:"", zip:"", slots:8, skills:[], desc:"", bring:"", wear:"", minAge:""};
   return `<form id="eventForm" class="stack" novalidate data-id="${isNew ? "" : e.id}">
     <div class="spread"><h2>${isCopy ? `Copy of ${esc(e.title)}` : isNew ? "New event" : "Edit event"}</h2><button type="button" class="btn secondary sm" data-act="close">Close</button></div>
     <p class="formerr" id="ef-err"></p>
     <div class="field"><label for="ef-title">Event name</label><input id="ef-title" name="title" value="${esc(e.title)}" placeholder="e.g. Saturday Food Sort"><span class="ferr" id="e-title"></span></div>
     <div class="grid2">
+      <div class="field"><label for="ef-club">Who can sign up</label><select id="ef-club" name="club">${currentUser().role === "coordinator" ? `<option value="">Everyone</option>` : ""}${managedClubs().map(c => `<option value="${c.id}" ${e.clubId === c.id ? "selected" : ""}>${esc(c.short)} members only</option>`).join("")}</select></div>
       <div class="field"><label for="ef-cat">Cause</label><select id="ef-cat" name="category">${CATS.map(c => `<option ${c === e.category ? "selected" : ""}>${c}</option>`).join("")}</select></div>
       <div class="field"><label for="ef-loc">Location</label><input id="ef-loc" name="location" list="venue-list" value="${esc(e.location)}" placeholder="Pick a saved place or type a new one"><datalist id="venue-list">${VENUES.map(v => `<option value="${esc(v.name)}"></option>`).join("")}</datalist><span class="ferr" id="e-location"></span></div>
       <div class="field"><label for="ef-zip">ZIP code</label><input id="ef-zip" name="zip" inputmode="numeric" maxlength="5" value="${esc(isNew && !isCopy ? "" : eventZipInfo(e).zip)}" placeholder="Filled in for saved places"><span class="muted small">Volunteers use this to find shifts near them.</span><span class="ferr" id="e-zip"></span></div>
@@ -95,20 +96,24 @@ function eventForm(e){
   </form>`;
 }
 
-function cCheckin(){
-  const pickable = state.events.filter(e => e.date >= addDays(-45)).sort(byDate);
-  if (!ui.ciEvent || !eventById(ui.ciEvent)){
-    const past = state.events.filter(e => e.date <= TODAY).sort((a,b) => byDate(b,a));
+function cCheckin(u){
+  // Club officers check people in only for their own clubs' events
+  const allowed = u.role === "coordinator" ? state.events : state.events.filter(e => e.clubId && isClubManager(e.clubId, u));
+  const pickable = allowed.filter(e => e.date >= addDays(-45)).sort(byDate);
+  if (!ui.ciEvent || !allowed.some(e => e.id === ui.ciEvent)){
+    const past = allowed.filter(e => e.date <= TODAY).sort((a,b) => byDate(b,a));
     ui.ciEvent = (past[0] || pickable[0] || {}).id;
   }
   const e = eventById(ui.ciEvent);
-  if (!e) return `<h1>Check-in</h1><div class="empty">No events yet.</div>`;
+  if (!e) return `<h1>Check-in</h1><div class="empty">No events to check in yet.</div>`;
   if (!pickable.includes(e)) pickable.unshift(e);
   const roster = activeRegs(e.id).map(r => ({r, u:userById(r.userId)})).sort((a,b) => a.u.name.localeCompare(b.u.name));
   const locked = e.date > TODAY;
   const present = roster.filter(x => x.r.status === "attended").length, absent = roster.filter(x => x.r.status === "no-show").length;
   const wait = waitlistFor(e.id).map(r => ({r, u:userById(r.userId)}));
-  const others = state.users.filter(u => u.role === "volunteer" && !roster.some(x => x.u.id === u.id)).sort((a,b) => a.name.localeCompare(b.name));
+  // Walk-ins: club members for a club event, otherwise any volunteer
+  const people = e.clubId ? clubMembers(e.clubId).map(m => ({id:m.userId, name:memberName(m.userId)})) : state.users.filter(x => x.role === "volunteer");
+  const others = people.filter(p => !roster.some(x => x.u.id === p.id)).sort((a,b) => a.name.localeCompare(b.name));
   ui.csv = {name:`roster-${e.date}-${e.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}.csv`, build:() => toCSV([[e.title, fmtDate(e.date), timeRange(e), e.location], [], ["Volunteer","Phone","Email","Status","Hours","Signature"], ...roster.map(({r, u}) => [u.name, u.phone, u.email, r.status, r.status === "attended" ? r.hours : "", ""])])};
   return `<div class="head"><div><h1>Check-in</h1><p class="muted">Mark who showed up. Hours are credited to each volunteer automatically.</p></div></div>
   <div class="card stack">

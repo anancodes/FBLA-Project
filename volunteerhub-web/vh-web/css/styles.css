@@ -367,3 +367,14 @@ textarea{resize:vertical}
 .sync{font-weight:600;color:var(--good)}
 .waiver-text{background:var(--surface-2);border-radius:10px;padding:16px;line-height:1.7;max-height:55vh;overflow:auto}
 .btn.armed:not(.danger){box-shadow:0 0 0 3px var(--mark-soft)}
+
+/* ===== Clubs ===== */
+.club-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+@media (max-width:420px){ .club-grid{grid-template-columns:minmax(0,1fr)} }
+.approval{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px 18px;align-items:center;padding:14px 0;border-top:1px solid var(--line)}
+.approval:first-of-type{border-top:0}
+.approve-actions{justify-content:flex-end;flex-wrap:wrap}
+.approve-actions input{width:220px}
+@media (max-width:760px){ .approval{grid-template-columns:minmax(0,1fr)} .approve-actions{justify-content:flex-start} .approve-actions input{width:100%} }
+.joincode{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:1.05rem;font-weight:700;letter-spacing:.06em;background:var(--surface-2);padding:6px 10px;border-radius:7px;color:var(--ink)}
+.selectable{user-select:all}

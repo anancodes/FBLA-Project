@@ -35,7 +35,7 @@ function eventCard(e, u){
   const match = e.skills.some(k => u.skills.includes(k));
   return `<article class="card ev">${dateChip(e.date)}
     <div class="ev-body">
-      <div class="tags"><span class="pill">${esc(e.category)}</span>${placePill(e)}${isVerified(e) ? `<span class="pill good">✓ Verified organizer</span>` : `<span class="pill warn">⚠ Unverified organizer</span>`}${match ? `<span class="pill accent">Matches your skills</span>` : ""}${e.date === TODAY ? `<span class="pill mark">Today</span>` : ""}</div>
+      <div class="tags"><span class="pill">${esc(e.category)}</span>${placePill(e)}${e.clubId && clubById(e.clubId) ? `<span class="pill accent">${esc(clubById(e.clubId).short)} members</span>` : isVerified(e) ? `<span class="pill good">✓ Verified organizer</span>` : `<span class="pill warn">⚠ Unverified organizer</span>`}${match ? `<span class="pill accent">Matches your skills</span>` : ""}${e.date === TODAY ? `<span class="pill mark">Today</span>` : ""}</div>
       <h3>${esc(e.title)}</h3>
       <p class="muted small">${fmtDate(e.date)} · ${timeRange(e)} · ${fmtH(duration(e))} hrs · ${esc(e.location)}</p>
       <p>${esc(e.desc)}</p>
@@ -81,7 +81,7 @@ function vHome(u){
   const s = userStats(u.id), pct = Math.min(100, Math.round(s.hours / HOUR_GOAL * 100));
   const up = s.upcoming.map(r => eventById(r.eventId)).sort(byDate);
   const soon = up.filter(e => { const h = hoursUntil(e); return h > -duration(e) && h <= 72; });   // shifts in the next 3 days
-  const recs = state.events.filter(e => e.date >= TODAY && isVerified(e) && spotsLeft(e) > 0 && !myReg(u.id, e.id) && e.skills.some(k => u.skills.includes(k))).sort(byDate).slice(0, 3);
+  const recs = state.events.filter(e => e.date >= TODAY && canSeeEvent(e, u) && isVerified(e) && spotsLeft(e) > 0 && !myReg(u.id, e.id) && e.skills.some(k => u.skills.includes(k))).sort(byDate).slice(0, 3);
   const notes = noticesFor(u.id).filter(n => !n.read);
   const seen = readSet(u.id), news = announcementsFor(u).slice(0, 2);
   const next = up[0];
@@ -110,7 +110,7 @@ function vFind(u){
   if (f.zip === null) f.zip = u.zip || "";                   // start from the volunteer's saved ZIP
   const zipTyped = String(f.zip).trim(), zipMsg = zipTyped.length >= 5 || /\D/.test(zipTyped) ? zipError(zipTyped) : "";
   const origin = searchOrigin();
-  let list = state.events.filter(e => e.date >= TODAY).sort(byDate);
+  let list = state.events.filter(e => e.date >= TODAY && canSeeEvent(e, u)).sort(byDate);
   if (f.cat !== "all") list = list.filter(e => e.category === f.cat);
   if (f.verifiedOnly) list = list.filter(isVerified);
   if (q) list = list.filter(e => (e.title + " " + e.location + " " + e.desc + " " + addressOf(e)).toLowerCase().includes(q));
@@ -160,10 +160,14 @@ function vShifts(u){
 }
 
 // Verified-hours certificate for one volunteer, shown in a printable pop-up.
+// Approved outside service, shaped like event sign-ups so hours lists and certificates can include it.
+const outsideRows = uid => state.hourLogs.filter(l => l.userId === uid && l.status === "approved")
+  .map(l => ({r:{hours:l.hours}, e:{date:l.date, start:"00:00", title:`${l.place} (outside service)`, category:"Outside service", location:l.place}}));
+
 function certificate(u){
-  const rs = state.regs.filter(r => r.userId === u.id && r.status === "attended").map(r => ({r, e:eventById(r.eventId)})).sort((a, b) => byDate(a.e, b.e));
+  const rs = state.regs.filter(r => r.userId === u.id && r.status === "attended").map(r => ({r, e:eventById(r.eventId)})).concat(outsideRows(u.id)).sort((a, b) => byDate(a.e, b.e));
   const total = sum(rs.map(x => x.r.hours));
-  const byCat = CATS.map(c => ({c, h:sum(rs.filter(x => x.e.category === c).map(x => x.r.hours))})).filter(x => x.h > 0);
+  const byCat = [...CATS, "Outside service"].map(c => ({c, h:sum(rs.filter(x => x.e.category === c).map(x => x.r.hours))})).filter(x => x.h > 0);
   const range = rs.length ? `${fmtDate(rs[0].e.date, {month:"long", day:"numeric", year:"numeric"})} through ${fmtDate(rs[rs.length - 1].e.date, {month:"long", day:"numeric", year:"numeric"})}` : "";
   const certNo = `${orgCode()}-${new Date().getFullYear()}-${String(u.id).padStart(4, "0")}`;
   return `<div class="spread no-print"><h2>Service certificate</h2><div class="row"><button class="btn" data-act="printCert">Print certificate</button><button class="btn secondary" data-act="close">Close</button></div></div>
@@ -180,9 +184,9 @@ function certificate(u){
 }
 
 function vHours(u){
-  const rs = state.regs.filter(r => r.userId === u.id && r.status === "attended").map(r => ({r, e:eventById(r.eventId)})).sort((a, b) => byDate(b.e, a.e));
+  const rs = state.regs.filter(r => r.userId === u.id && r.status === "attended").map(r => ({r, e:eventById(r.eventId)})).concat(outsideRows(u.id)).sort((a, b) => byDate(b.e, a.e));
   const total = sum(rs.map(x => x.r.hours));
-  const byCat = CATS.map(c => ({label:c, value:sum(rs.filter(x => x.e.category === c).map(x => x.r.hours))})).filter(x => x.value > 0).sort((a, b) => b.value - a.value);
+  const byCat = [...CATS, "Outside service"].map(c => ({label:c, value:sum(rs.filter(x => x.e.category === c).map(x => x.r.hours))})).filter(x => x.value > 0).sort((a, b) => b.value - a.value);
   ui.csv = {name:`volunteer-hours-${u.name.toLowerCase().replace(/\s+/g, "-")}.csv`, build:() => toCSV([["Date","Event","Cause","Location","Hours"], ...rs.map(({r, e}) => [e.date, e.title, e.category, e.location, r.hours]), ["","","","Total", total]])};
   return `<div class="head"><div><h1>My hours</h1><p class="muted">Your verified service record. Hours count once a coordinator checks you in.</p></div>
     <div class="row no-print"><button class="btn" data-act="cert" data-id="${u.id}">View certificate</button>${exportBar()}</div></div>

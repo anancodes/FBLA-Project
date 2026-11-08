@@ -128,5 +128,39 @@ function seed(){
   users.find(u => u.id === 2).zip = nearestZip(near.lat, near.lon).zip;
   // Every sample account uses the password demo1234, stored only as a salted hash
   users.forEach(u => { const h = hashPassword("demo1234", "demo" + u.id); u.passSalt = h.salt; u.passHash = h.hash; u.reads = []; u.toured = false; u.emergency = ""; });
-  return {v:DATA_VERSION, org, users, events, regs, announcements, notices:[], reads:{}, toured:{}, concerns:[], session:{userId:null}, prefs:{font:15, hc:false}};
+  // ----- School clubs: a HOSA chapter and an NHS chapter -----
+  const termStart = addDays(-80), termEnd = addDays(45);
+  const clubs = [
+    {id:1, name:"HOSA – Future Health Professionals", short:"HOSA", about:"Students preparing for careers in health care.", req:{hours:10, label:"Fall term", start:termStart, end:termEnd}, createdBy:1},
+    {id:2, name:"National Honor Society", short:"NHS", about:"Scholarship, service, leadership, and character.", req:{hours:15, label:"Fall term", start:termStart, end:termEnd}, createdBy:1},
+  ];
+  const clubCodes = {1:"HOSA-7K2PQM", 2:"NHS-4RT9XW"};
+  const memberships = [], hourLogs = [];
+  const join = (clubId, uid, role) => { const u = users.find(x => x.id === uid); memberships.push({id:`${clubId}_${uid}`, clubId, userId:uid, role, name:u.name, email:u.email, joinedAt:termStart}); };
+  [1, 2].forEach(c => join(c, 1, "adviser"));
+  join(1, 2, "member"); join(2, 2, "officer");                       // Maya: HOSA member, NHS officer
+  [3, 6, 7, 10, 12, 14].forEach(uid => join(1, uid, uid === 6 ? "officer" : "member"));
+  [4, 5, 8, 9, 11, 13].forEach(uid => join(2, uid, "member"));
+  // Health-related events belong to HOSA; tutoring belongs to NHS
+  events.forEach(e => { if (/Health Fair|Tech Help Desk/.test(e.title)) e.clubId = 1; else if (/Homework Help|ESL/.test(e.title)) e.clubId = 2; });
+  const log = (clubId, uid, daysAgo, hours, place, activity, status, note = "") => hourLogs.push({id:hourLogs.length + 1, clubId, userId:uid, name:users.find(x => x.id === uid).name,
+    date:addDays(-daysAgo), hours, place, activity, supervisor:"Dana Whitfield", contact:"dwhitfield@example.org", status, at:addDays(-daysAgo) + "T18:00:00.000Z",
+    reviewedBy:status === "pending" ? "" : "Jordan Reyes", reviewedAt:status === "pending" ? "" : addDays(-daysAgo + 2), note});
+  log(1, 2, 30, 3, "Memorial Hospital, front desk", "Greeted visitors and helped families find patient rooms.", "approved");
+  log(1, 2, 4, 2, "Memorial Hospital, gift shop", "Restocked shelves and helped run the register.", "pending");
+  log(1, 3, 12, 4, "Red Cross blood drive", "Checked in donors and handed out snacks after donations.", "approved");
+  log(1, 7, 6, 2.5, "Riverside Nursing Home", "Led a bingo afternoon for residents.", "pending");
+  log(2, 4, 9, 3, "Westside Elementary", "Tutored second graders in reading.", "pending");
+  log(2, 8, 15, 2, "Public library book sale", "Sorted donated books and staffed the checkout table.", "approved");
+  log(2, 9, 3, 5, "Habitat for Humanity build", "Helped frame walls and carry supplies.", "pending");
+  log(2, 11, 20, 1, "Animal shelter", "Walked dogs.", "rejected", "Please log at least the full shift and add your supervisor's direct email.");
+  // A realistic mix: some members are done, some on track, some behind
+  log(1, 6, 40, 8, "Memorial Hospital, patient transport", "Pushed wheelchairs and escorted patients to appointments.", "approved");
+  log(1, 10, 25, 4, "Red Cross blood drive", "Ran the snack table and checked on donors.", "approved");
+  log(1, 14, 50, 6, "Community health clinic", "Organized supply rooms and greeted patients.", "approved");
+  log(2, 5, 45, 9, "Food bank warehouse", "Sorted and boxed donations.", "approved");
+  log(2, 13, 35, 14, "Summer reading camp", "Read with kids and ran activity stations.", "approved");
+  log(2, 9, 60, 6, "Park cleanup day", "Picked up litter and planted flowers.", "approved");
+
+  return {v:DATA_VERSION, org, clubs, memberships, hourLogs, clubCodes, users, events, regs, announcements, notices:[], reads:{}, toured:{}, concerns:[], session:{userId:null}, prefs:{font:15, hc:false}};
 }

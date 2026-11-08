@@ -47,10 +47,10 @@ const DB = {
     const u = currentUser();
     if (!this.live) return true;
     const e = eventById(r.eventId);
-    return r.userId === u.id || this.isVerifiedCoordinator(u) || (u.role === "coordinator" && !!e && e.postedBy === u.id);
+    return r.userId === u.id || this.isVerifiedCoordinator(u) || (!!e && ((u.role === "coordinator" && e.postedBy === u.id) || (!!e.clubId && isClubManager(e.clubId, u))));
   },
-  canNotify(userId){
+  canNotify(userId, clubId){
     const u = currentUser();
-    return !this.live || userId === u.id || this.isVerifiedCoordinator(u);
+    return !this.live || userId === u.id || this.isVerifiedCoordinator(u) || (!!clubId && isClubManager(clubId, u) && !!membershipOf(clubId, userId));
   },
 };

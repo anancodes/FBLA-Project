@@ -36,6 +36,8 @@ All volunteers, events, and places are sample data. Set your organization's name
 
 **Settings:** coordinators enter their organization's name, home ZIP code, and description, and they appear across the whole site, so any nonprofit can use it as its own.
 
+**School clubs:** each club (for example HOSA or NHS) has a join code, an adviser, and student officers. Members earn hours at club events, which count automatically at check-in, and by logging outside service with a supervisor's contact for an officer to approve. Each club sets an hour requirement for the term. Members see progress bars, and officers see who's done, on track, or behind and can download the list. Club events are visible only to members. Officers can't approve their own hours.
+
 **Site admins:** verify new organizers on the Organizers screen, which includes a checklist for confirming they're real.
 
 **More for coordinators:** copy an event to the next week or repeat it weekly, notify everyone signed up when an event's date, time, or place changes or it's cancelled, copy a roster's email addresses, and see volunteers' emergency contacts.
@@ -63,6 +65,8 @@ All volunteers, events, and places are sample data. Set your organization's name
 | `js/views/coordinator.js` | Coordinator screens and report calculations |
 | `js/views/help.js` | Help screen |
 | `js/views/settings.js` | Organization settings (name, home ZIP, description) |
+| `js/clubs.js` | Club logic: join codes, hour requirements and progress, logging and approving hours |
+| `js/views/clubs.js` | My clubs (members) and Manage clubs (advisers and officers) |
 | `js/views/organizers.js` | Site admin screen for verifying organizers |
 | `js/views/news.js` | Announcements screen (post for coordinators, read for volunteers) |
 | `js/tour.js` | First-login guided tour |

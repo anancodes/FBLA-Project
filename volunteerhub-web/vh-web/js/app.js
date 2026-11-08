@@ -34,24 +34,28 @@ function render(){
 }
 
 const NAV = {
-  volunteer: [["dashboard","Home"],["find","Find opportunities"],["shifts","My shifts"],["hours","My hours"],["news","Announcements"],["profile","Profile"],["help","Help"]],
-  coordinator: [["dashboard","Overview"],["events","Events"],["checkin","Check-in"],["volunteers","Volunteers"],["reports","Reports"],["news","Announcements"],["settings","Settings"],["help","Help"]],
+  volunteer: [["dashboard","Home"],["find","Find opportunities"],["shifts","My shifts"],["hours","My hours"],["clubs","My clubs"],["news","Announcements"],["profile","Profile"],["help","Help"]],
+  coordinator: [["dashboard","Overview"],["events","Events"],["checkin","Check-in"],["volunteers","Volunteers"],["manage","Clubs"],["reports","Reports"],["news","Announcements"],["settings","Settings"],["help","Help"]],
 };
 const VIEWS = {
-  volunteer: {dashboard:vHome, find:vFind, shifts:vShifts, hours:vHours, news:newsView, profile:vProfile, help:helpView},
-  coordinator: {dashboard:cHome, events:cEvents, checkin:cCheckin, volunteers:cVolunteers, reports:cReports, news:newsView, settings:cSettings, organizers:cOrganizers, help:helpView},
+  volunteer: {dashboard:vHome, find:vFind, shifts:vShifts, hours:vHours, clubs:vMyClubs, manage:manageClubsView, checkin:cCheckin, news:newsView, profile:vProfile, help:helpView},
+  coordinator: {dashboard:cHome, events:cEvents, checkin:cCheckin, volunteers:cVolunteers, reports:cReports, news:newsView, settings:cSettings, organizers:cOrganizers, manage:manageClubsView, help:helpView},
 };
 const THEME_LABEL = {auto:"Theme: Auto", light:"Theme: Light", dark:"Theme: Dark"};
 
 function shell(u){
   // Site admins get an extra screen for verifying organizers
-  const nav = u.admin ? [...NAV[u.role].slice(0, -1), ["organizers","Organizers"], ["help","Help"]] : NAV[u.role];
+  let nav = u.admin ? [...NAV[u.role].slice(0, -1), ["organizers","Organizers"], ["help","Help"]] : NAV[u.role];
+  // Student club officers also get the club tools
+  if (u.role === "volunteer" && managedClubs(u).length) nav = [...nav.slice(0, 5), ["manage","Manage clubs"], ["checkin","Club check-in"], ...nav.slice(5)];
   if (!nav.some(n => n[0] === ui.view)) ui.view = "dashboard";
   const upCount = u.role === "volunteer" ? userStats(u.id).upcoming.length : 0;
   const unread = unreadCount(u);
+  const pendingLogs = managedClubs(u).reduce((n, c) => n + state.hourLogs.filter(l => l.clubId === c.id && l.status === "pending" && l.userId !== u.id).length, 0);
   const pendingOrgs = u.admin ? state.users.filter(x => x.role === "coordinator" && !x.verified).length : 0;
   const badge = k => k === "shifts" && upCount ? `<span class="count" aria-label="${upCount} upcoming">${upCount}</span>`
                    : k === "news" && unread ? `<span class="count" aria-label="${unread} new">${unread}</span>`
+                   : k === "manage" && pendingLogs ? `<span class="count" aria-label="${pendingLogs} hours to review">${pendingLogs}</span>`
                    : k === "organizers" && pendingOrgs ? `<span class="count" aria-label="${pendingOrgs} waiting">${pendingOrgs}</span>` : "";
   const roleName = u.role === "coordinator" ? (u.admin ? "Coordinator · Site admin" : u.verified ? "Volunteer coordinator" : "Coordinator · not yet verified") : "Volunteer";
   const footer = DB.live
@@ -126,6 +130,9 @@ function handleSubmit(form){
   if (form.id === "annForm") postAnnouncement(form);
   if (form.id === "concernForm") submitConcern(form);
   if (form.id === "orgForm") saveOrgSettings(form);
+  if (form.id === "joinForm") joinClub(form);
+  if (form.id === "logForm") saveHourLog(form);
+  if (form.id === "clubForm") saveClub(form);
   if (form.id === "walkinForm"){
     const uid = asId(new FormData(form).get("user")), e = eventById(ui.ciEvent);
     if (!uid) return toast("Choose a volunteer first.", "bad");

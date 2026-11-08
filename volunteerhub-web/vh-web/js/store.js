@@ -16,7 +16,7 @@
  */
 "use strict";
 
-const DATA_VERSION = 6;   // bump this when the data shape changes so old saved data is replaced
+const DATA_VERSION = 7;   // bump this when the data shape changes so old saved data is replaced
 
 function load(){
   try {
@@ -51,7 +51,7 @@ const ui = {
 const currentUser = () => state.users.find(u => u.id === state.session.userId) || null;
 // Unknown or hidden users (for example, when the database doesn't let you see someone's
 // contact details) come back as a plain placeholder so screens never break.
-const userById = id => state.users.find(u => u.id === id) || {id, name:"Volunteer", email:"", phone:"", role:"volunteer", skills:[], availability:[], hidden:true};
+const userById = id => state.users.find(u => u.id === id) || {id, name:memberName(id), email:(state.memberships.find(m => m.userId === id) || {}).email || "", phone:"", role:"volunteer", skills:[], availability:[], hidden:true};
 const eventById = id => state.events.find(e => e.id === id);
 const coordinatorName = () => (state.users.find(u => u.role === "coordinator" && u.admin) || state.users.find(u => u.role === "coordinator" && u.verified) || {name:"Volunteer Coordinator"}).name;
 
@@ -86,17 +86,18 @@ function fillFromWaitlist(e){
     if (!DB.canManageReg(r)) break;
     DB.update("regs", r, {status:"registered"});
     // Same id on every device, so if two devices promote at once the person still gets one notice
-    notify(r.userId, `A spot opened up. You're now signed up for ${e.title} on ${fmtDate(e.date)}.`, `spot-${r.id}`);
+    notify(r.userId, `A spot opened up. You're now signed up for ${e.title} on ${fmtDate(e.date)}.`, `spot-${r.id}`, e.clubId);
     promoted.push(r);
   }
   return promoted;
 }
 
 /* ----- Notices (personal updates) and announcements ----- */
-function notify(uid, text, key){
-  if (!DB.canNotify(uid)) return;
+// clubId lets club officers send updates to their own members (the database checks this).
+function notify(uid, text, key, clubId){
+  if (!DB.canNotify(uid, clubId)) return;
   if (key && state.notices.some(n => n.id === key)) return;
-  DB.add("notices", {id:key || DB.newId("notices"), userId:uid, text, at:new Date().toISOString(), read:false});
+  DB.add("notices", {id:key || DB.newId("notices"), userId:uid, text, at:new Date().toISOString(), read:false, clubId:clubId || null});
 }
 const noticesFor = uid => state.notices.filter(n => n.userId === uid).sort((a, b) => b.at.localeCompare(a.at));
 
@@ -145,7 +146,8 @@ function searchOrigin(){ const z = String(ui.find.zip || "").trim(); return /^\d
 const milesTo = (e, origin) => distanceMiles(origin, eventPoint(e));
 // Short code from the organization's initials, used on certificate numbers.
 const orgCode = () => (state.org.name.match(/[A-Za-z]+/g) || ["VH"]).map(w => w[0]).join("").slice(0, 4).toUpperCase();
-const isVerified = e => !!posterOf(e).verified;
+// Club events are trusted: the database only lets a club's own adviser and officers post them.
+const isVerified = e => !!posterOf(e).verified || (!!e.clubId && !!clubById(e.clubId));
 const openConcerns = () => state.concerns.filter(c => c.status === "open").sort((a, b) => b.at.localeCompare(a.at));
 
 /* ----- Stats ----- */
@@ -153,7 +155,8 @@ function userStats(uid){
   const rs = state.regs.filter(r => r.userId === uid);
   const att = rs.filter(r => r.status === "attended");
   return {
-    hours: sum(att.map(r => r.hours)), attended: att.length,
+    eventHours: sum(att.map(r => r.hours)), outside: approvedOutsideHours(uid),
+    hours: sum(att.map(r => r.hours)) + approvedOutsideHours(uid), attended: att.length,
     noShows: rs.filter(r => r.status === "no-show").length,
     upcoming: rs.filter(r => r.status === "registered" && eventById(r.eventId).date >= TODAY),
     waitlisted: rs.filter(r => r.status === "waitlist" && eventById(r.eventId).date >= TODAY),

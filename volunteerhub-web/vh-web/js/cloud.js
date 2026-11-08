@@ -19,13 +19,15 @@ const Cloud = {
   online:typeof navigator !== "undefined" ? navigator.onLine : true,
   auth:null, fs:null,
   meSub:null, subs:[], roleKey:"", me:null,
-  data:{users:[], events:[], regs:[], announcements:[], notices:[], concerns:[]},
+  data:{users:[], events:[], regs:[], announcements:[], notices:[], concerns:[], clubs:[], memberships:[], hourLogs:[], clubCodes:{}},
   parts:{coords:[], all:null},
+  club:{key:"", subs:[], myM:[], myL:[], allM:null, allL:null, m:{}, l:{}},   // club data: yours + clubs you manage
   org:null,
 
   emptyState(){
     return {v:DATA_VERSION, org:Object.assign({name:"Your Organization", zip:DEFAULT_HOME_ZIP, about:"", waiver:DEFAULT_WAIVER}, this.org || {}),
-      users:[], events:[], regs:[], announcements:[], notices:[], concerns:[], session:{userId:null}, prefs:loadPrefs()};
+      users:[], events:[], regs:[], announcements:[], notices:[], concerns:[], clubs:[], memberships:[], hourLogs:[], clubCodes:{},
+      session:{userId:null}, prefs:loadPrefs()};
   },
 
   /* ----- Start up ----- */
@@ -70,7 +72,8 @@ const Cloud = {
     this.detach(); if (this.meSub){ this.meSub(); this.meSub = null; }
     this.me = null; this.roleKey = ""; DB.live = false;
     if (!user){
-      this.data = {users:[], events:[], regs:[], announcements:[], notices:[], concerns:[]};
+      this.data = {users:[], events:[], regs:[], announcements:[], notices:[], concerns:[], clubs:[], memberships:[], hourLogs:[], clubCodes:{}};
+      this.stopClubSubs();
       if (!ui.demo){ state = this.emptyState(); render(); }
       return;
     }
@@ -96,10 +99,42 @@ const Cloud = {
     watch("announcements", fs.collection("announcements"));
     watch("notices", fs.collection("notices").where("userId", "==", me.id));
     watch("concerns", coordLike ? fs.collection("concerns") : fs.collection("concerns").where("userId", "==", me.id));
+    // Clubs: everyone sees the list. Verified coordinators see all memberships and logged hours;
+    // students see their own, plus everything for clubs they manage (see syncClubSubs).
+    watch("clubs", fs.collection("clubs"));
+    const C = this.club; C.key = ""; C.allM = C.allL = null; C.myM = []; C.myL = [];
+    if (coordLike){
+      watch("memberships", fs.collection("memberships"), docs => { C.allM = docs; this.mergeClubs(); });
+      watch("hourLogs", fs.collection("hourLogs"), docs => { C.allL = docs; this.mergeClubs(); });
+    } else {
+      watch("memberships", fs.collection("memberships").where("userId", "==", me.id), docs => { C.myM = docs; this.mergeClubs(); });
+      watch("hourLogs", fs.collection("hourLogs").where("userId", "==", me.id), docs => { C.myL = docs; this.mergeClubs(); });
+    }
     if (coordLike) watch("users", fs.collection("users"), docs => { this.parts.all = docs; this.mergeUsers(); });
     else { this.parts.all = null; watch("users", fs.collection("users").where("role", "==", "coordinator"), docs => { this.parts.coords = docs; this.mergeUsers(); }); }
   },
-  detach(){ this.subs.forEach(stop => stop()); this.subs = []; },
+  detach(){ this.subs.forEach(stop => stop()); this.subs = []; this.stopClubSubs(); },
+
+  // Combine your own club records with those of clubs you manage (no duplicates).
+  mergeClubs(){
+    const C = this.club, byId = list => [...new Map(list.map(x => [x.id, x])).values()];
+    this.data.memberships = C.allM || byId([...C.myM, ...Object.values(C.m).flat()]);
+    this.data.hourLogs = C.allL || byId([...C.myL, ...Object.values(C.l).flat()]);
+    this.apply();
+  },
+  // When the clubs you manage change, listen to their members, hours, and join code.
+  syncClubSubs(){
+    if (!this.me) return;
+    const ids = managedClubs(this.me).map(c => c.id).sort((a, b) => a - b), key = ids.join(","), C = this.club;
+    if (key === C.key) return;
+    this.stopClubSubs(); C.key = key;
+    ids.forEach(id => {
+      if (!C.allM) C.subs.push(this.fs.collection("memberships").where("clubId", "==", id).onSnapshot(s => { C.m[id] = s.docs.map(d => d.data()); this.mergeClubs(); }, e => this.loadError("club members", e)));
+      if (!C.allL) C.subs.push(this.fs.collection("hourLogs").where("clubId", "==", id).onSnapshot(s => { C.l[id] = s.docs.map(d => d.data()); this.mergeClubs(); }, e => this.loadError("club hours", e)));
+      C.subs.push(this.fs.collection("clubSecrets").doc(String(id)).onSnapshot(d => { if (d.exists){ this.data.clubCodes[id] = d.data().code; this.apply(); } }, () => {}));
+    });
+  },
+  stopClubSubs(){ const C = this.club; C.subs.forEach(stop => stop()); C.subs = []; C.m = {}; C.l = {}; C.key = ""; },
   mergeUsers(){
     const list = (this.parts.all || this.parts.coords).filter(u => !this.me || u.id !== this.me.id);
     this.data.users = this.me ? [this.me, ...list] : list;
@@ -111,10 +146,12 @@ const Cloud = {
     if (ui.demo) return;
     const d = this.data, eventIds = new Set(d.events.map(e => e.id));
     Object.assign(state, {users:d.users, events:d.events, announcements:d.announcements, notices:d.notices, concerns:d.concerns,
+      clubs:d.clubs, memberships:d.memberships, hourLogs:d.hourLogs, clubCodes:Object.assign({}, d.clubCodes, state.clubCodes),
       regs:d.regs.filter(r => eventIds.has(r.eventId))});       // ignore sign-ups for deleted events
     const wasLive = DB.live;
     DB.live = !!this.me; state.session.userId = this.me ? this.me.id : null;
     if (DB.live && !wasLive){ ui.view = ui.view || "dashboard"; setTimeout(() => maybeStartTour(), 50); }
+    if (DB.live) this.syncClubSubs();
     this.later();
   },
   later(){
@@ -137,6 +174,18 @@ const Cloud = {
   update(coll, id, fields){ this.write(this.fs.collection(coll).doc(String(id)).update(clean(fields))); },
   remove(coll, id){ this.write(this.fs.collection(coll).doc(String(id)).delete()); },
   setOrg(org){ this.write(this.fs.doc("settings/org").set(clean(org))); },
+  // Join codes: clubSecrets shows managers the code; joinCodes lets members look one up.
+  setClubCode(clubId, code, old){
+    this.write(this.fs.collection("clubSecrets").doc(String(clubId)).set({code}));
+    this.write(this.fs.collection("joinCodes").doc(code).set({clubId}));
+    if (old) this.write(this.fs.collection("joinCodes").doc(old).delete());
+  },
+  findClubByCode(code){
+    return this.fs.collection("joinCodes").doc(code).get().then(d => {
+      if (!d.exists) throw new Error("not found");
+      return d.data().clubId;
+    });
+  },
 
   /* ----- Accounts ----- */
   login(email, password){

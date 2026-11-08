@@ -95,7 +95,7 @@ function saveEventForm(form){
   const fd = new FormData(form), id = form.dataset.id ? asId(form.dataset.id) : null, old = id ? eventById(id) : null;
   const d = {title:fd.get("title").trim(), category:fd.get("category"), location:fd.get("location").trim(), zip:fd.get("zip").trim(), date:fd.get("date"), start:fd.get("start"), end:fd.get("end"), slots:fd.get("slots"), skills:fd.getAll("skills"), desc:fd.get("desc").trim(),
              bring:fd.get("bring").trim(), wear:fd.get("wear").trim(), minAge:fd.get("minAge").trim()};
-  const repeat = Number(fd.get("repeat") || 0);
+  const repeat = Number(fd.get("repeat") || 0), clubId = fd.get("club") ? asId(fd.get("club")) : null;
   const n = Number(d.slots), signed = old ? activeRegs(old.id).length : 0, age = d.minAge === "" ? null : Number(d.minAge);
   // Saved places already have a location. Only store a ZIP when it's needed or different.
   const known = VENUES.find(v => d.location === v.name || d.location.startsWith(v.name + ","));
@@ -113,7 +113,8 @@ function saveEventForm(form){
     repeat: !Number.isInteger(repeat) || repeat < 0 || repeat > 12 ? "Choose from 0 to 12 weeks." : "",
   };
   if (!showErrors(form, errs)) { $("#ef-err").textContent = "Fix the highlighted fields to continue."; return; }
-  const ev = {...d, slots:n, minAge:age, updatedAt:TODAY};
+  if (clubId && !isClubManager(clubId)) return toast("You can only post events for clubs you manage.", "bad");
+  const ev = {...d, slots:n, minAge:age, clubId, updatedAt:TODAY};
   let msg;
   if (old){
     // Tell everyone signed up if the when or where changed
@@ -121,7 +122,7 @@ function saveEventForm(form){
     DB.update("events", old, ev);
     if (changed.length){
       [...activeRegs(old.id), ...waitlistFor(old.id)].filter(r => r.status !== "attended" && r.status !== "no-show")
-        .forEach(r => notify(r.userId, `${old.title} changed ${changed.join(" and ")}: now ${fmtDate(old.date)}, ${timeRange(old)}, at ${old.location}.`));
+        .forEach(r => notify(r.userId, `${old.title} changed ${changed.join(" and ")}: now ${fmtDate(old.date)}, ${timeRange(old)}, at ${old.location}.`, null, old.clubId));
     }
     const moved = fillFromWaitlist(old);                            // more spots? move people off the waitlist
     msg = `Event updated.${changed.length ? " Volunteers were told about the change." : ""}${moved.length ? ` ${moved.length} moved off the waitlist.` : ""}`;
@@ -195,7 +196,7 @@ function confirmAction(kind, id){
   }
   if (kind === "delete"){
     const e = eventById(id);
-    if (e.date >= TODAY) activeRegs(id).concat(waitlistFor(id)).forEach(r => notify(r.userId, `${e.title} on ${fmtDate(e.date)} was cancelled by the organizer. Sorry for the change.`));
+    if (e.date >= TODAY) activeRegs(id).concat(waitlistFor(id)).forEach(r => notify(r.userId, `${e.title} on ${fmtDate(e.date)} was cancelled by the organizer. Sorry for the change.`, null, e.clubId));
     state.regs.filter(r => r.eventId === id).forEach(r => DB.remove("regs", r.id));
     state.announcements.filter(a => a.audience === String(id)).forEach(a => DB.remove("announcements", a.id));
     DB.remove("events", id);
@@ -208,6 +209,13 @@ function confirmAction(kind, id){
     toast(kind === "verify" ? `${u.name} is now a verified organizer.` : `${u.name} is no longer verified.`);
   }
   if (kind === "delacct") return deleteMyAccount();
+  if (kind === "leaveclub" || kind === "removemember"){
+    const m = state.memberships.find(x => x.id === id), c = clubById(m.clubId);
+    DB.remove("memberships", m.id);
+    toast(kind === "leaveclub" ? `You left ${c.name}.` : `${m.name} was removed from ${c.name}.`);
+  }
+  if (kind === "dellog"){ DB.remove("hourLogs", id); toast("Logged hours deleted."); }
+  if (kind === "newcode"){ const c = clubById(id); setClubCode(c, makeCode(c.short)); toast("New join code made. The old one no longer works."); }
   if (kind === "reset"){
     const keep = {prefs:state.prefs, session:state.session, org:state.org};   // keep your organization settings
     state = Object.assign(seed(), keep);
@@ -316,6 +324,27 @@ const handlers = {
   concern: (_, id) => { openModal(concernForm(eventById(asId(id)))); },
   resolve: (_, id) => { const c = state.concerns.find(x => x.id === asId(id)); DB.update("concerns", c, {status:"resolved"}); save(); render(); toast("Concern marked resolved."); },
   sampleEvents: () => addSampleEvents(),
+
+  // Clubs
+  logHours: () => openModal(logForm(currentUser())),
+  manageClub: (_, id) => { ui.club = asId(id); handlers.nav("manage"); },
+  pickClub: (_, id) => { ui.club = asId(id); render(); },
+  newClub: () => openModal(clubForm(null)),
+  editClub: (_, id) => openModal(clubForm(clubById(asId(id)))),
+  newClubEvent: (_, id) => openModal(eventForm({...{title:"", category:CATS[0], date:addDays(7), start:"15:30", end:"17:30", location:"", zip:"", slots:10, skills:[], desc:"", bring:"", wear:"", minAge:""}, id:null, clubId:asId(id)})),
+  copyCode: (v) => copyText(v, `the join code ${v}`),
+  approveLog: (_, id) => reviewLog(asId(id), "approved"),
+  rejectLog: (_, id) => {
+    const note = (document.getElementById(`note-${id}`) || {}).value || "";
+    if (note.trim().length < 5){ toast("Add a short reason so the member knows what to fix.", "bad"); const el = document.getElementById(`note-${id}`); if (el) el.focus(); return; }
+    reviewLog(asId(id), "rejected", note.trim());
+  },
+  toggleOfficer: (_, id) => {
+    const m = state.memberships.find(x => x.id === id);
+    if (!isAdviser(m.clubId)) return toast("Only the club's adviser can change officers.", "bad");
+    DB.update("memberships", m, {role:m.role === "officer" ? "member" : "officer"}); save(); render();
+    toast(`${m.name} is now ${m.role === "officer" ? "an officer" : "a member"}.`);
+  },
 
   // Reports, exports, printing
   preset: (v) => { ui.rep.from = addDays(-+v); ui.rep.to = TODAY; render(); },

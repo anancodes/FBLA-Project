@@ -14,6 +14,14 @@ service cloud.firestore {
     function ownsEvent(eventId) {
       return get(/databases/$(database)/documents/events/$(string(eventId))).data.postedBy == request.auth.uid;
     }
+    // Clubs: a person's role in a club lives in memberships/{clubId}_{userId}
+    function membershipPath(clubId, uid) { return /databases/$(database)/documents/memberships/$(string(clubId) + '_' + uid); }
+    function clubRole(clubId) {
+      return exists(membershipPath(clubId, request.auth.uid)) ? get(membershipPath(clubId, request.auth.uid)).data.role : '';
+    }
+    function isManagerOf(clubId) { return signedIn() && (isAdmin() || (clubId != null && clubRole(clubId) in ['officer', 'adviser'])); }
+    function isAdviserOf(clubId) { return signedIn() && (isAdmin() || (clubId != null && clubRole(clubId) == 'adviser')); }
+    function eventClub(eventId) { return get(/databases/$(database)/documents/events/$(string(eventId))).data.get('clubId', null); }
 
     // People. Volunteers' contact details are visible only to themselves and verified coordinators.
     // Coordinators' profiles are visible to everyone signed in (they're the contact on events).
@@ -36,8 +44,13 @@ service cloud.firestore {
     // a verified coordinator, or an admin can change or delete them.
     match /events/{id} {
       allow read: if signedIn();
-      allow create: if isCoord() && request.resource.data.postedBy == request.auth.uid;
-      allow update, delete: if isCoord() && (resource.data.postedBy == request.auth.uid || isVerified());
+      // Coordinators post events; club officers post events for their own club.
+      // A club event can only be posted or moved into a club by that club's adviser or officers.
+      allow create: if request.resource.data.postedBy == request.auth.uid
+        && (request.resource.data.get('clubId', null) == null ? isCoord() : isManagerOf(request.resource.data.clubId));
+      allow update: if ((isCoord() && (resource.data.postedBy == request.auth.uid || isVerified())) || isManagerOf(resource.data.get('clubId', null)))
+        && (request.resource.data.get('clubId', null) == resource.data.get('clubId', null) || isManagerOf(request.resource.data.get('clubId', null)));
+      allow delete: if (isCoord() && (resource.data.postedBy == request.auth.uid || isVerified())) || isManagerOf(resource.data.get('clubId', null));
     }
 
     // Sign-ups. They hold only ids and a status, so everyone signed in can count them.
@@ -48,21 +61,24 @@ service cloud.firestore {
         (request.resource.data.userId == request.auth.uid
           && request.resource.data.status in ['registered', 'waitlist']
           && request.resource.data.hours == 0)
-        || isVerified() || (isCoord() && ownsEvent(request.resource.data.eventId)));
+        || isVerified() || (isCoord() && ownsEvent(request.resource.data.eventId)) || isManagerOf(eventClub(request.resource.data.eventId)));
       // Volunteers can cancel or move off the waitlist, but can't mark attendance or hours.
       allow update: if signedIn() && (
         (resource.data.userId == request.auth.uid
           && onlyChanges(['status'])
           && request.resource.data.status in ['registered', 'waitlist', 'cancelled']
           && !(resource.data.status in ['attended', 'no-show']))
-        || isVerified() || (isCoord() && ownsEvent(resource.data.eventId)));
-      allow delete: if isVerified() || (isCoord() && ownsEvent(resource.data.eventId));
+        || isVerified() || (isCoord() && ownsEvent(resource.data.eventId)) || isManagerOf(eventClub(resource.data.eventId)));
+      allow delete: if isVerified() || (isCoord() && ownsEvent(resource.data.eventId)) || isManagerOf(eventClub(resource.data.eventId));
     }
 
     // Personal updates ("a spot opened up"). Only the person can read theirs.
     match /notices/{id} {
       allow read: if signedIn() && resource.data.userId == request.auth.uid;
-      allow create: if signedIn() && (request.resource.data.userId == request.auth.uid || isVerified());
+      // You, a verified coordinator, or an officer of a club you're in can send you an update.
+      allow create: if signedIn() && (request.resource.data.userId == request.auth.uid || isVerified()
+        || (isManagerOf(request.resource.data.get('clubId', null))
+            && exists(membershipPath(request.resource.data.clubId, request.resource.data.userId))));
       allow update: if signedIn() && resource.data.userId == request.auth.uid && onlyChanges(['read']);
     }
 
@@ -78,6 +94,55 @@ service cloud.firestore {
       allow read: if signedIn() && (resource.data.userId == request.auth.uid || isVerified());
       allow create: if signedIn() && request.resource.data.userId == request.auth.uid && request.resource.data.status == 'open';
       allow update: if isVerified() && onlyChanges(['status']);
+    }
+
+    // ----- School clubs -----
+    match /clubs/{clubId} {
+      allow read: if signedIn();
+      allow create: if isVerified() && request.resource.data.createdBy == request.auth.uid;
+      allow update: if isAdviserOf(clubId);
+      allow delete: if isAdmin();
+    }
+
+    // Membership id is "{clubId}_{userId}". Members join with the club's code; the adviser
+    // is added when the club is created; advisers choose officers.
+    match /memberships/{id} {
+      allow read: if signedIn() && (resource.data.userId == request.auth.uid || isManagerOf(resource.data.clubId) || isVerified());
+      allow create: if signedIn() && request.resource.data.userId == request.auth.uid
+        && id == string(request.resource.data.clubId) + '_' + request.auth.uid
+        && (
+          (request.resource.data.role == 'member'
+            && get(/databases/$(database)/documents/joinCodes/$(request.resource.data.code)).data.clubId == request.resource.data.clubId)
+          || (request.resource.data.role == 'adviser'
+            && get(/databases/$(database)/documents/clubs/$(string(request.resource.data.clubId))).data.createdBy == request.auth.uid));
+      allow update: if isAdviserOf(resource.data.clubId) && resource.data.userId != request.auth.uid
+        && onlyChanges(['role']) && request.resource.data.role in ['member', 'officer'];
+      allow delete: if signedIn() && ((resource.data.userId == request.auth.uid && resource.data.role != 'adviser')
+        || (isManagerOf(resource.data.clubId) && resource.data.userId != request.auth.uid));
+    }
+
+    // Outside service hours that members log for officers to approve.
+    match /hourLogs/{id} {
+      allow read: if signedIn() && (resource.data.userId == request.auth.uid || isManagerOf(resource.data.clubId) || isVerified());
+      allow create: if signedIn() && request.resource.data.userId == request.auth.uid && request.resource.data.status == 'pending'
+        && exists(membershipPath(request.resource.data.clubId, request.auth.uid));
+      // Officers can't approve their own hours.
+      allow update: if isManagerOf(resource.data.clubId) && resource.data.userId != request.auth.uid
+        && onlyChanges(['status', 'reviewedBy', 'reviewedAt', 'note']) && request.resource.data.status in ['approved', 'rejected'];
+      allow delete: if signedIn() && resource.data.userId == request.auth.uid && resource.data.status == 'pending';
+    }
+
+    // Join codes. clubSecrets lets managers see their club's code; joinCodes lets a member
+    // look up ONE code they typed (no one can list all codes).
+    match /clubSecrets/{clubId} {
+      allow read: if isManagerOf(clubId);
+      allow write: if isAdviserOf(clubId);
+    }
+    match /joinCodes/{code} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if isAdviserOf(request.resource.data.clubId);
+      allow delete: if isAdviserOf(resource.data.clubId);
     }
 
     // Organization name, home ZIP, description, and waiver. Public so the login page can show them.

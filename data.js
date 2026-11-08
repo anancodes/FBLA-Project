@@ -1,7 +1,10 @@
 /*
  * data.js
  * App-wide constants (causes, skills, availability) and the sample data used for the demo.
+ * VENUES describes each place events happen (area, address, parking, accessibility).
+ * EVENT_INFO adds practical details per event type (what to bring and wear, minimum age).
  * seed() builds a fictional nonprofit with volunteers, events, and sign-up history.
+ * All names, places, and addresses are made up for the demo.
  */
 "use strict";
 
@@ -10,11 +13,39 @@ const CATS = ["Food Pantry","Tutoring","Environment","Senior Support","Fundraisi
 const SKILLS = ["Lifting","Driving","Spanish","Tutoring","Cooking","Tech","First Aid"];
 const AVAIL = ["Weekday mornings","Weekday evenings","Weekends"];
 const HOUR_GOAL = 60;   // service-hour goal shown to volunteers
+const AREAS = ["Downtown","Eastside","North Side","Riverside","West Side"];
+
+const VENUES = [
+  {name:"Riverbend Pantry Warehouse", area:"Downtown", address:"1420 Mill Street, Riverbend", parking:"Free lot behind the building.", access:"Ground floor and wheelchair accessible. Most tasks involve standing."},
+  {name:"St. Mark's Community Kitchen", area:"Downtown", address:"310 Church Street, Riverbend", parking:"Street parking on Church Street; free after 5 PM.", access:"Ramp at the side entrance. Kitchen work is standing."},
+  {name:"Eastside Library", area:"Eastside", address:"88 Harper Avenue, Riverbend", parking:"City lot across the street.", access:"Elevator to all floors and accessible restrooms."},
+  {name:"Lincoln Elementary Parking Lot", area:"Eastside", address:"700 Lincoln Way, Riverbend", parking:"Park on Elm Street; the lot is used for the event.", access:"Outdoors on pavement. Some lifting of 20-pound boxes."},
+  {name:"Miller Creek Trailhead", area:"North Side", address:"Miller Creek Road at Route 9, Riverbend", parking:"Gravel lot at the trailhead.", access:"Unpaved, uneven trail. Not wheelchair accessible."},
+  {name:"Northgate Mall, Center Court", area:"North Side", address:"4400 Northgate Boulevard, Riverbend", parking:"Mall parking garage, levels 2–4.", access:"Indoors, step-free."},
+  {name:"Riverside Park Pavilion", area:"Riverside", address:"5 Front Street, Riverbend", parking:"Free parking along Front Street.", access:"Paved paths to the pavilion. Outdoors."},
+  {name:"Oakwood Senior Center", area:"West Side", address:"2050 Oakwood Drive, Riverbend", parking:"Visitor spaces at the main entrance.", access:"Step-free building with accessible restrooms."},
+];
+// Matches "Eastside Library, Room B" to the "Eastside Library" venue.
+const venueOf = e => VENUES.find(v => e.location === v.name || e.location.startsWith(v.name + ",")) || {name:e.location, area:e.area || "Other", address:"", parking:"", access:""};
+
+const EVENT_INFO = {
+  "Saturday Food Sort":          {bring:"A water bottle.", wear:"Closed-toe shoes and clothes that can get dusty.", minAge:14},
+  "After-School Homework Help":  {bring:"Nothing. Supplies are provided.", wear:"Casual clothes.", minAge:16},
+  "Miller Creek Cleanup":        {bring:"Water and sunscreen. Gloves and bags are provided.", wear:"Long pants and sturdy shoes.", minAge:12},
+  "Senior Grocery Delivery":     {bring:"A valid driver's license and your own car.", wear:"Casual clothes.", minAge:18},
+  "Community Dinner Prep":       {bring:"A hair tie or hat.", wear:"Closed-toe shoes.", minAge:14},
+  "Tech Help Desk for Seniors":  {bring:"Nothing needed.", wear:"Casual clothes.", minAge:14},
+  "Fall 5K Check-In":            {bring:"A water bottle.", wear:"Layers. A volunteer T-shirt is provided.", minAge:12},
+  "Mobile Pantry Distribution":  {bring:"Work gloves, if you have them.", wear:"Closed-toe shoes.", minAge:14},
+  "ESL Conversation Circle":     {bring:"Nothing. Conversation guides are provided.", wear:"Casual clothes.", minAge:16},
+  "Neighborhood Health Fair":    {bring:"Nothing needed.", wear:"Business casual.", minAge:16},
+};
 
 function seed(){
   let s = 11; const rnd = () => (s = (s * 9301 + 49297) % 233280) / 233280;
   const users = [
-    {id:1, name:"Jordan Reyes", email:"coordinator@demo.org", phone:"555-201-4410", role:"coordinator", password:"demo1234", skills:[], availability:[]},
+    {id:1, name:"Jordan Reyes", email:"coordinator@demo.org", phone:"555-201-4410", role:"coordinator", password:"demo1234", skills:[], availability:[],
+     org:"Riverbend Community Pantry", verified:true, verifiedAt:addDays(-60)},
     {id:2, name:"Maya Chen", email:"volunteer@demo.org", phone:"555-318-0927", role:"volunteer", password:"demo1234", skills:["Tutoring","Tech","Spanish"], availability:["Weekday evenings","Weekends"]},
   ];
   const people = [["Liam Okafor",["Lifting","Driving"]],["Sofia Martinez",["Spanish","Cooking"]],["Ethan Brooks",["Tech","Tutoring"]],["Aisha Rahman",["First Aid","Cooking"]],["Noah Kim",["Lifting"]],["Grace Thompson",["Tutoring","Spanish"]],["Lucas Silva",["Driving","Lifting"]],["Priya Patel",["Tech","First Aid"]],["Owen Murphy",["Cooking","Lifting"]],["Zoe Williams",["Tutoring"]],["Daniel Nguyen",["Driving","Tech"]],["Hannah Lee",["First Aid","Spanish"]]];
@@ -37,7 +68,9 @@ function seed(){
   ];
   const offsets = [-154,-147,-140,-133,-126,-119,-112,-105,-98,-91,-84,-77,-70,-63,-56,-49,-42,-35,-28,-21,-14,-9,-5,-2,0,2,5,8,12,15,19,26];
   const events = offsets.map((o, i) => { const t = tpl[i % tpl.length];
-    return {id:i+1, title:t[0], category:t[1], start:t[2], end:t[3], location:t[4], slots:t[5], skills:t[6], desc:t[7], date:addDays(o)}; });
+    const date = addDays(o), posted = addDays(Math.min(0, o - 14));
+    return {id:i+1, title:t[0], category:t[1], start:t[2], end:t[3], location:t[4], area:venueOf({location:t[4]}).area, slots:t[5], skills:t[6], desc:t[7], date,
+            ...EVENT_INFO[t[0]], postedBy:1, postedAt:posted, updatedAt:posted}; });
   const regs = []; const vols = users.filter(u => u.role === "volunteer").map(u => u.id);
   events.forEach(e => {
     const past = e.date < TODAY;
@@ -64,6 +97,13 @@ function seed(){
       .forEach(uid => regs.push({id:regs.length+1, userId:uid, eventId:e.id, status:"waitlist", hours:0}));
   });
 
+  // A second organizer who has NOT been verified yet, with one listing (shows the "unverified" warning)
+  const casey = {id:users.length+1, name:"Casey Morgan", email:"casey@example.org", phone:"555-640-2291", role:"coordinator", password:"demo1234", skills:[], availability:[], org:"Northgate Holiday Helpers", verified:false};
+  users.push(casey);
+  events.push({id:events.length+1, title:"Holiday Gift Wrapping Booth", category:"Fundraising", date:addDays(9), start:"11:00", end:"15:00",
+    location:"Northgate Mall, Center Court", area:"North Side", slots:6, skills:[], desc:"Wrap gifts for shoppers in exchange for donations to local families.",
+    bring:"Scissors, if you have them.", wear:"Something festive.", minAge:16, postedBy:casey.id, postedAt:addDays(-1), updatedAt:addDays(-1)});
+
   // Sample announcements from the coordinator
   const ago = days => new Date(Date.now() - days * 86400000).toISOString();
   const announcements = [
@@ -73,5 +113,5 @@ function seed(){
   const mp = events.find(e => e.date >= TODAY && e.title === "Mobile Pantry Distribution");
   if (mp) announcements.push({id:3, title:"Parking change for Mobile Pantry", body:`For the ${fmtDate(mp.date)} distribution, please park on Elm Street. The school lot will be full of produce trucks.`, audience:String(mp.id), authorId:1, at:ago(1)});
 
-  return {v:2, users, events, regs, announcements, notices:[], reads:{}, toured:{}, session:{userId:null}, prefs:{font:15, hc:false}};
+  return {v:DATA_VERSION, users, events, regs, announcements, notices:[], reads:{}, toured:{}, concerns:[], session:{userId:null}, prefs:{font:15, hc:false}};
 }

@@ -50,6 +50,63 @@ function copyCSV(text){
 }
 
 /* ----- Export and print ----- */
+// Saves text as a file. Returns false if the browser blocked it.
+function downloadFile(name, text, type){
+  try {
+    const url = URL.createObjectURL(new Blob([text], {type}));
+    const a = document.createElement("a"); a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+    return true;
+  } catch(e){ return false; }
+}
+// Saves an event as a calendar file (.ics) that Google Calendar, Outlook, and Apple Calendar can open.
+function downloadICS(e){
+  const icsText = s => String(s).replace(/\\/g, "\\\\").replace(/[,;]/g, m => "\\" + m).replace(/\n/g, "\\n");
+  const stamp = (d, t) => d.replace(/-/g, "") + "T" + t.replace(":", "") + "00";
+  const v = venueOf(e);
+  const ics = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//VolunteerHub//EN", "BEGIN:VEVENT",
+    `UID:volunteerhub-event-${e.id}`, `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, "").slice(0, 15)}Z`,
+    `DTSTART:${stamp(e.date, e.start)}`, `DTEND:${stamp(e.date, e.end)}`,
+    `SUMMARY:${icsText("Volunteer: " + e.title)}`, `LOCATION:${icsText(v.address ? `${e.location}, ${v.address}` : e.location)}`,
+    `DESCRIPTION:${icsText(`${e.desc} Bring: ${e.bring || "nothing special"}.`)}`, "END:VEVENT", "END:VCALENDAR"].join("\r\n");
+  if (downloadFile(`${e.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${e.date}.ics`, ics, "text/calendar")) toast("Calendar file downloaded. Open it to add the shift to your calendar.");
+  else toast("Your browser blocked the download.", "bad");
+}
+
+// Practical details block used in both event pop-ups: where, what to bring, ages, contact.
+function eventFacts(e){
+  const v = venueOf(e), p = posterOf(e);
+  const fact = (label, value) => value ? `<div class="fact"><span class="lbl">${label}</span><span>${value}</span></div>` : "";
+  return `<div class="facts">
+    <div class="stack">
+      <h3>What to know</h3>
+      ${fact("What to bring", esc(e.bring))}
+      ${fact("What to wear", esc(e.wear))}
+      ${fact("Ages", e.minAge ? `${e.minAge} and older${e.minAge < 18 ? ". Under 18 needs a parent or guardian signature at check-in." : "."}` : "All ages")}
+      ${fact("Helpful skills", esc(e.skills.join(", ")) || "None needed")}
+      ${fact("Length", `${fmtH(duration(e))} hours`)}
+    </div>
+    <div class="stack">
+      <h3>Where</h3>
+      ${fact("Place", esc(e.location))}
+      ${fact("Address", esc(v.address))}
+      ${fact("Area", esc(e.area || v.area))}
+      ${fact("Parking", esc(v.parking))}
+      ${fact("Accessibility", esc(v.access))}
+      ${fact("Contact", `${esc(p.name)}${p.org ? `, ${esc(p.org)}` : ""}<br><span class="muted">${esc(p.phone || "")}${p.phone && p.email ? " · " : ""}${esc(p.email || "")}</span>`)}
+    </div></div>`;
+}
+
+// "Can I trust this?" box: who posted it, whether they're verified, and safety reminders.
+function trustBox(e){
+  const p = posterOf(e), posted = fmtDate(e.postedAt, {month:"short", day:"numeric", year:"numeric"});
+  const updated = e.updatedAt && e.updatedAt !== e.postedAt ? ` · Updated ${fmtDate(e.updatedAt, {month:"short", day:"numeric"})}` : "";
+  return p.verified
+    ? `<div class="trust ok"><b>✓ Verified organizer</b><p>${esc(p.name)} is a verified coordinator for ${esc(p.org)} (verified ${fmtDate(p.verifiedAt, {month:"short", day:"numeric", year:"numeric"})}). Your hours from this event are recorded at check-in.</p><p class="small muted">Posted ${posted}${updated}</p></div>`
+    : `<div class="trust warn"><b>⚠ This organizer isn't verified yet</b><p>${esc(p.name)}${p.org ? ` (${esc(p.org)})` : ""} hasn't been checked by VolunteerHub. Volunteer opportunities never ask you to pay, share bank details, or send ID numbers. Meet in public places, and tell a parent or guardian where you're going.</p><p class="small muted">Posted ${posted}${updated}</p></div>`;
+}
+
 // Saves text as a .csv file. Falls back to copy-and-paste if the browser blocks downloads.
 function downloadCSV(name, text){
   try {

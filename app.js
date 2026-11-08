@@ -18,8 +18,7 @@ function render(){
   // Keep an open event pop-up in sync (e.g. it shows "You're signed up" right after signing up).
   const m = $("#modal .modal");
   if (m && ui.modalEvent && eventById(ui.modalEvent) && u){
-    const e = eventById(ui.modalEvent);
-    m.innerHTML = u.role === "coordinator" ? eventDetail(e) : `<div class="spread"><h2>Event details</h2><button class="btn secondary sm" data-act="close">Close</button></div>${eventCard(e, u)}`;
+    m.innerHTML = eventPopup(eventById(ui.modalEvent), u);
   }
   if (fid){ const el = document.getElementById(fid); if (el){ el.focus(); try { if (sel) el.setSelectionRange(sel[0], sel[1]); } catch(e){} } }
 }
@@ -84,7 +83,9 @@ document.addEventListener("change", ev => {
   if (el.dataset.filter && (el.tagName === "SELECT" || el.type === "checkbox" || el.type === "date")){
     let v = el.type === "checkbox" ? el.checked : el.value;
     if (el.dataset.filter === "ciEvent") v = +v;
-    setFilter(el.dataset.filter, v); render();
+    setFilter(el.dataset.filter, v);
+    if (el.dataset.filter === "find.area") ui.find.venue = "all";    // a new area resets the location choice
+    render();
   }
   if (el.dataset.hours){
     const r = state.regs.find(x => x.id === +el.dataset.hours), h = Number(el.value);
@@ -107,7 +108,8 @@ document.addEventListener("submit", ev => {
     const errs = {name:V.name(d.name), email:V.email(d.email), phone:V.phone(d.phone), password:V.password(d.password), confirm: d.password !== d.confirm ? "Passwords don't match." : ""};
     if (!errs.email && state.users.some(u => u.email === d.email.trim().toLowerCase())) errs.email = "An account with this email already exists. Try logging in.";
     if (!showErrors(form, errs)) return;
-    const u = {id:nid(state.users), name:d.name.trim(), email:d.email.trim().toLowerCase(), phone:d.phone.trim(), role:d.role, password:d.password, skills:[], availability:[]};
+    const u = {id:nid(state.users), name:d.name.trim(), email:d.email.trim().toLowerCase(), phone:d.phone.trim(), role:d.role, password:d.password, skills:[], availability:[],
+               org:d.role === "coordinator" ? "Independent organizer" : "", verified:false};   // new organizers start unverified
     state.users.push(u); state.session.userId = u.id; ui.view = u.role === "volunteer" ? "profile" : "dashboard"; save(); render();
     toast(u.role === "volunteer" ? "Welcome! Add your skills so we can recommend shifts." : "Welcome! Create your first event to get started.");
     maybeStartTour();
@@ -121,6 +123,7 @@ document.addEventListener("submit", ev => {
   }
   if (form.id === "eventForm") saveEventForm(form);
   if (form.id === "annForm") postAnnouncement(form);
+  if (form.id === "concernForm") submitConcern(form);
   if (form.id === "walkinForm"){
     const uid = +new FormData(form).get("user"), e = eventById(ui.ciEvent);
     if (!uid) return toast("Choose a volunteer first.", "bad");

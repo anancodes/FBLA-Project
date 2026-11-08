@@ -9,7 +9,7 @@
 const TOURS = {
   volunteer: [
     {view:"dashboard", title:"Welcome to VolunteerHub", text:"This is your home page. Shift reminders, updates about your sign-ups, and progress toward your hour goal show up here."},
-    {view:"find", title:"Find opportunities", text:"Browse upcoming shifts as a list or a calendar, and filter by cause or by your skills. If a shift is full, join the waitlist and you'll get the next open spot automatically."},
+    {view:"find", title:"Find opportunities", text:"Browse upcoming shifts as a list or a calendar. Filter by cause, area of town, location, or your skills. Choose More info to see the address, what to bring, and who posted it. Look for the Verified organizer badge. If a shift is full, join the waitlist."},
     {view:"shifts", title:"My shifts", text:"See what you've signed up for and where you are on any waitlist. If you can't make it, cancel here so the next person in line gets your spot."},
     {view:"hours", title:"My hours", text:"Every hour a coordinator verifies is counted here. Print a service certificate for school or clubs, or download your hours as a spreadsheet."},
     {view:"news", title:"Announcements", text:"Messages from coordinators land here, like parking changes or new drives. The number on the menu shows how many are new."},

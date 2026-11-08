@@ -14,7 +14,7 @@
  */
 "use strict";
 
-const DATA_VERSION = 2;   // bump this when the data shape changes so old saved data is replaced
+const DATA_VERSION = 3;   // bump this when the data shape changes so old saved data is replaced
 
 function load(){
   try {
@@ -29,7 +29,7 @@ let state = load() || seed();
 // Temporary screen state (filters, open tabs, calendar month). Not saved.
 const ui = {
   view:"dashboard", authMode:"login", armed:null, csv:null, tour:null,
-  find:{q:"", cat:"all", match:false, hideFull:false, mode:"list"},
+  find:{q:"", cat:"all", area:"all", venue:"all", match:false, hideFull:false, verifiedOnly:true, mode:"list"},
   ev:{tab:"upcoming", q:"", mode:"list"}, cal:TODAY.slice(0, 7),
   ciEvent:null, vq:"",
   rep:{from:addDays(-90), to:TODAY, cat:"all", group:"volunteer", vol:"all"},
@@ -97,6 +97,12 @@ function markAllRead(u){
   state.reads[u.id] = announcementsFor(u).map(a => a.id);
   noticesFor(u.id).forEach(n => n.read = true);
 }
+
+/* ----- Trust ----- */
+// An event is from a verified organizer if the coordinator who posted it is verified.
+const posterOf = e => userById(e.postedBy) || {name:"Unknown organizer", org:"", verified:false};
+const isVerified = e => !!posterOf(e).verified;
+const openConcerns = () => state.concerns.filter(c => c.status === "open").sort((a, b) => b.at.localeCompare(a.at));
 
 /* ----- Stats ----- */
 function userStats(uid){

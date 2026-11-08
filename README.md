@@ -17,9 +17,11 @@ All data is sample data for a fictional organization. It is saved in your browse
 
 ## Features
 
-**Volunteers:** find opportunities as a list or calendar, filter by cause and skills, sign up (blocks overlapping shifts), join a waitlist for full events and get the spot automatically when someone cancels, reminders for shifts in the next 3 days, track verified hours toward a goal, print a service certificate, download hours as CSV, read announcements, edit skills and availability.
+**Volunteers:** find opportunities as a list or calendar, filter by cause, area of town, specific location, skills, and verified organizers, open More info for the address, parking, accessibility, what to bring and wear, minimum age, contact, and who posted it, add a shift to their own calendar (.ics), report a listing that seems wrong or unsafe, sign up (blocks overlapping shifts), join a waitlist for full events and get the spot automatically when someone cancels, reminders for shifts in the next 3 days, track verified hours toward a goal, print a service certificate, download hours as CSV, read announcements, edit skills and availability.
 
-**Coordinators:** program overview, create/edit/delete events (list or calendar), waitlists that fill automatically when spots open, check-in (present, no-show, walk-ins) with roster download and print, volunteer directory with reliability and certificates, reports filtered by dates, cause, and volunteer and grouped by volunteer, event, month, or cause, with CSV download, copy, and print, and announcements to everyone or to one event's volunteers.
+**Coordinators:** program overview, create/edit/delete events (list or calendar), waitlists that fill automatically when spots open, check-in (present, no-show, walk-ins) with roster download and print, volunteer directory with reliability and certificates, reports filtered by dates, cause, and volunteer and grouped by volunteer, event, month, or cause, with CSV download, copy, and print, announcements to everyone or to one event's volunteers, and a review list for concerns volunteers report.
+
+**Trust and safety:** every listing shows who posted it and when. Listings from verified organizers carry a badge, and volunteers see only verified listings unless they turn that filter off. Unverified listings show a safety warning. Volunteers can report a concern on any listing.
 
 **Everyone:** guided tour on first login (replay from Help), help page and FAQ, adjustable text size, high-contrast mode, dark mode, full keyboard support.
 

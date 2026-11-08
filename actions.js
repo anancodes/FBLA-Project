@@ -1,7 +1,7 @@
 /*
  * actions.js
  * What happens when the user does something: signing up, joining or leaving a waitlist,
- * saving an event, posting an announcement, and the `handlers` table that maps each
+ * saving an event, posting an announcement, reporting a concern, and the `handlers` table that maps each
  * button's data-act name to a function.
  */
 "use strict";
@@ -35,25 +35,31 @@ function joinWaitlist(eid){
 
 function saveEventForm(form){
   const fd = new FormData(form), id = form.dataset.id ? +form.dataset.id : null, old = id ? eventById(id) : null;
-  const d = {title:fd.get("title").trim(), category:fd.get("category"), location:fd.get("location").trim(), date:fd.get("date"), start:fd.get("start"), end:fd.get("end"), slots:fd.get("slots"), skills:fd.getAll("skills"), desc:fd.get("desc").trim()};
-  const n = Number(d.slots), signed = old ? activeRegs(old.id).length : 0;
+  const d = {title:fd.get("title").trim(), category:fd.get("category"), location:fd.get("location").trim(), area:fd.get("area"), date:fd.get("date"), start:fd.get("start"), end:fd.get("end"), slots:fd.get("slots"), skills:fd.getAll("skills"), desc:fd.get("desc").trim(),
+             bring:fd.get("bring").trim(), wear:fd.get("wear").trim(), minAge:fd.get("minAge").trim()};
+  const n = Number(d.slots), signed = old ? activeRegs(old.id).length : 0, age = d.minAge === "" ? null : Number(d.minAge);
+  // If they picked a saved place, fill in its area automatically
+  const known = VENUES.find(v => d.location === v.name || d.location.startsWith(v.name + ","));
+  if (!d.area && known) d.area = known.area;
   const errs = {
     title: !d.title ? "Give the event a name." : d.title.length < 3 ? "Use at least 3 characters." : d.title.length > 80 ? "Keep the name under 80 characters." : "",
     location: !d.location ? "Enter where volunteers should go." : "",
+    area: !d.area ? "Choose the area of town, so volunteers can filter by location." : "",
+    minAge: age !== null && (!Number.isInteger(age) || age < 0 || age > 21) ? "Enter a whole number from 0 to 21, or leave it blank." : "",
     date: !/^\d{4}-\d{2}-\d{2}$/.test(d.date) ? "Choose a date." : (d.date < TODAY && (!old || old.date !== d.date)) ? "The date can't be in the past." : "",
     start: !/^\d{2}:\d{2}$/.test(d.start) ? "Choose a start time." : "",
     end: !/^\d{2}:\d{2}$/.test(d.end) ? "Choose an end time." : (d.start && d.end <= d.start) ? "End time must be after the start time." : "",
     slots: !Number.isInteger(n) || n < 1 ? "Enter a whole number of at least 1." : n > 200 ? "The maximum is 200 volunteers." : n < signed ? `${signed} people are already signed up, so you need at least ${signed} spots.` : "",
   };
   if (!showErrors(form, errs)) { $("#ef-err").textContent = "Fix the highlighted fields to continue."; return; }
-  const ev = {...d, slots:n};
+  const ev = {...d, slots:n, minAge:age, updatedAt:TODAY};
   let msg;
   if (old){
     Object.assign(old, ev);
     const moved = fillFromWaitlist(old);                            // more spots? move people off the waitlist
     msg = moved.length ? `Event updated. ${moved.length} moved off the waitlist.` : "Event updated.";
   } else {
-    state.events.push({id:nid(state.events), ...ev});
+    state.events.push({id:nid(state.events), ...ev, postedBy:currentUser().id, postedAt:TODAY});
     msg = `${ev.title} was created.`;
   }
   save(); closeModal(); render(); toast(msg);
@@ -69,6 +75,22 @@ function postAnnouncement(form){
   const a = {id:nid(state.announcements), title, body, audience:fd.get("audience"), authorId:currentUser().id, at:new Date().toISOString()};
   state.announcements.push(a);
   save(); render(); toast(`Posted. It reaches ${reach(a)} ${reach(a) === 1 ? "volunteer" : "volunteers"}.`);
+}
+
+// A volunteer flags a listing that looks wrong, unsafe, or like a scam.
+function submitConcern(form){
+  const fd = new FormData(form), e = eventById(+form.dataset.id), u = currentUser();
+  const reason = fd.get("reason"), details = fd.get("details").trim();
+  const errs = {
+    reason: !reason ? "Choose what's wrong." : "",
+    details: reason === "Something else" && details.length < 5 ? "Tell us a little about the problem." : "",
+  };
+  if (!showErrors(form, errs)) return;
+  if (state.concerns.some(c => c.eventId === e.id && c.userId === u.id && c.status === "open")){
+    closeModal(); return toast("You already reported this listing. A coordinator is reviewing it.");
+  }
+  state.concerns.push({id:nid(state.concerns), eventId:e.id, userId:u.id, reason, details, at:new Date().toISOString(), status:"open"});
+  save(); closeModal(); render(); toast("Thanks for reporting. A coordinator will review this listing.");
 }
 
 // Two-step confirm actions (the button says "Confirm ..." after the first click).
@@ -95,9 +117,10 @@ function confirmAction(kind, id){
   }
 }
 
+// The right event pop-up for the person's role.
+const eventPopup = (e, u) => u.role === "coordinator" ? eventDetail(e) : volunteerEventPopup(e, u);
 function showEventPopup(id){
-  const e = eventById(id), u = currentUser();
-  openModal(u.role === "coordinator" ? eventDetail(e) : `<div class="spread"><h2>Event details</h2><button class="btn secondary sm" data-act="close">Close</button></div>${eventCard(e, u)}`);
+  openModal(eventPopup(eventById(id), currentUser()));
   ui.modalEvent = id;      // lets render() refresh this pop-up after a sign-up
 }
 
@@ -144,6 +167,12 @@ const handlers = {
     render();
   },
   calEvent: (_, id) => showEventPopup(+id),
+
+  // Event details, calendar file, and concerns
+  moreInfo: (_, id) => showEventPopup(+id),
+  ics: (_, id) => downloadICS(eventById(+id)),
+  concern: (_, id) => { openModal(concernForm(eventById(+id))); },
+  resolve: (_, id) => { const c = state.concerns.find(x => x.id === +id); c.status = "resolved"; save(); render(); toast("Concern marked resolved."); },
 
   // Reports, exports, printing
   preset: (v) => { ui.rep.from = addDays(-+v); ui.rep.to = TODAY; render(); },

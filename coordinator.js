@@ -26,6 +26,8 @@ function cHome(){
     ${tile("Average fill rate", fill, "Upcoming events", "%")}
     ${tile("No-show rate", att90 + ns90 ? Math.round(ns90 / (att90 + ns90) * 100) : 0, "Last 90 days", "%")}
   </section>
+  ${openConcerns().length ? `<section class="card" style="border-color:var(--bad)"><h2>Reported concerns (${openConcerns().length})</h2><p class="muted small">Volunteers flagged these listings. Review each one, fix or remove the listing if needed, then mark it resolved.</p>
+    ${openConcerns().map(c => { const e = eventById(c.eventId); return `<div class="mini"><span class="datechip" style="background:var(--bad-soft);color:var(--bad);padding:8px 0"><strong>!</strong></span><div style="min-width:0"><h3>${esc(c.reason)}</h3><p>${e ? `${esc(e.title)} · ${fmtDate(e.date)} · posted by ${esc(posterOf(e).name)}` : "Event was deleted"}${c.details ? `<br>"${esc(c.details)}"` : ""}<br>Reported ${new Date(c.at).toLocaleDateString("en-US", {month:"short", day:"numeric"})} by ${esc((userById(c.userId) || {name:"a volunteer"}).name)}</p></div><div class="row" style="justify-content:flex-end">${e ? `<button class="btn secondary sm" data-act="calEvent" data-id="${e.id}">View</button>` : ""}<button class="btn sm" data-act="resolve" data-id="${c.id}">Mark resolved</button></div></div>`; }).join("")}</section>` : ""}
   ${pending.length ? `<section class="card" style="border-color:var(--mark)"><div class="spread"><div><h2>Check-in needed</h2><p class="muted small">These events have volunteers who haven't been marked present or absent.</p></div></div>
     ${pending.map(e => eventMini(e, `<button class="btn sm" data-act="goCheckin" data-id="${e.id}">Open check-in</button>`)).join("")}</section>` : ""}
   <div class="cols">
@@ -53,7 +55,7 @@ function cEvents(){
   <div class="tablewrap"><table><thead><tr><th>Date</th><th>Event</th><th>Cause</th><th>Volunteers</th><th class="num">Actions</th></tr></thead><tbody>
   ${list.length ? list.map(e => { const n = activeRegs(e.id).length; return `<tr>
     <td style="white-space:nowrap"><b>${fmtDate(e.date)}</b><span class="sub">${timeRange(e)}</span></td>
-    <td>${esc(e.title)}<span class="sub">${esc(e.location)}</span></td>
+    <td>${esc(e.title)}${isVerified(e) ? "" : ` <span class="pill warn">Unverified organizer</span>`}<span class="sub">${esc(e.location)} · ${esc(e.area || venueOf(e).area)}</span></td>
     <td><span class="pill">${esc(e.category)}</span></td>
     <td><div class="fillcell">${fillMeter(e)}<span class="num small">${n}/${e.slots}</span></div>${waitlistFor(e.id).length ? `<span class="sub">+${waitlistFor(e.id).length} on waitlist</span>` : ""}</td>
     <td><div class="actions"><button class="btn secondary sm" data-act="goCheckin" data-id="${e.id}">Roster</button><button class="btn secondary sm" data-act="editEvent" data-id="${e.id}">Edit</button>${armBtn(`delete:${e.id}`, "Delete", "Confirm delete")}</div></td></tr>`; }).join("") : `<tr><td colspan="5" class="muted">No events found.</td></tr>`}
@@ -61,14 +63,15 @@ function cEvents(){
 }
 
 function eventForm(e){
-  const isNew = !e; e = e || {title:"", category:CATS[0], date:addDays(7), start:"09:00", end:"12:00", location:"", slots:8, skills:[], desc:""};
+  const isNew = !e; e = e || {title:"", category:CATS[0], date:addDays(7), start:"09:00", end:"12:00", location:"", area:"", slots:8, skills:[], desc:"", bring:"", wear:"", minAge:""};
   return `<form id="eventForm" class="stack" novalidate data-id="${isNew ? "" : e.id}">
     <div class="spread"><h2>${isNew ? "New event" : "Edit event"}</h2><button type="button" class="btn secondary sm" data-act="close">Close</button></div>
     <p class="formerr" id="ef-err"></p>
     <div class="field"><label for="ef-title">Event name</label><input id="ef-title" name="title" value="${esc(e.title)}" placeholder="e.g. Saturday Food Sort"><span class="ferr" id="e-title"></span></div>
     <div class="grid2">
       <div class="field"><label for="ef-cat">Cause</label><select id="ef-cat" name="category">${CATS.map(c => `<option ${c === e.category ? "selected" : ""}>${c}</option>`).join("")}</select></div>
-      <div class="field"><label for="ef-loc">Location</label><input id="ef-loc" name="location" value="${esc(e.location)}"><span class="ferr" id="e-location"></span></div>
+      <div class="field"><label for="ef-loc">Location</label><input id="ef-loc" name="location" list="venue-list" value="${esc(e.location)}" placeholder="Pick a saved place or type a new one"><datalist id="venue-list">${VENUES.map(v => `<option value="${esc(v.name)}"></option>`).join("")}</datalist><span class="ferr" id="e-location"></span></div>
+      <div class="field"><label for="ef-area">Area</label><select id="ef-area" name="area"><option value="">Choose an area…</option>${[...AREAS, "Other"].map(a => `<option ${(e.area || "") === a ? "selected" : ""}>${a}</option>`).join("")}</select><span class="ferr" id="e-area"></span></div>
     </div>
     <div class="grid3">
       <div class="field"><label for="ef-date">Date</label><input id="ef-date" name="date" type="date" value="${e.date}"><span class="ferr" id="e-date"></span></div>
@@ -78,6 +81,11 @@ function eventForm(e){
     </div>
     <div class="field"><span class="lbl">Helpful skills</span><div class="checks">${SKILLS.map(s => `<label class="check"><input type="checkbox" name="skills" value="${s}" ${e.skills.includes(s) ? "checked" : ""}> ${s}</label>`).join("")}</div></div>
     <div class="field"><label for="ef-desc">Description</label><textarea id="ef-desc" name="desc" rows="3">${esc(e.desc)}</textarea></div>
+    <div class="grid3">
+      <div class="field"><label for="ef-bring">What to bring</label><input id="ef-bring" name="bring" maxlength="120" value="${esc(e.bring || "")}" placeholder="e.g. A water bottle"><span class="ferr" id="e-bring"></span></div>
+      <div class="field"><label for="ef-wear">What to wear</label><input id="ef-wear" name="wear" maxlength="120" value="${esc(e.wear || "")}" placeholder="e.g. Closed-toe shoes"><span class="ferr" id="e-wear"></span></div>
+      <div class="field"><label for="ef-age">Minimum age <span class="muted">(optional)</span></label><input id="ef-age" name="minAge" type="number" min="0" max="21" value="${e.minAge || ""}"><span class="ferr" id="e-minAge"></span></div>
+    </div>
     <div class="row" style="justify-content:flex-end"><button type="button" class="btn secondary" data-act="close">Cancel</button><button class="btn" type="submit">${isNew ? "Create event" : "Save changes"}</button></div>
   </form>`;
 }
@@ -184,6 +192,9 @@ function eventDetail(e){
     <div class="row"><span class="pill">${esc(e.category)}</span>${e.date < TODAY ? `<span class="pill">Past</span>` : ""}</div>
     <p class="muted">${fmtDate(e.date, {weekday:"long", month:"long", day:"numeric"})} · ${timeRange(e)} · ${esc(e.location)}</p>
     <p>${esc(e.desc)}</p>
+    ${trustBox(e)}
+    ${eventFacts(e)}
+    ${state.concerns.filter(c => c.eventId === e.id && c.status === "open").length ? `<p class="formerr">${state.concerns.filter(c => c.eventId === e.id && c.status === "open").length} open concern(s) reported about this listing. See the Overview.</p>` : ""}
     <div class="fillcell">${fillMeter(e)}<span class="num small">${n}/${e.slots} signed up${w ? ` · ${w} on waitlist` : ""}</span></div>
     <div class="row" style="justify-content:flex-end"><button class="btn secondary" data-act="goCheckin" data-id="${e.id}">Open roster</button><button class="btn" data-act="editEvent" data-id="${e.id}">Edit event</button></div>`;
 }

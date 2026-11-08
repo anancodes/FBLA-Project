@@ -10,7 +10,29 @@ const LOGO = `<svg class="logo" viewBox="0 0 36 36" aria-hidden="true"><rect wid
 function dateChip(d){ const x = parseDate(d); return `<div class="datechip" aria-hidden="true"><span>${x.toLocaleDateString("en-US",{month:"short"})}</span><strong>${x.getDate()}</strong><span>${x.toLocaleDateString("en-US",{weekday:"short"})}</span></div>`; }
 function tile(label, val, sub = "", unit = ""){ return `<div class="card tile"><span class="lab">${label}</span><span class="val">${val}${unit ? `<small>${unit}</small>` : ""}</span>${sub ? `<span class="sub">${sub}</span>` : ""}</div>`; }
 function statusPill(st){ const m = {attended:["good","Attended"], "no-show":["bad","No-show"], registered:["accent","Signed up"], waitlist:["mark","Waitlist"], cancelled:["","Cancelled"]}[st]; return `<span class="pill ${m[0]}">${m[1]}</span>`; }
-function fillMeter(e){ const n = activeRegs(e.id).length, pct = Math.min(100, Math.round(n / e.slots * 100)); const cls = pct >= 100 ? "full" : (e.date >= TODAY && pct < 40 ? "low" : ""); return `<div class="meter ${cls}" role="img" aria-label="${n} of ${e.slots} spots filled"><span style="width:${pct}%"></span></div>`; }
+// Determinate bars share one continuous red -> yellow -> green scale. The CSS
+// endpoints become more saturated as progress increases and adapt to dark mode.
+function progressPercent(value, max){
+  return Number.isFinite(value) && Number.isFinite(max) && max > 0 ? Math.max(0, Math.min(100, value / max * 100)) : 0;
+}
+function progressColor(pct){
+  const p = progressPercent(pct, 100), low = p <= 50;
+  const mix = low ? p * 2 : (p - 50) * 2;
+  return `--progress-color:color-mix(in oklch, var(--progress-${low ? "low" : "mid"}) ${100 - mix}%, var(--progress-${low ? "mid" : "full"}) ${mix}%)`;
+}
+function progressMeter(value, max, label, role, valueText){
+  const pct = progressPercent(value, max);
+  return `<div class="meter" role="${role}" aria-label="${esc(label)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}" aria-valuetext="${esc(valueText)}" style="${progressColor(pct)}"><span style="width:${pct}%"></span></div>`;
+}
+function fillMeter(e){
+  const n = activeRegs(e.id).length;
+  return progressMeter(n, e.slots, `Spots filled for ${e.title}`, "meter", `${n} of ${e.slots} spots filled`);
+}
+function hourGoalTile(hours){
+  const pct = Math.floor(progressPercent(hours, HOUR_GOAL)), complete = hours >= HOUR_GOAL;
+  const text = `${fmtH(hours)} of ${HOUR_GOAL} verified hours${complete ? "; goal complete" : ""}`;
+  return `<div class="card tile"><span class="lab">Hour goal</span><span class="val">${pct}<small>%</small></span>${progressMeter(hours, HOUR_GOAL, "Service hour goal", "progressbar", text)}<span class="sub">${complete ? "Goal complete · " : ""}${fmtH(hours)} of ${HOUR_GOAL} hours</span></div>`;
+}
 function hbars(rows, unit = ""){
   if (!rows.length) return `<div class="empty">No data for these filters.</div>`;
   const max = Math.max(...rows.map(r => r.value)) || 1;
@@ -40,8 +62,49 @@ function armBtn(key, label, armedLabel, cls = "danger sm"){
 }
 
 /* ---------- Modal ---------- */
-function openModal(html){ ui.modalEvent = null; $("#modal").innerHTML = `<div class="overlay" data-act="overlay"><div class="modal" role="dialog" aria-modal="true">${html}</div></div>`; const f = $("#modal input, #modal select, #modal textarea, #modal button"); if (f) f.focus(); }
-function closeModal(){ $("#modal").innerHTML = ""; ui.modalEvent = null; }
+let modalOpener = null;
+// Buttons can be recreated by render(), so locate the equivalent control when
+// the original DOM node is gone. Match data attributes without building selectors.
+function replacementControl(element, root){
+  if (!element) return null;
+  if (root.contains(element)) return element;
+  if (element.id){ const found = document.getElementById(element.id); if (found && root.contains(found)) return found; }
+  if (element.dataset.act) return [...root.querySelectorAll("[data-act]")].find(el => ["act", "v", "id"].every(k => el.dataset[k] === element.dataset[k])) || null;
+  return null;
+}
+function modalControls(){
+  return [...document.querySelectorAll('#modal button, #modal input, #modal select, #modal textarea, #modal a[href], #modal [tabindex]')].filter(el => !el.disabled && el.tabIndex >= 0 && el.getClientRects().length);
+}
+function openModal(html){
+  if (!$("#modal").firstElementChild) modalOpener = document.activeElement;
+  ui.modalEvent = null;
+  $("#modal").innerHTML = `<div class="overlay" data-act="overlay"><div class="modal" role="dialog" aria-modal="true" tabindex="-1">${html}</div></div>`;
+  const dialog = $("#modal .modal"), title = dialog.querySelector("h1, h2, h3");
+  if (title){ title.id = "modal-title"; dialog.setAttribute("aria-labelledby", title.id); }
+  else dialog.setAttribute("aria-label", "VolunteerHub dialog");
+  $("#app").inert = true;
+  (modalControls()[0] || dialog).focus();
+}
+function closeModal(restoreFocus = true){
+  if (!$("#modal").firstElementChild) return;
+  const opener = modalOpener;
+  $("#modal").innerHTML = ""; ui.modalEvent = null; modalOpener = null;
+  $("#app").inert = false;
+  // Save/form handlers may redraw the app after closing; restore after that work.
+  if (restoreFocus) queueMicrotask(() => {
+    const target = replacementControl(opener, $("#app")) || $("#main");
+    if (target) target.focus();
+  });
+}
+function trapModalTab(ev){
+  const dialog = $("#modal .modal");
+  if (!dialog) return;
+  const controls = modalControls(), first = controls[0], last = controls[controls.length - 1];
+  if (!first){ ev.preventDefault(); dialog.focus(); return; }
+  if (!controls.includes(document.activeElement) || (ev.shiftKey ? document.activeElement === first : document.activeElement === last)){
+    ev.preventDefault(); (ev.shiftKey ? last : first).focus();
+  }
+}
 
 function copyCSV(text){
   const fallback = () => openModal(`<div class="spread"><h2>Copy report data</h2><button class="btn secondary sm" data-act="close">Close</button></div><p class="muted">Select all of the text below, copy it, and paste it into Excel or Google Sheets.</p><textarea id="csvbox" rows="12" readonly>${esc(text)}</textarea>`);
@@ -152,7 +215,8 @@ function calendarView(events, chipFor, legend = ""){
     ${legend}</section>`;
 }
 function calChip(e, cls, label = ""){
-  return `<button class="cal-chip ${cls}" data-act="calEvent" data-id="${e.id}" title="${esc(`${e.title}, ${timeRange(e)}${label ? ` (${label})` : ""}`)}"><b>${fmtTime(e.start).replace(":00", "").replace(" ", "").toLowerCase()}</b> ${esc(e.title)}</button>`;
+  const name = `${e.title}, ${fmtDate(e.date)}, ${timeRange(e)}${label ? ` (${label})` : ""}`;
+  return `<button class="cal-chip ${cls}" data-act="calEvent" data-id="${e.id}" aria-label="${esc(name)}" title="${esc(name)}"><b>${fmtTime(e.start).replace(":00", "").replace(" ", "").toLowerCase()}</b> ${esc(e.title)}</button>`;
 }
 function listCalToggle(mode, key){
   return `<div class="tabs" role="tablist" aria-label="View as">

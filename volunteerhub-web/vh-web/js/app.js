@@ -18,7 +18,10 @@ function render(){
   // Keep an open event pop-up in sync (e.g. it shows "You're signed up" right after signing up).
   const m = $("#modal .modal");
   if (m && ui.modalEvent && eventById(ui.modalEvent) && u){
+    const hadModalFocus = m.contains(a);
     m.innerHTML = eventPopup(eventById(ui.modalEvent), u);
+    const title = m.querySelector("h2"); if (title) title.id = "modal-title";
+    if (hadModalFocus) (replacementControl(a, m) || modalControls()[0] || m).focus();
   }
   if (fid){ const el = document.getElementById(fid); if (el){ el.focus(); try { if (sel) el.setSelectionRange(sel[0], sel[1]); } catch(e){} } }
 }
@@ -44,8 +47,8 @@ function shell(u){
       <div class="brand">${LOGO}<div><strong>VolunteerHub</strong><span>Riverbend Community Pantry</span></div></div>
       <div class="tools">
         <div class="seg" role="group" aria-label="Text size">
-          <button data-act="font" data-v="-2" aria-label="Smaller text">A−</button>
-          <button data-act="font" data-v="2" aria-label="Larger text">A+</button>
+          <button data-act="font" data-v="-2" aria-label="A−, smaller text">A−</button>
+          <button data-act="font" data-v="2" aria-label="A+, larger text">A+</button>
         </div>
         <div class="seg"><button data-act="contrast" aria-pressed="${state.prefs.hc}">High contrast</button></div>
         <div class="who"><span class="avatar" aria-hidden="true">${esc(initials(u.name))}</span><span class="who-name">${esc(u.name)}<small>${u.role === "coordinator" ? "Volunteer coordinator" : "Volunteer"}</small></span></div>
@@ -57,10 +60,9 @@ function shell(u){
         <span class="rail-label">${u.role === "coordinator" ? "Coordinator" : "Volunteer"}</span>
         ${nav.map(([k, l]) => `<button data-act="nav" data-v="${k}" ${ui.view === k ? 'aria-current="page"' : ""} class="${ui.tour && ui.view === k ? "tour-hl" : ""}"><span>${l}</span>${badge(k)}</button>`).join("")}
       </nav>
-      <main id="main" tabindex="-1"><div class="page">${VIEWS[u.role][ui.view](u)}</div></main>
+      <main id="main" tabindex="-1"><div class="page">${tourCard(u)}${VIEWS[u.role][ui.view](u)}</div></main>
     </div>
     <footer class="foot"><span>Demo with sample data for a fictional nonprofit. Changes are saved in this browser only.</span>${armBtn("reset", "Reset demo data", "Click again to reset", "secondary sm")}</footer>
-    ${tourCard(u)}
   </div>`;
 }
 
@@ -135,9 +137,11 @@ document.addEventListener("submit", ev => {
 });
 
 document.addEventListener("keydown", ev => {
+  if (ev.key === "Tab") return trapModalTab(ev);
   if (ev.key !== "Escape") return;
   if ($("#modal").innerHTML) closeModal();
   else if (ui.tour) endTour();
 });
 
 render();
+maybeStartTour();

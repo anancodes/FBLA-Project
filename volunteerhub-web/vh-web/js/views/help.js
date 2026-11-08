@@ -8,7 +8,7 @@ function helpView(u){
   const coord = u.role === "coordinator";
   const steps = coord
     ? [["Post an event","Go to Events and choose New event. Set the date, time, and how many volunteers you need."],["Watch sign-ups","The Overview lists events under half full so you can recruit early."],["Check people in","On event day, open Check-in and mark each volunteer present or a no-show."],["Report results","Use Reports to total hours by volunteer, event, month, or cause, then copy the data."]]
-    : [["Set up your profile","Add your skills and availability so we can recommend shifts."],["Find a shift","Browse Find opportunities and filter by cause or your skills."],["Show up","Check in with the coordinator on site. They'll record your hours."],["Track your hours","See your verified hours, and copy them for school or club forms."]];
+    : [["Set up your profile","Add skills for matching recommendations, and list your availability for coordinators."],["Find a shift","Browse Find opportunities and filter by cause or your skills."],["Show up","Check in with the coordinator on site. They'll record your hours."],["Track your hours","See your verified hours, and copy them for school or club forms."]];
   const faq = coord ? [
     ["Why can't I check people in for a future event?","Check-in opens on the day of the event so no one gets credit for hours they haven't served yet."],
     ["Can I lower the number of volunteers needed?","Yes, as long as the new number isn't below the people already signed up. Contact some volunteers first if you need to."],
@@ -29,8 +29,8 @@ function helpView(u){
     ["Can I export my hours?","Yes. On My hours, choose Download CSV to get a spreadsheet file."],
   ];
   return `<div class="head"><div><h1>Help</h1><p class="muted">How VolunteerHub works for ${coord ? "coordinators" : "volunteers"}.</p></div></div>
-  <section class="steps">${steps.map(([t, d], i) => `<div class="card step"><span class="n">${i+1}</span><h3>${t}</h3><p class="muted small">${d}</p></div>`).join("")}</section>
-  <section class="card spread"><div><h2>New here?</h2><p class="muted small">Take a one-minute tour of every screen.</p></div><button class="btn" data-act="tour">Take the tour</button></section>
+  <section class="steps">${steps.map(([t, d], i) => `<div class="card step"><span class="n">${i+1}</span><h2>${t}</h2><p class="muted small">${d}</p></div>`).join("")}</section>
+  <section class="card spread"><div><h2>New here?</h2><p class="muted small">Take a one-minute tour of every screen.</p></div><button class="btn" id="tour-start" data-act="tour">Take the tour</button></section>
   <section><h2 style="margin-bottom:10px">Common questions</h2>${faq.map(([q, a]) => `<details><summary>${q}</summary><p>${a}</p></details>`).join("")}</section>
   <section class="card stack"><h2>Accessibility</h2>
     <p class="muted">Use <b>A−</b> and <b>A+</b> at the top to change the text size, and <b>High contrast</b> for stronger borders and text. Every action works with a keyboard: <kbd>Tab</kbd> moves between controls, <kbd>Enter</kbd> activates them, and <kbd>Esc</kbd> closes pop-up forms.</p></section>`;

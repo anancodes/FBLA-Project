@@ -133,7 +133,13 @@ const handlers = {
       ui.newNotices = new Set(noticesFor(u.id).filter(n => !n.read).map(n => n.id));
       markAllRead(u); save();
     }
-    ui.view = v; ui.armed = null; closeModal(); render();
+    ui.view = v; ui.armed = null; closeModal(false);
+    if (ui.tour){
+      const i = TOURS[u.role].findIndex(step => step.view === v);
+      if (i >= 0) ui.tour.i = i;
+    }
+    render();
+    if (ui.tour) return focusTourStep();
     const m = $("#main"); if (m) m.focus({preventScroll:true}); window.scrollTo(0, 0);
   },
   authmode: (v) => { ui.authMode = v; render(); },

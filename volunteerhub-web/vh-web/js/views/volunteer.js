@@ -30,13 +30,13 @@ function eventCard(e, u){
   return `<article class="card ev">${dateChip(e.date)}
     <div class="ev-body">
       <div class="tags"><span class="pill">${esc(e.category)}</span><span class="pill">${esc(e.area || venueOf(e).area)}</span>${isVerified(e) ? `<span class="pill good">✓ Verified organizer</span>` : `<span class="pill warn">⚠ Unverified organizer</span>`}${match ? `<span class="pill accent">Matches your skills</span>` : ""}${e.date === TODAY ? `<span class="pill mark">Today</span>` : ""}</div>
-      <h3>${esc(e.title)}</h3>
+      <h2 class="ev-title">${esc(e.title)}</h2>
       <p class="muted small">${fmtDate(e.date)} · ${timeRange(e)} · ${fmtH(duration(e))} hrs · ${esc(e.location)}</p>
       <p>${esc(e.desc)}</p>
       <p class="small muted">${e.minAge ? `Ages ${e.minAge}+ · ` : ""}Posted by ${esc(posterOf(e).name)}${posterOf(e).org ? `, ${esc(posterOf(e).org)}` : ""}</p>
     </div>
     <div class="ev-side">
-      <div class="spots">${fillMeter(e)}<span>${left > 0 ? `<b>${left}</b> of ${e.slots} spots open` : "<b>Full</b>"}</span></div>
+      <div class="spots">${fillMeter(e)}<span><b>${regs.length} of ${e.slots}</b> spots filled · ${left > 0 ? `${left} open` : "Full"}</span></div>
       ${signupControl(e, u)}
       <button class="btn secondary sm" data-act="moreInfo" data-id="${e.id}">More info</button>
     </div></article>`;
@@ -72,7 +72,7 @@ function concernForm(e){
 }
 
 function vHome(u){
-  const s = userStats(u.id), pct = Math.min(100, Math.round(s.hours / HOUR_GOAL * 100));
+  const s = userStats(u.id);
   const up = s.upcoming.map(r => eventById(r.eventId)).sort(byDate);
   const soon = up.filter(e => { const h = hoursUntil(e); return h > -duration(e) && h <= 72; });   // shifts in the next 3 days
   const recs = state.events.filter(e => e.date >= TODAY && isVerified(e) && spotsLeft(e) > 0 && !myReg(u.id, e.id) && e.skills.some(k => u.skills.includes(k))).sort(byDate).slice(0, 3);
@@ -87,7 +87,7 @@ function vHome(u){
     ${tile("Service hours", fmtH(s.hours), "Approved by coordinators", "hrs")}
     ${tile("Events attended", s.attended, s.noShows ? `${s.noShows} missed` : "No missed shifts")}
     ${tile("Upcoming shifts", up.length, next ? `Next: ${fmtDate(next.date)}` : s.waitlisted.length ? `${s.waitlisted.length} on waitlist` : "Nothing scheduled")}
-    <div class="card tile"><span class="lab">Hour goal</span><span class="val">${pct}<small>%</small></span><div class="meter ${pct >= 100 ? "full" : ""}"><span style="width:${pct}%"></span></div><span class="sub">${fmtH(s.hours)} of ${HOUR_GOAL} hours</span></div>
+    ${hourGoalTile(s.hours)}
   </section>
   <div class="cols">
     <section class="card"><div class="spread"><h2>Your next shifts</h2><button class="linkbtn small" data-act="nav" data-v="shifts">See all</button></div>
@@ -177,7 +177,7 @@ function vHours(u){
   ui.csv = {name:`volunteer-hours-${u.name.toLowerCase().replace(/\s+/g, "-")}.csv`, build:() => toCSV([["Date","Event","Cause","Location","Hours"], ...rs.map(({r, e}) => [e.date, e.title, e.category, e.location, r.hours]), ["","","","Total", total]])};
   return `<div class="head"><div><h1>My hours</h1><p class="muted">Your verified service record. Hours count once a coordinator checks you in.</p></div>
     <div class="row no-print"><button class="btn" data-act="cert" data-id="${u.id}">View certificate</button>${exportBar()}</div></div>
-  <section class="tiles">${tile("Total hours", fmtH(total), "", "hrs")}${tile("Events", rs.length)}${tile("Average shift", rs.length ? fmtH(total / rs.length) : "0", "", "hrs")}${tile("Goal progress", Math.min(100, Math.round(total / HOUR_GOAL * 100)), `${HOUR_GOAL}-hour goal`, "%")}</section>
+  <section class="tiles">${tile("Total hours", fmtH(total), "", "hrs")}${tile("Events", rs.length)}${tile("Average shift", rs.length ? fmtH(total / rs.length) : "0", "", "hrs")}${hourGoalTile(total)}</section>
   <div class="cols">
     <section class="card stack"><h2>Hours by month</h2>${colChart(hoursByMonth(state.regs.filter(r => r.userId === u.id)))}</section>
     <section class="card stack"><h2>Hours by cause</h2>${hbars(byCat, " h")}</section>
@@ -189,7 +189,7 @@ function vHours(u){
 }
 
 function vProfile(u){
-  return `<div class="head"><div><h1>Profile</h1><p class="muted">Your skills and availability help us recommend the right shifts.</p></div></div>
+  return `<div class="head"><div><h1>Profile</h1><p class="muted">Your skills help us recommend shifts. Your availability is shared with coordinators.</p></div></div>
   <form id="profileForm" class="card stack" novalidate style="max-width:720px">
     <div class="grid2">
       <div class="field"><label for="p-name">Full name</label><input id="p-name" name="name" value="${esc(u.name)}"><span class="ferr" id="e-name"></span></div>
@@ -198,6 +198,6 @@ function vProfile(u){
     </div>
     <div class="field"><span class="lbl">Skills</span><div class="checks">${SKILLS.map(s => `<label class="check"><input type="checkbox" name="skills" value="${s}" ${u.skills.includes(s) ? "checked" : ""}> ${s}</label>`).join("")}</div></div>
     <div class="field"><span class="lbl">Availability</span><div class="checks">${AVAIL.map(s => `<label class="check"><input type="checkbox" name="availability" value="${s}" ${u.availability.includes(s) ? "checked" : ""}> ${s}</label>`).join("")}</div></div>
-    <div class="row"><button class="btn" type="submit">Save profile</button><button class="btn secondary" type="button" data-act="tour">Replay the tour</button></div>
+    <div class="row"><button class="btn" type="submit">Save profile</button><button class="btn secondary" type="button" id="tour-start" data-act="tour">Replay the tour</button></div>
   </form>`;
 }

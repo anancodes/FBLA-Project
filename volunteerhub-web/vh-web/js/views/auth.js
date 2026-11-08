@@ -10,7 +10,7 @@ function loginView(){
     <h1>Every shift filled. Every hour counted.</h1>
     <p class="lead">Riverbend Community Pantry posts its volunteer needs here. Volunteers sign up in a few clicks, and coordinators check people in and report the hours.</p>
     <ul>
-      <li><span class="tick">✓</span><span><b>Find a shift that fits.</b> Filter by cause, date, and your skills.</span></li>
+      <li><span class="tick">✓</span><span><b>Find a shift that fits.</b> Filter by cause, area, and your skills.</span></li>
       <li><span class="tick">✓</span><span><b>Track your service hours</b> for school, scouts, or your résumé.</span></li>
       <li><span class="tick">✓</span><span><b>Run the program.</b> Coordinators manage events, attendance, and reports.</span></li>
     </ul>
@@ -43,5 +43,5 @@ function loginView(){
     </form>
     <p class="small">Already have an account? <button class="linkbtn" data-act="authmode" data-v="login">Log in</button></p>
   </div>`;
-  return `<div class="login">${brand}<section class="login-panel">${ui.authMode === "login" ? login : signup}</section></div>`;
+  return `<main class="login">${brand}<section class="login-panel">${ui.authMode === "login" ? login : signup}</section></main>`;
 }

@@ -159,12 +159,18 @@ const Cloud = {
     this.timer = setTimeout(() => { render(); this.autoPromote(); }, 30);
   },
 
-  // If a spot opened while someone was offline, fill it from the waitlist now.
-  // Volunteers can only promote themselves (when first in line); verified coordinators promote anyone.
+  // Keeps every upcoming event consistent after each live update:
+  //  1. If two people took the last spot at the same moment, move the later one to the waitlist.
+  //  2. If a spot opened while someone was offline, fill it from the waitlist.
+  // Volunteers can only change their own sign-ups; managers can change any for their events.
   autoPromote(){
     if (!DB.live || this.promoting || !currentUser()) return;
     this.promoting = true;
-    try { state.events.filter(e => e.date >= TODAY && spotsLeft(e) > 0 && waitlistFor(e.id).length).forEach(e => fillFromWaitlist(e)); }
+    try {
+      const upcoming = state.events.filter(e => e.date >= TODAY);
+      upcoming.filter(e => spotsLeft(e) < 0).forEach(e => fixOverbooking(e));
+      upcoming.filter(e => spotsLeft(e) > 0 && waitlistFor(e.id).length).forEach(e => fillFromWaitlist(e));
+    }
     finally { this.promoting = false; }
   },
 

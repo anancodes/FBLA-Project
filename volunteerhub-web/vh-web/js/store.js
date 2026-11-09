@@ -92,6 +92,29 @@ function fillFromWaitlist(e){
   return promoted;
 }
 
+// Fixes overbooking. If two people grab the last spot at almost the same moment, both
+// devices may save a sign-up before hearing about the other one (a "race condition").
+// Sign-up ids are based on the time they were made, so the newest sign-ups beyond the
+// limit move to the waitlist. Every device runs this, and each only changes what it's
+// allowed to (your own sign-up, or any sign-up if you manage the event), so it settles
+// within about a second. Returns the sign-ups that were moved.
+function fixOverbooking(e){
+  const moved = [];
+  if (e.date < TODAY) return moved;
+  const extra = activeRegs(e.id).length - e.slots;
+  if (extra <= 0) return moved;
+  const newest = activeRegs(e.id).filter(r => r.status === "registered").sort((a, b) => b.id - a.id).slice(0, extra);
+  for (const r of newest){
+    if (!DB.canManageReg(r)) continue;
+    DB.update("regs", r, {status:"waitlist"});
+    const me = currentUser(), pos = waitlistPosition(r);
+    notify(r.userId, `Someone took the last spot in ${e.title} a moment before you. You're #${pos} on the waitlist and will be signed up automatically if a spot opens.`, `bump-${r.id}`, e.clubId);
+    if (me && r.userId === me.id) toast(`Someone took the last spot in ${e.title} just before you. You're #${pos} on the waitlist.`, "bad");
+    moved.push(r);
+  }
+  return moved;
+}
+
 /* ----- Notices (personal updates) and announcements ----- */
 // clubId lets club officers send updates to their own members (the database checks this).
 function notify(uid, text, key, clubId){

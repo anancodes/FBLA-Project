@@ -83,6 +83,7 @@ All volunteers, events, and places are sample data. Set your organization's name
 ## Credits
 
 - Firebase (Google): accounts and database, loaded from Google's servers in live mode
-- Fonts: Bricolage Grotesque and Public Sans, from Google Fonts (SIL Open Font License)
+- Fonts: IBM Plex Sans and IBM Plex Mono, from Google Fonts (SIL Open Font License)
+- Icons: simple line icons drawn for this project (in `js/components.js`)
 - ZIP code locations: from the open-source `zipcodes` package by Sean Pianka (MIT License), github.com/seanpianka/zipcodes
 - AI assistance (Claude) was used as a coding tool. The team reviewed and can explain all code.

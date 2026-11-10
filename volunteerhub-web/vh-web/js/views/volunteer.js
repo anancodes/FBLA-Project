@@ -26,7 +26,7 @@ function signupControl(e, u){
 // Shows how far away an event is when a ZIP search is active, otherwise its town and ZIP.
 function placePill(e){
   const o = searchOrigin();
-  return o ? `<span class="pill accent num">${fmtMiles(milesTo(e, o))} away</span>` : `<span class="pill">${esc(eventZipInfo(e).city)} ${esc(eventZipInfo(e).zip)}</span>`;
+  return o ? `<span class="pill num">${fmtMiles(milesTo(e, o))} away</span>` : `<span class="pill">${esc(eventZipInfo(e).city)} ${esc(eventZipInfo(e).zip)}</span>`;
 }
 
 // Full event card used on Find opportunities and in the calendar pop-up.
@@ -35,7 +35,7 @@ function eventCard(e, u){
   const match = e.skills.some(k => u.skills.includes(k));
   return `<article class="card ev">${dateChip(e.date)}
     <div class="ev-body">
-      <div class="tags"><span class="pill">${esc(e.category)}</span>${placePill(e)}${e.clubId && clubById(e.clubId) ? `<span class="pill accent">${esc(clubById(e.clubId).short)} members</span>` : isVerified(e) ? `<span class="pill good">✓ Verified organizer</span>` : `<span class="pill warn">⚠ Unverified organizer</span>`}${match ? `<span class="pill accent">Matches your skills</span>` : ""}${e.date === TODAY ? `<span class="pill mark">Today</span>` : ""}</div>
+      <div class="tags"><span class="pill">${esc(e.category)}</span>${placePill(e)}${e.clubId && clubById(e.clubId) ? `<span class="pill accent">${esc(clubById(e.clubId).short)} members</span>` : isVerified(e) ? `<span class="pill good">Verified organizer</span>` : `<span class="pill warn">Unverified organizer</span>`}${match ? `<span class="pill">Matches your skills</span>` : ""}${e.date === TODAY ? `<span class="pill mark">Today</span>` : ""}</div>
       <h3>${esc(e.title)}</h3>
       <p class="muted small">${fmtDate(e.date)} · ${timeRange(e)} · ${fmtH(duration(e))} hrs · ${esc(e.location)}</p>
       <p>${esc(e.desc)}</p>
@@ -87,8 +87,8 @@ function vHome(u){
   const next = up[0];
   const when = e => { const h = hoursUntil(e); return h <= 0 ? "is happening now" : e.date === TODAY ? `starts today at ${fmtTime(e.start)}` : `starts ${fmtDate(e.date, {weekday:"long"})} at ${fmtTime(e.start)}`; };
   return `<div class="head"><div><span class="eyebrow">${fmtDate(TODAY, {weekday:"long", month:"long", day:"numeric"})}</span><h1>Welcome back, ${esc(u.name.split(" ")[0])}</h1></div><button class="btn" data-act="nav" data-v="find">Find opportunities</button></div>
-  ${soon.map(e => `<div class="banner reminder"><span class="banner-icon" aria-hidden="true">⏰</span><div><b>Reminder: ${esc(e.title)} ${when(e)}.</b><span>${esc(e.location)} · ${timeRange(e)}. Can't make it? Cancel in My shifts so someone on the waitlist can go.</span></div></div>`).join("")}
-  ${notes.map(n => `<div class="banner notice"><span class="banner-icon" aria-hidden="true">✓</span><div><b>${esc(n.text)}</b><span>${new Date(n.at).toLocaleDateString("en-US", {month:"short", day:"numeric"})}</span></div><button class="btn secondary sm" data-act="dismiss" data-id="${n.id}">Dismiss</button></div>`).join("")}
+  ${soon.map(e => `<div class="banner reminder"><span class="banner-icon">${icon("clock")}</span><div><b>Reminder: ${esc(e.title)} ${when(e)}.</b><span>${esc(e.location)} · ${timeRange(e)}. Can't make it? Cancel in My shifts so someone on the waitlist can go.</span></div></div>`).join("")}
+  ${notes.map(n => `<div class="banner notice"><span class="banner-icon">${icon("check")}</span><div><b>${esc(n.text)}</b><span>${new Date(n.at).toLocaleDateString("en-US", {month:"short", day:"numeric"})}</span></div><button class="btn secondary sm" data-act="dismiss" data-id="${n.id}">Dismiss</button></div>`).join("")}
   <section class="tiles">
     ${tile("Service hours", fmtH(s.hours), "Approved by coordinators", "hrs")}
     ${tile("Events attended", s.attended, s.noShows ? `${s.noShows} missed` : "No missed shifts")}

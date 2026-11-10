@@ -25,7 +25,7 @@ function cOrganizers(u){
     <td>${esc(c.org || state.org.name)}</td>
     <td class="small">${esc(c.email)}${c.phone ? `<span class="sub">${esc(c.phone)}</span>` : ""}</td>
     <td class="num">${posted(c.id)}</td>
-    <td>${c.verified ? `<span class="pill good">✓ Verified${c.verifiedAt ? ` ${fmtDate(c.verifiedAt, {month:"short", day:"numeric"})}` : ""}</span>` : `<span class="pill warn">Waiting</span>`}</td>
+    <td>${c.verified ? `<span class="pill good">Verified${c.verifiedAt ? ` ${fmtDate(c.verifiedAt, {month:"short", day:"numeric"})}` : ""}</span>` : `<span class="pill warn">Waiting</span>`}</td>
     <td><div class="actions">${c.id === u.id ? `<span class="muted small">You</span>` : c.verified ? armBtn(`unverify:${c.id}`, "Remove", "Confirm remove", "secondary sm") : armBtn(`verify:${c.id}`, "Verify", "Confirm verify", "sm")}</div></td>
   </tr>`).join("") : `<tr><td colspan="6" class="muted">No organizer accounts yet.</td></tr>`}
   </tbody></table></div>`;

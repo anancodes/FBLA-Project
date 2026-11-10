@@ -243,6 +243,6 @@ const Cloud = {
   },
   showSync(){
     const el = document.getElementById("sync-status");
-    if (el) el.textContent = this.online ? "● Connected" : "○ Offline: changes will sync when you reconnect";
+    if (el){ el.textContent = this.online ? "Connected" : "Offline: changes will sync when you reconnect"; el.className = `pill ${this.online ? "good" : "warn"}`; }
   },
 };

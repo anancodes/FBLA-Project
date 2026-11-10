@@ -6,7 +6,30 @@
  */
 "use strict";
 
-const LOGO = `<svg class="logo" viewBox="0 0 36 36" aria-hidden="true"><rect width="36" height="36" rx="9" fill="var(--accent)"/><circle cx="13" cy="14" r="4.2" fill="var(--accent-ink)"/><circle cx="23" cy="14" r="4.2" fill="var(--accent-ink)" opacity=".7"/><path d="M7 27c1.2-4.6 4-7 6-7s4.8 2.4 6 7M17 27c1.2-4.6 4-7 6-7s4.8 2.4 6 7" stroke="var(--accent-ink)" stroke-width="2.4" fill="none" stroke-linecap="round"/></svg>`;
+const LOGO = `<svg class="logo" viewBox="0 0 28 28" aria-hidden="true"><rect width="28" height="28" rx="6" fill="var(--accent)"/><path d="M8.5 14.5l3.5 3.5 7.5-8" stroke="var(--accent-ink)" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
+// Line icons (24×24, drawn with strokes so they take the text color). icon("clock") returns an inline SVG.
+const ICONS = {
+  home:'<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/>',
+  search:'<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+  list:'<path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01"/>',
+  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  users:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.7c2 .7 3.2 2.5 3.5 5.3"/>',
+  layers:'<path d="M12 3 3 8l9 5 9-5z"/><path d="m3 13 9 5 9-5"/>',
+  clipboard:'<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 13l2 2 4-4"/>',
+  megaphone:'<path d="M3 10v4h3l8 5V5l-8 5z"/><path d="M18 9a4 4 0 0 1 0 6"/>',
+  user:'<circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/>',
+  help:'<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.4 2.3c-.6.3-.9.9-.9 1.6v.4M12 17h.01"/>',
+  calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+  chart:'<path d="M4 20h16M7 16v-5M12 16V6M17 16v-3"/>',
+  sliders:'<path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/>',
+  shield:'<path d="M12 3 4 6v6c0 4.5 3.4 8 8 9 4.6-1 8-4.5 8-9V6z"/><path d="m9 12 2 2 4-4"/>',
+  check:'<path d="m5 12.5 4.5 4.5L19 7.5"/>',
+  alert:'<path d="M12 3.5 2.5 20h19z"/><path d="M12 10v4M12 17h.01"/>',
+  edit:'<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/>',
+  hourglass:'<path d="M7 3h10M7 21h10M8 3v3a4 4 0 0 0 8 0V3M8 21v-3a4 4 0 0 1 8 0v3"/>',
+};
+const icon = (name, cls = "") => `<svg class="icon ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[name] || ""}</svg>`;
 function dateChip(d){ const x = parseDate(d); return `<div class="datechip" aria-hidden="true"><span>${x.toLocaleDateString("en-US",{month:"short"})}</span><strong>${x.getDate()}</strong><span>${x.toLocaleDateString("en-US",{weekday:"short"})}</span></div>`; }
 function tile(label, val, sub = "", unit = ""){ return `<div class="card tile"><span class="lab">${label}</span><span class="val">${val}${unit ? `<small>${unit}</small>` : ""}</span>${sub ? `<span class="sub">${sub}</span>` : ""}</div>`; }
 function statusPill(st){ const m = {attended:["good","Attended"], "no-show":["bad","No-show"], registered:["accent","Signed up"], waitlist:["mark","Waitlist"], cancelled:["","Cancelled"]}[st]; return `<span class="pill ${m[0]}">${m[1]}</span>`; }
@@ -102,8 +125,8 @@ function trustBox(e){
   const p = posterOf(e), posted = fmtDate(e.postedAt, {month:"short", day:"numeric", year:"numeric"});
   const updated = e.updatedAt && e.updatedAt !== e.postedAt ? ` · Updated ${fmtDate(e.updatedAt, {month:"short", day:"numeric"})}` : "";
   return p.verified
-    ? `<div class="trust ok"><b>✓ Verified organizer</b><p>${esc(p.name)} is a verified coordinator for ${esc(p.org)} (verified ${fmtDate(p.verifiedAt, {month:"short", day:"numeric", year:"numeric"})}). Your hours from this event are recorded at check-in.</p><p class="small muted">Posted ${posted}${updated}</p></div>`
-    : `<div class="trust warn"><b>⚠ This organizer isn't verified yet</b><p>${esc(p.name)}${p.org ? ` (${esc(p.org)})` : ""} hasn't been checked by VolunteerHub. Volunteer opportunities never ask you to pay, share bank details, or send ID numbers. Meet in public places, and tell a parent or guardian where you're going.</p><p class="small muted">Posted ${posted}${updated}</p></div>`;
+    ? `<div class="trust ok"><b>${icon("shield")}Verified organizer</b><p>${esc(p.name)} is a verified coordinator for ${esc(p.org)} (verified ${fmtDate(p.verifiedAt, {month:"short", day:"numeric", year:"numeric"})}). Your hours from this event are recorded at check-in.</p><p class="small muted">Posted ${posted}${updated}</p></div>`
+    : `<div class="trust warn"><b>${icon("alert")}This organizer isn't verified yet</b><p>${esc(p.name)}${p.org ? ` (${esc(p.org)})` : ""} hasn't been checked by VolunteerHub. Volunteer opportunities never ask you to pay, share bank details, or send ID numbers. Meet in public places, and tell a parent or guardian where you're going.</p><p class="small muted">Posted ${posted}${updated}</p></div>`;
 }
 
 // Saves text as a .csv file. Falls back to copy-and-paste if the browser blocks downloads.

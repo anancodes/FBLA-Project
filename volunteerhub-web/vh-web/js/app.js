@@ -42,6 +42,8 @@ const VIEWS = {
   coordinator: {dashboard:cHome, events:cEvents, checkin:cCheckin, volunteers:cVolunteers, reports:cReports, news:newsView, settings:cSettings, organizers:cOrganizers, manage:manageClubsView, help:helpView},
 };
 const THEME_LABEL = {auto:"Theme: Auto", light:"Theme: Light", dark:"Theme: Dark"};
+const NAV_ICON = {dashboard:"home", find:"search", shifts:"list", hours:"clock", clubs:"users", manage:"layers", checkin:"clipboard",
+  news:"megaphone", profile:"user", help:"help", events:"calendar", volunteers:"users", reports:"chart", settings:"sliders", organizers:"shield"};
 
 function shell(u){
   // Site admins get an extra screen for verifying organizers
@@ -59,7 +61,7 @@ function shell(u){
                    : k === "organizers" && pendingOrgs ? `<span class="count" aria-label="${pendingOrgs} waiting">${pendingOrgs}</span>` : "";
   const roleName = u.role === "coordinator" ? (u.admin ? "Coordinator · Site admin" : u.verified ? "Volunteer coordinator" : "Coordinator · not yet verified") : "Volunteer";
   const footer = DB.live
-    ? `<span>Live · signed in as ${esc(u.email)}. Changes save to your organization's database and sync to every device.</span><span class="sync" id="sync-status">${Cloud.online ? "● Connected" : "○ Offline: changes will sync when you reconnect"}</span>`
+    ? `<span>Live · signed in as ${esc(u.email)}. Changes save to your organization's database and sync to every device.</span><span class="pill ${Cloud.online ? "good" : "warn"}" id="sync-status">${Cloud.online ? "Connected" : "Offline: changes will sync when you reconnect"}</span>`
     : `<span>${ui.demo ? "Demo mode: sample data, saved only in this browser. Nothing here affects your live site." : "Demo with sample data. Changes are saved in this browser only."}</span>${armBtn("reset", "Reset demo data", "Click again to reset", "secondary sm")}`;
   return `<div class="shell">
     ${ui.demo ? `<div class="mode-bar">You're exploring the <b>demo</b> with sample data. <button class="linkbtn" data-act="logout">Exit demo</button></div>` : ""}
@@ -78,7 +80,7 @@ function shell(u){
     <div class="frame">
       <nav class="rail" aria-label="Main">
         <span class="rail-label">${u.role === "coordinator" ? "Coordinator" : "Volunteer"}</span>
-        ${nav.map(([k, l]) => `<button data-act="nav" data-v="${k}" ${ui.view === k ? 'aria-current="page"' : ""} class="${ui.tour && ui.view === k ? "tour-hl" : ""}"><span>${l}</span>${badge(k)}</button>`).join("")}
+        ${nav.map(([k, l]) => `<button data-act="nav" data-v="${k}" ${ui.view === k ? 'aria-current="page"' : ""} class="${ui.tour && ui.view === k ? "tour-hl" : ""}">${icon(NAV_ICON[k] || "home")}<span>${l}</span>${badge(k)}</button>`).join("")}
       </nav>
       <main id="main" tabindex="-1"><div class="page">${VIEWS[u.role][ui.view](u)}</div></main>
     </div>

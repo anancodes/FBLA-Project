@@ -33,66 +33,109 @@ function render(){
   if (fid){ const el = document.getElementById(fid); if (el){ el.focus(); try { if (sel) el.setSelectionRange(sel[0], sel[1]); } catch(e){} } }
 }
 
+// Navigation. Each menu item is a section; some sections have tabs for related screens,
+// so the menu stays short (5–7 items) while every screen is still one click away.
 const NAV = {
-  volunteer: [["dashboard","Home"],["find","Find opportunities"],["shifts","My shifts"],["hours","My hours"],["clubs","My clubs"],["news","Announcements"],["profile","Profile"],["help","Help"]],
-  coordinator: [["dashboard","Overview"],["events","Events"],["checkin","Check-in"],["volunteers","Volunteers"],["manage","Clubs"],["reports","Reports"],["news","Announcements"],["settings","Settings"],["help","Help"]],
+  volunteer: [["dashboard","Home"],["find","Opportunities"],["shifts","My schedule"],["hours","Hours & clubs"],["manage","Club admin"],["news","Inbox"]],
+  coordinator: [["dashboard","Overview"],["events","Events"],["volunteers","People"],["manage","Clubs"],["reports","Reports"],["news","Inbox"],["settings","Settings"]],
+};
+// Tabs inside a section: [view, label]
+const TABS = {
+  events: [["events","All events"],["checkin","Check-in"]],
+  manage: [["manage","Members & approvals"],["checkin","Check-in"]],
+  hours: [["hours","My hours"],["clubs","My clubs"]],
+  volunteers: [["volunteers","Volunteers"],["organizers","Organizers"]],
 };
 const VIEWS = {
   volunteer: {dashboard:vHome, find:vFind, shifts:vShifts, hours:vHours, clubs:vMyClubs, manage:manageClubsView, checkin:cCheckin, news:newsView, profile:vProfile, help:helpView},
   coordinator: {dashboard:cHome, events:cEvents, checkin:cCheckin, volunteers:cVolunteers, reports:cReports, news:newsView, settings:cSettings, organizers:cOrganizers, manage:manageClubsView, help:helpView},
 };
-const THEME_LABEL = {auto:"Theme: Auto", light:"Theme: Light", dark:"Theme: Dark"};
-const NAV_ICON = {dashboard:"home", find:"search", shifts:"list", hours:"clock", clubs:"users", manage:"layers", checkin:"clipboard",
-  news:"megaphone", profile:"user", help:"help", events:"calendar", volunteers:"users", reports:"chart", settings:"sliders", organizers:"shield"};
+const NAV_ICON = {dashboard:"home", find:"search", shifts:"calendar", hours:"clock", manage:"layers", news:"inbox",
+  events:"calendar", volunteers:"users", reports:"chart", settings:"sliders"};
+const THEME_LABEL = {auto:"Auto", light:"Light", dark:"Dark"};
+
+// Which menu item and tabs a screen belongs to (for example, Check-in sits under Events).
+function sectionOf(u, view){
+  const sections = menuFor(u).map(n => n[0]);
+  if (sections.includes(view)) return view;
+  for (const [sec, tabs] of Object.entries(TABS)) if (sections.includes(sec) && tabs.some(t => t[0] === view)) return sec;
+  return null;
+}
+function menuFor(u){
+  let nav = NAV[u.role];
+  if (u.role === "volunteer" && !managedClubs(u).length) nav = nav.filter(n => n[0] !== "manage");   // Club admin is for officers only
+  return nav;
+}
+function tabsFor(u, sec){
+  let tabs = TABS[sec] || [];
+  if (sec === "volunteers" && !u.admin) tabs = [];                    // only site admins verify organizers
+  if (sec === "manage" && u.role === "coordinator") tabs = [];        // coordinators check in from Events
+  return tabs.length > 1 ? tabs : [];
+}
 
 function shell(u){
-  // Site admins get an extra screen for verifying organizers
-  let nav = u.admin ? [...NAV[u.role].slice(0, -1), ["organizers","Organizers"], ["help","Help"]] : NAV[u.role];
-  // Student club officers also get the club tools
-  if (u.role === "volunteer" && managedClubs(u).length) nav = [...nav.slice(0, 5), ["manage","Manage clubs"], ["checkin","Club check-in"], ...nav.slice(5)];
-  if (!nav.some(n => n[0] === ui.view)) ui.view = "dashboard";
+  const nav = menuFor(u);
+  const personal = ["profile", "help"];                                  // reached from the account menu
+  if (!sectionOf(u, ui.view) && !personal.includes(ui.view)) ui.view = "dashboard";
+  const sec = sectionOf(u, ui.view), tabs = sec ? tabsFor(u, sec) : [];
   const upCount = u.role === "volunteer" ? userStats(u.id).upcoming.length : 0;
   const unread = unreadCount(u);
   const pendingLogs = managedClubs(u).reduce((n, c) => n + state.hourLogs.filter(l => l.clubId === c.id && l.status === "pending" && l.userId !== u.id).length, 0);
   const pendingOrgs = u.admin ? state.users.filter(x => x.role === "coordinator" && !x.verified).length : 0;
-  const badge = k => k === "shifts" && upCount ? `<span class="count" aria-label="${upCount} upcoming">${upCount}</span>`
-                   : k === "news" && unread ? `<span class="count" aria-label="${unread} new">${unread}</span>`
-                   : k === "manage" && pendingLogs ? `<span class="count" aria-label="${pendingLogs} hours to review">${pendingLogs}</span>`
-                   : k === "organizers" && pendingOrgs ? `<span class="count" aria-label="${pendingOrgs} waiting">${pendingOrgs}</span>` : "";
-  const roleName = u.role === "coordinator" ? (u.admin ? "Coordinator · Site admin" : u.verified ? "Volunteer coordinator" : "Coordinator · not yet verified") : "Volunteer";
+  const counts = {shifts:upCount, news:unread, manage:pendingLogs, volunteers:pendingOrgs};
+  const badge = k => counts[k] ? `<span class="count" aria-label="${counts[k]} new">${counts[k]}</span>` : "";
+  const roleName = u.role === "coordinator" ? (u.admin ? "Site admin" : u.verified ? "Coordinator" : "Coordinator · not yet verified") : "Volunteer";
   const footer = DB.live
-    ? `<span>Live · signed in as ${esc(u.email)}. Changes save to your organization's database and sync to every device.</span><span class="pill ${Cloud.online ? "good" : "warn"}" id="sync-status">${Cloud.online ? "Connected" : "Offline: changes will sync when you reconnect"}</span>`
-    : `<span>${ui.demo ? "Demo mode: sample data, saved only in this browser. Nothing here affects your live site." : "Demo with sample data. Changes are saved in this browser only."}</span>${armBtn("reset", "Reset demo data", "Click again to reset", "secondary sm")}`;
+    ? `<span>Signed in as ${esc(u.email)}</span><span class="pill ${Cloud.online ? "good" : "warn"}" id="sync-status">${Cloud.online ? "Connected" : "Offline: changes will sync when you reconnect"}</span>`
+    : `<span>${ui.demo ? "Demo with sample data. Nothing here affects your live site." : "Demo with sample data, saved in this browser only."}</span>${armBtn("reset", "Reset demo data", "Click again to reset", "secondary sm")}`;
   return `<div class="shell">
-    ${ui.demo ? `<div class="mode-bar">You're exploring the <b>demo</b> with sample data. <button class="linkbtn" data-act="logout">Exit demo</button></div>` : ""}
+    ${ui.demo ? `<div class="mode-bar">You're exploring the demo with sample data. <button class="linkbtn" data-act="logout">Exit demo</button></div>` : ""}
     <header class="top">
       <div class="brand">${LOGO}<div><strong>VolunteerHub</strong><span>${esc(state.org.name)}</span></div></div>
-      <div class="tools">
-        <div class="seg" role="group" aria-label="Text size">
-          <button data-act="font" data-v="-2" aria-label="Smaller text">A−</button>
-          <button data-act="font" data-v="2" aria-label="Larger text">A+</button>
-        </div>
-        <div class="seg"><button data-act="contrast" aria-pressed="${state.prefs.hc}">High contrast</button><button data-act="theme" aria-label="Change theme. Now ${state.prefs.theme || "auto"}">${THEME_LABEL[state.prefs.theme || "auto"]}</button></div>
-        <div class="who"><span class="avatar" aria-hidden="true">${esc(initials(u.name))}</span><span class="who-name">${esc(u.name)}<small>${roleName}</small></span></div>
-        <button class="btn secondary sm" data-act="logout">${ui.demo ? "Exit demo" : "Log out"}</button>
-      </div>
+      <div class="tools">${accountMenu(u, roleName)}</div>
     </header>
     <div class="frame">
       <nav class="rail" aria-label="Main">
-        <span class="rail-label">${u.role === "coordinator" ? "Coordinator" : "Volunteer"}</span>
-        ${nav.map(([k, l]) => `<button data-act="nav" data-v="${k}" ${ui.view === k ? 'aria-current="page"' : ""} class="${ui.tour && ui.view === k ? "tour-hl" : ""}">${icon(NAV_ICON[k] || "home")}<span>${l}</span>${badge(k)}</button>`).join("")}
+        ${nav.map(([k, l]) => `<button data-act="nav" data-v="${k}" ${sec === k ? 'aria-current="page"' : ""} class="${ui.tour && sec === k ? "tour-hl" : ""}">${icon(NAV_ICON[k] || "home")}<span>${l}</span>${badge(k)}</button>`).join("")}
       </nav>
-      <main id="main" tabindex="-1"><div class="page">${VIEWS[u.role][ui.view](u)}</div></main>
+      <main id="main" tabindex="-1"><div class="page">
+        ${tabs.length ? `<nav class="subtabs" aria-label="${esc(nav.find(n => n[0] === sec)[1])}">${tabs.map(([v, l]) => `<button data-act="nav" data-v="${v}" ${ui.view === v ? 'aria-current="page"' : ""}>${l}${v === "organizers" && pendingOrgs ? ` <span class="count">${pendingOrgs}</span>` : ""}</button>`).join("")}</nav>` : ""}
+        ${VIEWS[u.role][ui.view](u)}
+      </div></main>
     </div>
     <footer class="foot">${footer}</footer>
     ${tourCard(u)}
   </div>`;
 }
 
+// Avatar button with a drop-down: profile, display settings, help, and log out.
+function accountMenu(u, roleName){
+  const t = state.prefs.theme || "auto";
+  return `<div class="acct">
+    <button class="acct-btn" data-act="menu" aria-haspopup="true" aria-expanded="${!!ui.menu}"><span class="avatar" aria-hidden="true">${esc(initials(u.name))}</span><span class="who-name">${esc(u.name)}<small>${roleName}</small></span>${icon("chevron")}</button>
+    ${ui.menu ? `<div class="menu" role="menu">
+      <div class="menu-head"><b>${esc(u.name)}</b><span>${esc(u.email)}</span></div>
+      ${u.role === "volunteer" ? `<button role="menuitem" data-act="nav" data-v="profile">${icon("user")}Profile</button>` : ""}
+      <button role="menuitem" data-act="nav" data-v="help">${icon("help")}Help</button>
+      <button role="menuitem" data-act="tour">${icon("compass")}Take the tour</button>
+      <div class="menu-sep"></div>
+      <div class="menu-row"><span>Text size</span><span class="seg"><button data-act="font" data-v="-2" aria-label="Smaller text">A−</button><button data-act="font" data-v="2" aria-label="Larger text">A+</button></span></div>
+      <div class="menu-row"><span>Theme</span><span class="seg">${["auto","light","dark"].map(x => `<button data-act="setTheme" data-v="${x}" aria-pressed="${t === x}">${THEME_LABEL[x]}</button>`).join("")}</span></div>
+      <div class="menu-row"><span>High contrast</span><span class="seg"><button data-act="contrast" aria-pressed="${state.prefs.hc}">${state.prefs.hc ? "On" : "Off"}</button></span></div>
+      <div class="menu-sep"></div>
+      <button role="menuitem" data-act="logout">${icon("logout")}${ui.demo ? "Exit demo" : "Log out"}</button>
+    </div>` : ""}
+  </div>`;
+}
+
 document.addEventListener("click", ev => {
-  const el = ev.target.closest("[data-act]"); if (!el || el.disabled) return;
+  const el = ev.target.closest("[data-act]");
+  if (!el && ui.menu && !ev.target.closest(".menu")){ ui.menu = false; render(); return; }   // click outside closes the menu
+  if (!el || el.disabled) return;
   const act = el.dataset.act;
   if (ui.armed && act !== "confirm" && act !== "arm") ui.armed = null;
+  // Close the account menu after picking something outside the display settings
+  if (ui.menu && !["menu", "font", "setTheme", "contrast"].includes(act)) ui.menu = false;
   if (handlers[act]){ if (act !== "overlay") ev.preventDefault(); handlers[act](el.dataset.v, el.dataset.id, ev); }
 });
 
@@ -148,7 +191,8 @@ function handleSubmit(form){
 
 document.addEventListener("keydown", ev => {
   if (ev.key !== "Escape") return;
-  if ($("#modal").innerHTML) closeModal();
+  if (ui.menu){ ui.menu = false; render(); }
+  else if ($("#modal").innerHTML) closeModal();
   else if (ui.tour) endTour();
 });
 

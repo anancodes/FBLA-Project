@@ -276,6 +276,8 @@ const handlers = {
   },
   font: (v) => { state.prefs.font = Math.max(13, Math.min(21, state.prefs.font + +v)); save(); applyPrefs(); },
   contrast: () => { state.prefs.hc = !state.prefs.hc; save(); render(); },
+  menu: () => { ui.menu = !ui.menu; render(); },
+  setTheme: (v) => { state.prefs.theme = v; save(); render(); },
   theme: () => { const order = ["auto", "light", "dark"]; state.prefs.theme = order[(order.indexOf(state.prefs.theme || "auto") + 1) % 3]; save(); render(); },
   waiver: () => openModal(`<div class="spread"><h2>Volunteer waiver</h2><button class="btn secondary sm" data-act="close">Close</button></div><div class="waiver-text">${esc(state.org.waiver || DEFAULT_WAIVER).replace(/\n/g, "<br>")}</div>`),
 
@@ -322,7 +324,12 @@ const handlers = {
   moreInfo: (_, id) => showEventPopup(asId(id)),
   ics: (_, id) => downloadICS(eventById(asId(id))),
   concern: (_, id) => { openModal(concernForm(eventById(asId(id)))); },
-  resolve: (_, id) => { const c = state.concerns.find(x => x.id === asId(id)); DB.update("concerns", c, {status:"resolved"}); save(); render(); toast("Concern marked resolved."); },
+  concerns: () => openModal(concernsModal()),
+  resolve: (_, id) => {
+    const c = state.concerns.find(x => x.id === asId(id)); DB.update("concerns", c, {status:"resolved"}); save(); render();
+    if ($("#modal").innerHTML) openModal(concernsModal());           // refresh the review list
+    toast("Concern marked resolved.");
+  },
   sampleEvents: () => addSampleEvents(),
 
   // Clubs

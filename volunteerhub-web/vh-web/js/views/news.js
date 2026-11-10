@@ -26,7 +26,7 @@ function newsView(u){
 function vNews(u){
   const seen = ui.newsSeen || readSet(u.id);           // captured before this visit marked things read
   const list = announcementsFor(u), notes = noticesFor(u.id);
-  return `<div class="head"><div><h1>Announcements</h1><p class="muted">News from your coordinators and updates about your shifts.</p></div></div>
+  return `<div class="head"><div><h1>Inbox</h1><p class="muted">News from your coordinators and updates about your shifts.</p></div></div>
   ${notes.length ? `<section class="card"><h2>Your updates</h2>${notes.map(n => `<div class="ann-mini">${ui.newNotices && ui.newNotices.has(n.id) ? `<span class="pill mark">New</span>` : ""}<div><b>${esc(n.text)}</b><p class="muted small">${postedAt(n.at)}</p></div></div>`).join("")}</section>` : ""}
   <section class="stack">
     ${list.length ? list.map(a => `<article class="card ann">
@@ -40,7 +40,7 @@ function vNews(u){
 function cNews(u){
   const list = announcementsFor(u);
   const upcoming = state.events.filter(e => e.date >= TODAY).sort(byDate);
-  return `<div class="head"><div><h1>Announcements</h1><p class="muted">Share news with all volunteers, or only with the people signed up for one event.</p></div></div>
+  return `<div class="head"><div><h1>Inbox</h1><p class="muted">Share news with all volunteers, or only with the people signed up for one event.</p></div></div>
   <form id="annForm" class="card stack" novalidate style="max-width:760px">
     <h2>New announcement</h2>
     <div class="field"><label for="an-title">Headline</label><input id="an-title" name="title" maxlength="80" placeholder="e.g. Parking change for Saturday"><span class="ferr" id="e-title"></span></div>

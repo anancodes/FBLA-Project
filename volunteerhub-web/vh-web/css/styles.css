@@ -172,16 +172,22 @@ h2 + .mini, .spread + .mini, p + .mini{border-top:0}
 .filters .field.grow{flex:2;min-width:200px}
 .filters .field.zipfield{flex:0 1 150px;min-width:130px}
 .filter-checks{display:flex;flex-wrap:wrap;gap:4px 18px;flex-basis:100%}
-.evlist{display:flex;flex-direction:column;gap:12px}
-.ev{display:grid;grid-template-columns:52px minmax(0,1fr) 180px;gap:18px;align-items:start}
-.ev .datechip{padding:7px 0}
-.ev .datechip strong{font-size:1.35rem}
-.ev-body{display:flex;flex-direction:column;gap:6px;min-width:0}
-.ev-side{display:flex;flex-direction:column;gap:8px;align-items:stretch}
-.ev-side .btn{width:100%}
+/* Events are one list with dividers, not a stack of boxes */
+.evlist{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:8px}
+.ev{display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:16px;align-items:center;padding:16px 18px;border-top:1px solid var(--line)}
+.ev:first-child{border-top:0}
+.ev .datechip{padding:6px 0}
+.ev-body{display:flex;flex-direction:column;gap:4px;min-width:0}
+.ev-title{all:unset;cursor:pointer;font-weight:600;font-size:1rem;color:var(--ink);width:fit-content}
+.ev-title:hover{color:var(--accent);text-decoration:underline;text-underline-offset:3px}
+.ev-title:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}
+.ev-meta{font-size:.86rem;color:var(--muted)}
+.ev-side{display:flex;flex-direction:column;gap:8px;align-items:flex-end;min-width:150px}
+.ev-side .btn{min-width:130px}
+.spots-text{font-size:.8rem;color:var(--muted);font-variant-numeric:tabular-nums}
 .spots{display:flex;flex-direction:column;gap:5px;font-size:.8rem;color:var(--muted)}
-.tags{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center}
-@media (max-width:640px){ .ev{grid-template-columns:46px minmax(0,1fr)} .ev-side{grid-column:1 / -1} }
+.tags{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center;margin-top:2px}
+@media (max-width:640px){ .ev{grid-template-columns:44px minmax(0,1fr)} .ev-side{grid-column:1 / -1;flex-direction:row;justify-content:space-between;align-items:center;min-width:0} }
 
 /* ===== Forms ===== */
 .field{display:flex;flex-direction:column;gap:5px}
@@ -401,3 +407,43 @@ kbd{font-family:var(--f-mono);font-size:.78rem;border:1px solid var(--line-stron
   body.print-modal .modal{box-shadow:none;max-width:none;margin:0;padding:0;border:0}
   .meter > span,.hb-bar,.cc-bar{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
+
+/* ===== Account menu (avatar drop-down) ===== */
+.acct{position:relative}
+.acct-btn{display:flex;align-items:center;gap:8px;background:none;border:1px solid transparent;border-radius:var(--radius);padding:4px 8px 4px 4px;cursor:pointer;color:var(--ink);font:inherit}
+.acct-btn:hover,.acct-btn[aria-expanded="true"]{background:var(--surface-2);border-color:var(--line)}
+.acct-btn .icon{color:var(--faint)}
+.acct-btn .who-name{text-align:left}
+.menu{position:absolute;right:0;top:calc(100% + 6px);z-index:45;width:290px;background:var(--surface);border:1px solid var(--line-strong);border-radius:8px;box-shadow:var(--shadow-pop);padding:6px;display:flex;flex-direction:column}
+.menu-head{padding:8px 10px 10px;display:flex;flex-direction:column;border-bottom:1px solid var(--line);margin-bottom:4px}
+.menu-head b{font-weight:600;font-size:.9rem}
+.menu-head span{font-size:.8rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis}
+.menu > button{display:flex;align-items:center;gap:10px;background:none;border:0;border-radius:4px;padding:8px 10px;font:500 .88rem var(--f-body);color:var(--ink);cursor:pointer;text-align:left}
+.menu > button:hover{background:var(--surface-2)}
+.menu > button .icon{color:var(--faint)}
+.menu-sep{height:1px;background:var(--line);margin:4px 0}
+.menu-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 10px;font-size:.86rem}
+.menu-row .seg button{height:26px;padding:0 9px;font-size:.78rem}
+.menu-row .seg button[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent)}
+
+/* ===== Tabs under a section (e.g. Events: All events / Check-in) ===== */
+.subtabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:-4px;overflow-x:auto}
+.subtabs button{background:none;border:0;border-bottom:2px solid transparent;margin-bottom:-1px;padding:8px 12px;font:500 .9rem var(--f-body);color:var(--muted);cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
+.subtabs button:hover{color:var(--ink)}
+.subtabs button[aria-current="page"]{color:var(--ink);border-bottom-color:var(--accent)}
+.subtabs .count{background:var(--accent-soft);color:var(--accent);font-size:.72rem;font-weight:600;border-radius:4px;padding:1px 6px}
+
+/* ===== "Needs attention" list ===== */
+.attention{padding:6px 18px}
+.attention > h2{padding:12px 0 6px;font-size:.92rem;color:var(--muted);font-weight:500}
+.att-row{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
+.attention > h2 + .att-row{border-top:0}
+.att-icon{width:28px;height:28px;border-radius:6px;display:grid;place-items:center;background:var(--surface-2)}
+.att-icon.accent{color:var(--accent);background:var(--accent-soft)} .att-icon.good{color:var(--good);background:var(--good-soft)}
+.att-icon.mark{color:var(--mark);background:var(--mark-soft)} .att-icon.bad{color:var(--bad);background:var(--bad-soft)}
+.att-text{display:flex;flex-direction:column;gap:1px;min-width:0}
+.att-text b{font-weight:600;font-size:.92rem}
+.att-text span{font-size:.84rem;color:var(--muted)}
+.att-action{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
+.modal .att-row:first-of-type{border-top:0}
+@media (max-width:560px){ .att-row{grid-template-columns:28px minmax(0,1fr)} .att-action{grid-column:2;justify-content:flex-start} }

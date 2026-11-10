@@ -27,6 +27,11 @@ const ICONS = {
   check:'<path d="m5 12.5 4.5 4.5L19 7.5"/>',
   alert:'<path d="M12 3.5 2.5 20h19z"/><path d="M12 10v4M12 17h.01"/>',
   edit:'<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/>',
+  inbox:'<path d="M3 13h5l1.5 2.5h5L16 13h5"/><path d="M5 5h14l2 8v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-6z"/>',
+  chevron:'<path d="m7 10 5 5 5-5"/>',
+  compass:'<circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/>',
+  logout:'<path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 16l4-4-4-4M14 12H4"/>',
+  arrow:'<path d="M5 12h14M13 6l6 6-6 6"/>',
   hourglass:'<path d="M7 3h10M7 21h10M8 3v3a4 4 0 0 0 8 0V3M8 21v-3a4 4 0 0 1 8 0v3"/>',
 };
 const icon = (name, cls = "") => `<svg class="icon ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[name] || ""}</svg>`;
@@ -180,4 +185,16 @@ function listCalToggle(mode, key){
   return `<div class="tabs" role="tablist" aria-label="View as">
     <button role="tab" aria-selected="${mode === "list"}" data-act="viewMode" data-v="${key}:list">List</button>
     <button role="tab" aria-selected="${mode === "calendar"}" data-act="viewMode" data-v="${key}:calendar">Calendar</button></div>`;
+}
+
+/* ----- "Needs attention" list ----- */
+// One list for everything that needs action, instead of a stack of separate banners.
+// items: [{icon, tone, title, detail, action}]; tone colors the icon (accent, good, mark, bad).
+function attentionList(items, heading = "Needs attention"){
+  if (!items.length) return "";
+  return `<section class="card attention"><h2>${heading}</h2>
+    ${items.map(it => `<div class="att-row"><span class="att-icon ${it.tone || "accent"}">${icon(it.icon)}</span>
+      <div class="att-text"><b>${esc(it.title)}</b>${it.detail ? `<span>${it.detail}</span>` : ""}</div>
+      <div class="att-action">${it.action || ""}</div></div>`).join("")}
+  </section>`;
 }

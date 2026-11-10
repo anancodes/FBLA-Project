@@ -14,31 +14,49 @@ function cHome(u){
   const att90 = state.regs.filter(r => r.status === "attended" && inRange(r, d90)).length;
   const ns90 = state.regs.filter(r => r.status === "no-show" && inRange(r, d90)).length;
   const upcoming = state.events.filter(e => e.date >= TODAY).sort(byDate);
-  const fill = upcoming.length ? Math.round(sum(upcoming.map(e => Math.min(1, activeRegs(e.id).length / e.slots))) / upcoming.length * 100) : 0;
   const needs = upcoming.filter(e => activeRegs(e.id).length / e.slots < 0.5);
   const pending = state.events.filter(e => e.date <= TODAY && activeRegs(e.id).some(r => r.status === "registered")).sort(byDate);
-  const top = Object.entries(state.regs.filter(r => r.status === "attended" && inRange(r, d90)).reduce((m, r) => (m[r.userId] = (m[r.userId] || 0) + r.hours, m), {})).map(([id, v]) => ({label:userById(+id).name, value:v})).sort((a,b) => b.value - a.value).slice(0, 6);
-  const notSetUp = state.org.name === "Your Organization";
-  return `<div class="head"><div><span class="eyebrow">${fmtDate(TODAY, {weekday:"long", month:"long", day:"numeric"})}</span><h1>Program overview</h1></div><button class="btn" data-act="newEvent">New event</button></div>
-  ${u.role === "coordinator" && !u.verified && !u.admin ? `<div class="banner reminder"><span class="banner-icon">${icon("hourglass")}</span><div><b>Your organizer account is waiting for verification.</b><span>You can post events now, but they show as "Unverified organizer," and volunteers' contact details stay hidden until a site admin verifies you.</span></div></div>` : ""}
-  ${notSetUp && DB.isVerifiedCoordinator(u) ? `<div class="banner reminder"><span class="banner-icon">${icon("edit")}</span><div><b>Make it yours: add your organization's name and town.</b><span>They appear on the login page, the header, event details, certificates, and reports.</span></div><button class="btn sm" data-act="nav" data-v="settings">Open Settings</button></div>` : ""}
+  const top = Object.entries(state.regs.filter(r => r.status === "attended" && inRange(r, d90)).reduce((m, r) => (m[r.userId] = (m[r.userId] || 0) + r.hours, m), {}))
+    .map(([id, v]) => ({label:userById(asId(id)).name, value:v})).sort((a, b) => b.value - a.value).slice(0, 6);
+  const concerns = openConcerns().length;
+  const clubHours = managedClubs(u).reduce((n, c) => n + state.hourLogs.filter(l => l.clubId === c.id && l.status === "pending" && l.userId !== u.id).length, 0);
+  const waitingOrgs = u.admin ? state.users.filter(x => x.role === "coordinator" && !x.verified).length : 0;
+  const names = list => list.slice(0, 2).map(e => esc(e.title)).join(", ") + (list.length > 2 ? ` and ${list.length - 2} more` : "");
+  const btn = (act, label, extra = "") => `<button class="btn secondary sm" data-act="${act}" ${extra}>${label}</button>`;
+  // Everything that needs action, in one list
+  const items = [
+    ...(u.role === "coordinator" && !u.verified && !u.admin ? [{icon:"hourglass", tone:"mark", title:"Your organizer account is waiting for verification", detail:"Your events show as unverified, and volunteers' contact details stay hidden until a site admin verifies you."}] : []),
+    ...(state.org.name === "Your Organization" && DB.isVerifiedCoordinator(u) ? [{icon:"edit", tone:"accent", title:"Add your organization's name and ZIP code", detail:"They appear on the login page, event details, certificates, and reports.", action:btn("nav", "Open Settings", 'data-v="settings"')}] : []),
+    ...(concerns ? [{icon:"alert", tone:"bad", title:`${concerns} reported ${concerns === 1 ? "concern" : "concerns"} about listings`, detail:"Volunteers flagged something that looked wrong or unsafe.", action:btn("concerns", "Review")}] : []),
+    ...pending.slice(0, 3).map(e => ({icon:"clipboard", tone:"mark", title:`Finish check-in for ${e.title}`, detail:`${fmtDate(e.date)} · ${activeRegs(e.id).filter(r => r.status === "registered").length} not marked yet`, action:btn("goCheckin", "Check in", `data-id="${e.id}"`)})),
+    ...(clubHours ? [{icon:"clock", tone:"accent", title:`${clubHours} club ${clubHours === 1 ? "hour log" : "hour logs"} to review`, detail:managedClubs(u).map(c => esc(c.short)).join(", "), action:btn("nav", "Review", 'data-v="manage"')}] : []),
+    ...(waitingOrgs ? [{icon:"shield", tone:"accent", title:`${waitingOrgs} ${waitingOrgs === 1 ? "organizer is" : "organizers are"} waiting for verification`, action:btn("nav", "Review", 'data-v="organizers"')}] : []),
+    ...(needs.length ? [{icon:"users", tone:"bad", title:`${needs.length} upcoming ${needs.length === 1 ? "event is" : "events are"} under half full`, detail:names(needs), action:btn("nav", "View events", 'data-v="events"')}] : []),
+  ];
+  return `<div class="head"><div><span class="eyebrow">${fmtDate(TODAY, {weekday:"long", month:"long", day:"numeric"})}</span><h1>Overview</h1></div><button class="btn" data-act="newEvent">New event</button></div>
+  ${attentionList(items)}
   <section class="tiles">
-    ${tile("Active volunteers", active, "Attended in the last 90 days")}
+    ${tile("Active volunteers", active, "Last 90 days")}
     ${tile("Hours served", fmtH(hours30), "Last 30 days", "hrs")}
     ${tile("Upcoming events", upcoming.length, `${needs.length} need volunteers`)}
-    ${tile("Average fill rate", fill, "Upcoming events", "%")}
     ${tile("No-show rate", att90 + ns90 ? Math.round(ns90 / (att90 + ns90) * 100) : 0, "Last 90 days", "%")}
   </section>
-  ${openConcerns().length ? `<section class="card" style="border-color:var(--bad)"><h2>Reported concerns (${openConcerns().length})</h2><p class="muted small">Volunteers flagged these listings. Review each one, fix or remove the listing if needed, then mark it resolved.</p>
-    ${openConcerns().map(c => { const e = eventById(c.eventId); return `<div class="mini"><span class="datechip" style="background:var(--bad-soft);color:var(--bad);padding:8px 0"><strong>!</strong></span><div style="min-width:0"><h3>${esc(c.reason)}</h3><p>${e ? `${esc(e.title)} · ${fmtDate(e.date)} · posted by ${esc(posterOf(e).name)}` : "Event was deleted"}${c.details ? `<br>"${esc(c.details)}"` : ""}<br>Reported ${new Date(c.at).toLocaleDateString("en-US", {month:"short", day:"numeric"})} by ${esc((userById(c.userId) || {name:"a volunteer"}).name)}</p></div><div class="row" style="justify-content:flex-end">${e ? `<button class="btn secondary sm" data-act="calEvent" data-id="${e.id}">View</button>` : ""}<button class="btn sm" data-act="resolve" data-id="${c.id}">Mark resolved</button></div></div>`; }).join("")}</section>` : ""}
-  ${pending.length ? `<section class="card" style="border-color:var(--mark)"><div class="spread"><div><h2>Check-in needed</h2><p class="muted small">These events have volunteers who haven't been marked present or absent.</p></div></div>
-    ${pending.map(e => eventMini(e, `<button class="btn sm" data-act="goCheckin" data-id="${e.id}">Open check-in</button>`)).join("")}</section>` : ""}
   <div class="cols">
-    <section class="card"><h2>Needs volunteers</h2><p class="muted small">Upcoming events under half full.</p>
-      ${needs.length ? needs.map(e => eventMini(e, `<div class="fillcell" style="min-width:110px">${fillMeter(e)}<span class="small num">${activeRegs(e.id).length}/${e.slots}</span></div>`)).join("") : `<div class="empty" style="margin-top:12px">Every upcoming event is at least half full.</div>`}</section>
     <section class="card stack"><h2>Hours served by month</h2>${colChart(hoursByMonth(state.regs))}</section>
-  </div>
-  <section class="card stack"><div class="spread"><h2>Top volunteers, last 90 days</h2><button class="linkbtn small" data-act="nav" data-v="reports">Open reports</button></div>${hbars(top, " h")}</section>`;
+    <section class="card stack"><div class="spread"><h2>Top volunteers</h2><button class="linkbtn small" data-act="nav" data-v="reports">Reports</button></div><p class="muted small" style="margin-top:-8px">Last 90 days</p>${hbars(top, " h")}</section>
+  </div>`;
+}
+
+// Pop-up listing reported concerns, so coordinators can review and resolve them.
+function concernsModal(){
+  const list = openConcerns();
+  return `<div class="spread"><h2>Reported concerns</h2><button class="btn secondary sm" data-act="close">Close</button></div>
+    <p class="muted small">Check each listing, fix or delete it if needed, then mark the concern resolved.</p>
+    ${list.length ? list.map(c => { const e = eventById(c.eventId); return `<div class="att-row"><span class="att-icon bad">${icon("alert")}</span>
+      <div class="att-text"><b>${esc(c.reason)}</b><span>${e ? `${esc(e.title)} · ${fmtDate(e.date)} · posted by ${esc(posterOf(e).name)}` : "Event was deleted"}${c.details ? ` · "${esc(c.details)}"` : ""}</span>
+      <span>Reported ${new Date(c.at).toLocaleDateString("en-US", {month:"short", day:"numeric"})} by ${esc(userById(c.userId).name)}</span></div>
+      <div class="att-action">${e ? `<button class="btn secondary sm" data-act="calEvent" data-id="${e.id}">View listing</button>` : ""}<button class="btn sm" data-act="resolve" data-id="${c.id}">Resolve</button></div></div>`; }).join("")
+      : `<div class="empty">No open concerns.</div>`}`;
 }
 
 function cEvents(){

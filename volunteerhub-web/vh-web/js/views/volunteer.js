@@ -1,7 +1,7 @@
 /*
  * views/volunteer.js
- * Screens for volunteers: Home, Find opportunities (list or calendar, with ZIP code +
- * distance search and a verified-organizer filter), the event details pop-up, My shifts,
+ * Screens for volunteers: Home, Opportunities (list or calendar, with ZIP code +
+ * distance search and a verified-organizer filter), the event details pop-up, My schedule,
  * My hours (with certificate), and Profile. Each function takes the logged-in user
  * and returns that screen's HTML. eventCard() and certificate() are also used
  * by pop-ups and by the coordinator screens.
@@ -16,11 +16,10 @@ function eventMini(e, right = ""){
 // The sign-up button area for one event, based on the user's status for it.
 function signupControl(e, u){
   const r = myReg(u.id, e.id), left = spotsLeft(e);
-  if (r && r.status === "registered") return `<span class="pill good" style="justify-content:center;padding:8px">You're signed up</span>`;
-  if (r && r.status === "waitlist") return `<span class="pill mark" style="justify-content:center;padding:8px">Waitlist #${waitlistPosition(r)}</span>${armBtn(`leave:${r.id}`, "Leave waitlist", "Confirm leave", "secondary sm")}`;
+  if (r && r.status === "registered") return `<span class="pill good">You're signed up</span>`;
+  if (r && r.status === "waitlist") return `<span class="pill mark">Waitlist #${waitlistPosition(r)}</span>${armBtn(`leave:${r.id}`, "Leave waitlist", "Confirm leave", "secondary sm")}`;
   if (left > 0) return `<button class="btn" data-act="signup" data-id="${e.id}">Sign up</button>`;
-  const line = waitlistFor(e.id).length;
-  return `<button class="btn secondary" data-act="waitlist" data-id="${e.id}">Join waitlist</button><span class="small muted" style="text-align:center">${line ? `${line} ${line === 1 ? "person" : "people"} waiting` : "Be first in line"}</span>`;
+  return `<button class="btn secondary" data-act="waitlist" data-id="${e.id}">Join waitlist</button>`;
 }
 
 // Shows how far away an event is when a ZIP search is active, otherwise its town and ZIP.
@@ -31,20 +30,20 @@ function placePill(e){
 
 // Full event card used on Find opportunities and in the calendar pop-up.
 function eventCard(e, u){
-  const regs = activeRegs(e.id), left = e.slots - regs.length;
+  const left = spotsLeft(e), line = waitlistFor(e.id).length;
   const match = e.skills.some(k => u.skills.includes(k));
-  return `<article class="card ev">${dateChip(e.date)}
+  const status = e.clubId && clubById(e.clubId) ? `<span class="pill accent">${esc(clubById(e.clubId).short)} members</span>`
+    : isVerified(e) ? `<span class="pill good">Verified organizer</span>` : `<span class="pill warn">Unverified organizer</span>`;
+  const o = searchOrigin();
+  return `<article class="ev">${dateChip(e.date)}
     <div class="ev-body">
-      <div class="tags"><span class="pill">${esc(e.category)}</span>${placePill(e)}${e.clubId && clubById(e.clubId) ? `<span class="pill accent">${esc(clubById(e.clubId).short)} members</span>` : isVerified(e) ? `<span class="pill good">Verified organizer</span>` : `<span class="pill warn">Unverified organizer</span>`}${match ? `<span class="pill">Matches your skills</span>` : ""}${e.date === TODAY ? `<span class="pill mark">Today</span>` : ""}</div>
-      <h3>${esc(e.title)}</h3>
-      <p class="muted small">${fmtDate(e.date)} · ${timeRange(e)} · ${fmtH(duration(e))} hrs · ${esc(e.location)}</p>
-      <p>${esc(e.desc)}</p>
-      <p class="small muted">${e.minAge ? `Ages ${e.minAge}+ · ` : ""}Posted by ${esc(posterOf(e).name)}${posterOf(e).org ? `, ${esc(posterOf(e).org)}` : ""}</p>
+      <button class="ev-title" data-act="moreInfo" data-id="${e.id}">${esc(e.title)}</button>
+      <p class="ev-meta">${fmtDate(e.date)} · ${timeRange(e)} · ${esc(e.location)}${o ? ` · ${fmtMiles(milesTo(e, o))} away` : ""}</p>
+      <div class="tags">${status}${e.date === TODAY ? `<span class="pill mark">Today</span>` : ""}<span class="pill">${esc(e.category)}</span>${match ? `<span class="pill">Matches your skills</span>` : ""}</div>
     </div>
     <div class="ev-side">
-      <div class="spots">${fillMeter(e)}<span>${left > 0 ? `<b>${left}</b> of ${e.slots} spots open` : "<b>Full</b>"}</span></div>
+      <span class="spots-text">${left > 0 ? `${left} of ${e.slots} spots open` : `Full${line ? ` · ${line} waiting` : ""}`}</span>
       ${signupControl(e, u)}
-      <button class="btn secondary sm" data-act="moreInfo" data-id="${e.id}">More info</button>
     </div></article>`;
 }
 
@@ -83,26 +82,27 @@ function vHome(u){
   const soon = up.filter(e => { const h = hoursUntil(e); return h > -duration(e) && h <= 72; });   // shifts in the next 3 days
   const recs = state.events.filter(e => e.date >= TODAY && canSeeEvent(e, u) && isVerified(e) && spotsLeft(e) > 0 && !myReg(u.id, e.id) && e.skills.some(k => u.skills.includes(k))).sort(byDate).slice(0, 3);
   const notes = noticesFor(u.id).filter(n => !n.read);
-  const seen = readSet(u.id), news = announcementsFor(u).slice(0, 2);
-  const next = up[0];
+  const seen = readSet(u.id), newAnn = announcementsFor(u).filter(a => !seen.has(a.id)).length;
   const when = e => { const h = hoursUntil(e); return h <= 0 ? "is happening now" : e.date === TODAY ? `starts today at ${fmtTime(e.start)}` : `starts ${fmtDate(e.date, {weekday:"long"})} at ${fmtTime(e.start)}`; };
+  // Everything that needs the volunteer's attention, in one list
+  const items = [
+    ...soon.map(e => ({icon:"clock", tone:"mark", title:`${e.title} ${when(e)}`, detail:`${e.location} · ${timeRange(e)}`, action:`<button class="btn secondary sm" data-act="moreInfo" data-id="${e.id}">Details</button>`})),
+    ...notes.map(n => ({icon:"check", tone:"good", title:n.text, detail:new Date(n.at).toLocaleDateString("en-US", {month:"short", day:"numeric"}), action:`<button class="btn secondary sm" data-act="dismiss" data-id="${n.id}">Dismiss</button>`})),
+    ...(newAnn ? [{icon:"inbox", tone:"accent", title:`${newAnn} new ${newAnn === 1 ? "announcement" : "announcements"}`, detail:"From your coordinators and clubs", action:`<button class="btn secondary sm" data-act="nav" data-v="news">Open inbox</button>`}] : []),
+  ];
   return `<div class="head"><div><span class="eyebrow">${fmtDate(TODAY, {weekday:"long", month:"long", day:"numeric"})}</span><h1>Welcome back, ${esc(u.name.split(" ")[0])}</h1></div><button class="btn" data-act="nav" data-v="find">Find opportunities</button></div>
-  ${soon.map(e => `<div class="banner reminder"><span class="banner-icon">${icon("clock")}</span><div><b>Reminder: ${esc(e.title)} ${when(e)}.</b><span>${esc(e.location)} · ${timeRange(e)}. Can't make it? Cancel in My shifts so someone on the waitlist can go.</span></div></div>`).join("")}
-  ${notes.map(n => `<div class="banner notice"><span class="banner-icon">${icon("check")}</span><div><b>${esc(n.text)}</b><span>${new Date(n.at).toLocaleDateString("en-US", {month:"short", day:"numeric"})}</span></div><button class="btn secondary sm" data-act="dismiss" data-id="${n.id}">Dismiss</button></div>`).join("")}
+  ${attentionList(items, "For you")}
   <section class="tiles">
-    ${tile("Service hours", fmtH(s.hours), "Approved by coordinators", "hrs")}
+    <div class="card tile"><span class="lab">Service hours</span><span class="val">${fmtH(s.hours)}<small>hrs</small></span><div class="meter ${pct >= 100 ? "full" : ""}" role="img" aria-label="${pct}% of your ${HOUR_GOAL}-hour goal"><span style="width:${pct}%"></span></div><span class="sub">${pct}% of your ${HOUR_GOAL}-hour goal</span></div>
+    ${tile("Upcoming shifts", up.length, up[0] ? `Next: ${fmtDate(up[0].date)}` : s.waitlisted.length ? `${s.waitlisted.length} on waitlist` : "Nothing scheduled")}
     ${tile("Events attended", s.attended, s.noShows ? `${s.noShows} missed` : "No missed shifts")}
-    ${tile("Upcoming shifts", up.length, next ? `Next: ${fmtDate(next.date)}` : s.waitlisted.length ? `${s.waitlisted.length} on waitlist` : "Nothing scheduled")}
-    <div class="card tile"><span class="lab">Hour goal</span><span class="val">${pct}<small>%</small></span><div class="meter ${pct >= 100 ? "full" : ""}"><span style="width:${pct}%"></span></div><span class="sub">${fmtH(s.hours)} of ${HOUR_GOAL} hours</span></div>
   </section>
   <div class="cols">
-    <section class="card"><div class="spread"><h2>Your next shifts</h2><button class="linkbtn small" data-act="nav" data-v="shifts">See all</button></div>
-      ${up.length ? up.slice(0, 4).map(e => eventMini(e, `<button class="btn secondary sm" data-act="moreInfo" data-id="${e.id}">Details</button>`)).join("") : `<div class="empty" style="margin-top:12px">You have no upcoming shifts. <button class="linkbtn" data-act="nav" data-v="find">Find one</button></div>`}</section>
-    <section class="card"><h2>Recommended for you</h2><p class="muted small">Open shifts that need your skills: ${esc(u.skills.join(", ") || "add skills on your profile")}</p>
-      ${recs.length ? recs.map(e => eventMini(e, `<button class="btn sm" data-act="signup" data-id="${e.id}">Sign up</button>`)).join("") : `<div class="empty" style="margin-top:12px">No matching open shifts right now.</div>`}</section>
-  </div>
-  <section class="card stack"><div class="spread"><h2>Announcements</h2><button class="linkbtn small" data-act="nav" data-v="news">See all</button></div>
-    ${news.length ? news.map(a => `<div class="ann-mini">${seen.has(a.id) ? "" : `<span class="pill mark">New</span>`}<div><b>${esc(a.title)}</b><p class="muted small">${esc(a.body)}</p></div></div>`).join("") : `<div class="empty">No announcements yet.</div>`}</section>`;
+    <section class="card"><div class="spread"><h2>Your next shifts</h2>${up.length > 3 ? `<button class="linkbtn small" data-act="nav" data-v="shifts">See all ${up.length}</button>` : ""}</div>
+      ${up.length ? up.slice(0, 3).map(e => eventMini(e, `<button class="btn secondary sm" data-act="moreInfo" data-id="${e.id}">Details</button>`)).join("") : `<div class="empty" style="margin-top:12px">No upcoming shifts. <button class="linkbtn" data-act="nav" data-v="find">Find one</button></div>`}</section>
+    <section class="card"><h2>Recommended for you</h2><p class="muted small">Based on your skills${u.skills.length ? `: ${esc(u.skills.join(", "))}` : ""}</p>
+      ${recs.length ? recs.map(e => eventMini(e, `<button class="btn sm" data-act="signup" data-id="${e.id}">Sign up</button>`)).join("") : `<div class="empty" style="margin-top:12px">${u.skills.length ? "No matching open shifts right now." : `Add skills on your <button class="linkbtn" data-act="nav" data-v="profile">profile</button> to get suggestions.`}</div>`}</section>
+  </div>`;
 }
 
 function vFind(u){
@@ -126,7 +126,7 @@ function vFind(u){
     return spotsLeft(e) > 0 ? calChip(e, "open", "open") : calChip(e, "full", "full"); };
   const legend = `<div class="cal-legend small"><span><i class="sw mine"></i>Signed up</span><span><i class="sw open"></i>Open</span><span><i class="sw wait"></i>On waitlist</span><span><i class="sw full"></i>Full</span></div>`;
   const hiddenUnverified = f.verifiedOnly ? state.events.filter(e => e.date >= TODAY && !isVerified(e)).length : 0;
-  return `<div class="head"><div><h1>Find opportunities</h1><p class="muted">${list.length} upcoming ${list.length === 1 ? "shift" : "shifts"}${origin ? ` ${f.radius === "any" ? "sorted by distance from" : `within ${f.radius} miles of`} ${esc(origin.zip)} (${esc(placeName(origin))}), nearest first.` : " match your filters."}${hiddenUnverified ? ` ${hiddenUnverified} from unverified organizers ${hiddenUnverified === 1 ? "is" : "are"} hidden.` : ""}</p></div>${listCalToggle(f.mode, "find")}</div>
+  return `<div class="head"><div><h1>Opportunities</h1><p class="muted">${list.length} upcoming ${list.length === 1 ? "shift" : "shifts"}${origin ? ` ${f.radius === "any" ? "sorted by distance from" : `within ${f.radius} miles of`} ${esc(origin.zip)} (${esc(placeName(origin))}), nearest first.` : " match your filters."}${hiddenUnverified ? ` ${hiddenUnverified} from unverified organizers ${hiddenUnverified === 1 ? "is" : "are"} hidden.` : ""}</p></div>${listCalToggle(f.mode, "find")}</div>
   <div class="card filters" role="search">
     <div class="field grow"><label for="f-q">Search</label><input id="f-q" data-filter="find.q" value="${esc(f.q)}" placeholder="Search by name, place, or description"></div>
     <div class="field"><label for="f-cat">Cause</label><select id="f-cat" data-filter="find.cat"><option value="all">All causes</option>${CATS.map(c => `<option ${f.cat === c ? "selected" : ""}>${c}</option>`).join("")}</select></div>
@@ -147,7 +147,7 @@ function vShifts(u){
   const up = mine.filter(x => x.e.date >= TODAY && x.r.status === "registered").sort((a, b) => byDate(a.e, b.e));
   const wait = mine.filter(x => x.e.date >= TODAY && x.r.status === "waitlist").sort((a, b) => byDate(a.e, b.e));
   const past = mine.filter(x => x.r.status !== "waitlist" && (x.e.date < TODAY || x.r.status !== "registered")).sort((a, b) => byDate(b.e, a.e));
-  return `<div class="head"><div><h1>My shifts</h1><p class="muted">Cancel at least 24 hours ahead when you can. The first person on the waitlist gets your spot automatically.</p></div></div>
+  return `<div class="head"><div><h1>My schedule</h1><p class="muted">Cancel at least 24 hours ahead when you can. The first person on the waitlist gets your spot automatically.</p></div></div>
   <section class="card"><h2>Upcoming</h2>
     ${up.length ? up.map(({r, e}) => eventMini(e, `<div class="row" style="justify-content:flex-end"><button class="btn secondary sm" data-act="moreInfo" data-id="${e.id}">Details</button>${armBtn(`cancel:${r.id}`, "Cancel", "Confirm cancel")}</div>`)).join("") : `<div class="empty" style="margin-top:12px">No upcoming shifts. <button class="linkbtn" data-act="nav" data-v="find">Browse opportunities</button></div>`}
   </section>

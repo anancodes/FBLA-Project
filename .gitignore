@@ -1,2 +1,12 @@
 .DS_Store
 .vscode/
+
+# Impeccable: keep local runtime output out of version control.
+**/.impeccable/*
+!**/.impeccable/config.json
+!**/.impeccable/design.json
+!**/.impeccable/surfaces/
+!**/.impeccable/critique/
+!**/.impeccable/live/
+**/.impeccable/live/*
+!**/.impeccable/live/config.json

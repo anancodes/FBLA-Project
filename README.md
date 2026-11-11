@@ -49,3 +49,7 @@ All data is sample data for a fictional organization. It is saved in your browse
 
 - Fonts: Bricolage Grotesque and Public Sans, from Google Fonts (SIL Open Font License)
 - AI assistance (Claude) was used as a coding tool. The team reviewed and can explain all code.
+
+## Design assistance in Codex
+
+Impeccable is included as a project skill. Type `$impeccable init` in Codex, then use `$impeccable critique` or `$impeccable distill` with a specific screen. See [the team usage guide](docs/IMPECCABLE.md) for setup, examples, and installation scope.

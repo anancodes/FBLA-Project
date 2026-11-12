@@ -146,7 +146,7 @@ function downloadICS(e){
 
 // Practical details block used in both event pop-ups: where, what to bring, ages, contact.
 function eventFacts(e){
-  const v = venueOf(e), p = posterOf(e);
+  const v = venueOf(e), p = posterOf(e), origin = searchOrigin();
   const fact = (label, value) => value ? `<div class="fact"><span class="lbl">${label}</span><span>${value}</span></div>` : "";
   return `<div class="facts">
     <div class="stack">
@@ -161,7 +161,7 @@ function eventFacts(e){
       <h3>Where</h3>
       ${fact("Place", esc(e.location))}
       ${fact("Address", esc(addressOf(e)))}
-      ${searchOrigin() ? fact("Distance", `${fmtMiles(milesTo(e, searchOrigin()))} from ${esc(searchOrigin().zip)}`) : ""}
+      ${origin ? fact("Distance", `${fmtMiles(milesTo(e, origin))} from ${esc(placeName(origin))}`) : ""}
       ${fact("Parking", esc(v.parking))}
       ${fact("Accessibility", esc(v.access))}
       ${fact("Contact", `${esc(p.name)}${p.org ? `, ${esc(p.org)}` : ""}<br><span class="muted">${esc(p.phone || "")}${p.phone && p.email ? " · " : ""}${esc(p.email || "")}</span>`)}

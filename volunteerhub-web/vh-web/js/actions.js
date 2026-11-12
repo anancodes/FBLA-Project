@@ -260,6 +260,7 @@ function copyText(text, what){
 /* ----- Button handlers ----- */
 
 const handlers = {
+  homeDisplay: () => { ui.homeDisplay = !ui.homeDisplay; render(); },
   // Navigation and account
   nav: (v) => {
     const u = currentUser();

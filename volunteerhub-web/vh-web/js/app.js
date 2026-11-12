@@ -30,6 +30,7 @@ function render(){
   const typed = [...document.querySelectorAll("#app form [id]")].filter(el => !el.dataset.filter && "value" in el && el.form && el.form.id !== ui.justSubmitted)
     .map(el => [el.id, el.type === "checkbox" || el.type === "radio" ? el.checked : el.value]);
   $("#app").innerHTML = u ? shell(u) : loginView();
+  document.body.classList.toggle("home-preview",isHomePreview(u));
   const pageTitle = $("#main h1"); if (pageTitle){ pageTitle.id = "page-title"; pageTitle.tabIndex = -1; }
   ui.renderKey = `${u ? u.id : "auth"}:${ui.view}`;
   document.querySelectorAll("#app details[id]").forEach(el => { if (ui.disclosures.has(`${ui.renderKey}:${el.id}`)) el.open = true; });
@@ -82,6 +83,7 @@ function shell(u){
   const nav = menuFor(u);
   const personal = u.role === "volunteer" ? ["profile","help"] : ["help"];
   if (!VIEWS[u.role][ui.view] || (!sectionOf(u, ui.view) && !personal.includes(ui.view))) ui.view = "dashboard";
+  if (isHomePreview(u)) return homePreviewShell(u);
   const sec = sectionOf(u, ui.view), tabs = sec ? tabsFor(u, sec) : [];
   const upCount = u.role === "volunteer" ? userStats(u.id).upcoming.length : 0;
   const unread = unreadCount(u);
@@ -202,6 +204,7 @@ document.addEventListener("keydown", ev => {
   if (ev.key === "Tab") return trapModalTab(ev);
   if (ev.key !== "Escape") return;
   if ($("#modal").innerHTML) return closeModal();
+  if (isHomePreview(currentUser()) && ui.homeDisplay){ ui.homeDisplay = false; render(); $("#display-trigger").focus(); return; }
   if (ui.menu){ ui.menu = false; render(); $("#account-trigger").focus(); return; }
   const disclosure = $("#app details.overflow-menu[open]") || document.activeElement.closest("#app details[open]");
   if (disclosure){ disclosure.open = false; disclosure.querySelector("summary").focus(); return; }

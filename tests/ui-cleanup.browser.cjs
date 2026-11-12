@@ -13,8 +13,9 @@ test('Home prioritizes upcoming shifts and recommendations without duplicate att
   assert.equal(await p.getByText('Events attended',{exact:true}).count(),0);
   assert.equal(await p.getByRole('heading',{name:'Your next shifts'}).count(),1);
   assert.equal(await p.getByRole('heading',{name:'Recommended for you'}).count(),1);
-  assert.equal(await p.locator('.activity-columns > section').first().locator('.mini').count(),3);
-  assert.equal(await p.locator('.summary-strip > div').count(),2);
+  assert.equal(await p.locator('.pv-shifts > li').count(),3);
+  const goal = p.getByRole('progressbar',{name:'Service hour goal'});
+  assert.equal(await goal.getAttribute('aria-valuetext'),await p.evaluate(() => `${fmtH(userStats(currentUser().id).hours)} of ${HOUR_GOAL} hours`));
   assert.equal(await p.locator('.rail [data-v="manage"]').count(),0);
 });
 
@@ -186,7 +187,7 @@ test('tutorial follows the revised routes and keyboard focus without marking Inb
     await p.locator('#tour-next').click(); assert.ok(++visits < 12);
   }
   assert.equal(await p.evaluate(() => unreadCount(currentUser())),before);
-  await p.locator('#account-trigger').click(); await p.locator('#account-panel [data-act="tour"]').click(); await p.keyboard.press('Escape');
+  await p.locator('.pv-utility-links [data-act="tour"]').click(); await p.keyboard.press('Escape');
   assert.equal(await p.locator('.tour').count(),0);
 });
 

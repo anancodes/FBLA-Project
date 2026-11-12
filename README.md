@@ -1,12 +1,14 @@
 # VolunteerHub
 
+On `codex/visual-redesign-preview`, [compare the two visual proposals and try the working volunteer Home screen](docs/VISUAL_PREVIEW.md). The broader site awaits the owner's design review.
+
 **Live demo:** https://anancodes.github.io/FBLA-Project/volunteerhub-web/vh-web/
 
 A website that helps nonprofits recruit, organize, and manage volunteers, built for the FBLA Coding & Programming 2026–27 topic, *Serving the Community: Nonprofit Volunteer Management*.
 
 ## How to run
 
-Double-click `index.html` to open it in a browser. No install or server is needed.
+Open `volunteerhub-web/vh-web/index.html` with your local preview workflow. For consistent font loading, run `python -m http.server 4173 --directory volunteerhub-web/vh-web` from the repository root and visit `http://localhost:4173`.
 
 Demo accounts (password `demo1234`):
 
@@ -30,7 +32,8 @@ Demo accounts use fictional sample data saved in your browser only. Configured l
 | File | What it does |
 |---|---|
 | `index.html` | Page skeleton; loads the stylesheet and scripts in order |
-| `css/styles.css` | All styling, with colors defined once as variables |
+| `css/styles.css` | Existing screen styles, with colors defined once as variables |
+| `css/home-preview.css` | Scoped volunteer Home visual proposal |
 | `js/utils.js` | General helpers: dates, times, HTML escaping, CSV |
 | `js/data.js` | Constants and the sample (seed) data |
 | `js/store.js` | App data, saving/loading with localStorage, waitlist logic, query helpers |
@@ -38,6 +41,7 @@ Demo accounts use fictional sample data saved in your browser only. Configured l
 | `js/components.js` | Reusable pieces: charts, calendar, tiles, pop-ups, messages, CSV export, printing |
 | `js/views/auth.js` | Login and create-account screens |
 | `js/views/volunteer.js` | Volunteer screens |
+| `js/views/home-preview.js` | Working volunteer Home proposal |
 | `js/views/coordinator.js` | Coordinator screens and report calculations |
 | `js/views/help.js` | Help screen |
 | `js/views/news.js` | Announcements screen (post for coordinators, read for volunteers) |
@@ -47,7 +51,7 @@ Demo accounts use fictional sample data saved in your browser only. Configured l
 
 ## Credits
 
-- Fonts: IBM Plex Sans and IBM Plex Mono, from Google Fonts (SIL Open Font License)
+- Fonts: Public Sans (self-hosted for the Home proposal), IBM Plex Sans, and IBM Plex Mono; SIL Open Font License
 - AI assistance (Claude) was used as a coding tool. The team reviewed and can explain all code.
 
 ## Design assistance in Codex

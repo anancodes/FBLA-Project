@@ -13,7 +13,7 @@ const TOURS = {
     {view:"shifts", title:"My schedule", text:"Your upcoming shifts, waitlists, and history. If you can't make it, cancel here so the next person in line gets your spot."},
     {view:"hours", title:"Hours & clubs", text:"See your last three attended events, expand your full service record, or use the More hour actions menu to download CSV. My clubs includes your requirements, outside-service logs, and officer tools when applicable."},
     {view:"news", title:"Inbox", text:"Announcements from coordinators and your clubs. The number in the menu shows what's new."},
-    {view:"dashboard", title:"Your account menu", text:"Click your name in the top right for your profile, text size, light or dark theme, high contrast, help, and to replay this tour."},
+    {view:"dashboard", title:"Your profile and display", text:"Open your profile from your name or initials. Display settings has text size, light or dark theme, and high contrast. Help lets you replay this tour."},
   ],
   coordinator: [
     {view:"dashboard", title:"Welcome to VolunteerHub", text:"The Overview lists everything that needs your attention in one place, followed by your program's key numbers."},

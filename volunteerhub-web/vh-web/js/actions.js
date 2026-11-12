@@ -25,12 +25,12 @@ function doLogin(form){
 function doSignup(form){
   const fd = new FormData(form), d = Object.fromEntries(fd.entries());
   const isVol = d.role === "volunteer";
-  const errs = {name:V.name(d.name), email:V.email(d.email), phone:V.phone(d.phone), password:V.password(d.password),
+  const errs = {name:V.name(d.name), email:V.email(d.email), phone:V.phone(d.phone), location:cityError(d.location), password:V.password(d.password),
     confirm: d.password !== d.confirm ? "Passwords don't match." : "",
     waiver: isVol && !d.waiver ? "Please read and accept the volunteer waiver to continue." : ""};
   if (!errs.email && !Cloud.enabled && state.users.some(u => u.email === d.email.trim().toLowerCase())) errs.email = "An account with this email already exists. Try logging in.";
   if (!showErrors(form, errs)) return;
-  const profile = {name:d.name.trim(), email:d.email.trim().toLowerCase(), phone:d.phone.trim(), role:d.role, skills:[], availability:[], zip:"", emergency:"",
+  const profile = {name:d.name.trim(), email:d.email.trim().toLowerCase(), phone:d.phone.trim(), role:d.role, skills:[], availability:[], zip:"", location:resolveCity(d.location), emergency:"",
     org:isVol ? "" : "Independent organizer", verified:false, reads:[], toured:false, waiverAt:isVol ? new Date().toISOString() : ""};
   if (Cloud.enabled && !ui.demo){
     Cloud.signup(profile, d.password).catch(e => showErrors(form, {email:Cloud.friendly(e)}));
@@ -52,13 +52,23 @@ function doReset(form){
 }
 
 function saveProfile(form){
-  const fd = new FormData(form), u = currentUser(), zip = fd.get("zip").trim(), emergency = fd.get("emergency").trim();
-  const errs = {name:V.name(fd.get("name")), phone:V.phone(fd.get("phone")), zip:zip ? zipError(zip) : "",
+  const fd = new FormData(form), u = currentUser(), location = fd.get("location").trim(), emergency = fd.get("emergency").trim();
+  const errs = {name:V.name(fd.get("name")), phone:V.phone(fd.get("phone")), location:cityError(location),
     emergency: emergency.length > 100 ? "Keep this under 100 characters." : ""};
   if (!showErrors(form, errs)) return;
-  DB.update("users", u, {name:fd.get("name").trim(), phone:fd.get("phone").trim(), skills:fd.getAll("skills"), availability:fd.getAll("availability"), zip, emergency});
-  ui.find.zip = zip;                                                // search near the new ZIP
+  DB.update("users", u, {name:fd.get("name").trim(), phone:fd.get("phone").trim(), skills:fd.getAll("skills"), availability:fd.getAll("availability"), zip:"", location:resolveCity(location), emergency});
+  ui.find.location = location ? placeName(resolveCity(location)) : null;
   save(); render(); toast("Profile saved.");
+}
+
+function findOpportunities(form){
+  const fd = new FormData(form), u = currentUser(), saved = userLocation(u), q = String(fd.get("q") || "").trim();
+  const location = saved ? String(fd.get("location") || placeName(saved)).trim() : "";
+  const errs = {q:!saved && !q && fd.get("cat") === "all" ? "Enter an event or place, or choose a cause to search." : "", location:saved ? cityError(location) : ""};
+  if (!showErrors(form, errs)) return;
+  Object.assign(ui.find, {q, location:saved ? placeName(resolveCity(location)) : null, cat:fd.get("cat"), radius:fd.get("radius") || "any", verifiedOnly:fd.has("verifiedOnly"), match:fd.has("match"), hideFull:fd.has("hideFull")});
+  render();
+  const results = document.getElementById("search-results"); if (results) results.focus();
 }
 
 /* ----- Volunteer sign-ups ----- */
@@ -253,22 +263,27 @@ const handlers = {
   // Navigation and account
   nav: (v) => {
     const u = currentUser();
+    if (u.role === "volunteer" && v === "manage") v = "clubs";
     if (v === "news" && u.role === "volunteer"){            // remember what was new, then mark it all read
       ui.newsSeen = readSet(u.id);
       ui.newNotices = new Set(noticesFor(u.id).filter(n => !n.read).map(n => n.id));
       markAllRead(u); save();
     }
-    ui.view = v; ui.armed = null; closeModal(); render();
-    const m = $("#main"); if (m) m.focus({preventScroll:true}); window.scrollTo(0, 0);
+    ui.view = v; ui.armed = null; closeModal(false);
+    if (ui.tour){ const i = tourSteps(u).findIndex(step => step.view === v); if (i >= 0) ui.tour.i = i; }
+    render();
+    if (ui.tour) return focusTourStep();
+    const m = $("#page-title") || $("#main"); if (m) m.focus({preventScroll:true}); window.scrollTo(0, 0);
   },
   authmode: (v) => { ui.authMode = v; render(); },
   demo: (v) => {
     if (Cloud.enabled && !ui.demo) Cloud.enterDemo();       // explore sample data without touching live data
+    Object.assign(ui.find, {q:"", location:null}); ui.disclosures.clear();
     state.session.userId = asId(v); ui.view = "dashboard"; save(); render();
     toast(`Signed in as ${userById(asId(v)).name}.`); maybeStartTour();
   },
   logout: () => {
-    ui.authMode = "login"; ui.armed = null; ui.tour = null; ui.cal = TODAY.slice(0, 7); ui.find.mode = ui.ev.mode = "list"; ui.find.zip = null; ui.view = "dashboard";
+    ui.authMode = "login"; ui.armed = null; ui.tour = null; ui.cal = TODAY.slice(0, 7); ui.find.mode = ui.ev.mode = "list"; ui.find.location = null; ui.find.q = ""; ui.disclosures.clear(); ui.view = "dashboard";
     if (DB.live) return Cloud.logout();
     state.session.userId = null; save();
     if (ui.demo) return Cloud.exitDemo();
@@ -276,7 +291,7 @@ const handlers = {
   },
   font: (v) => { state.prefs.font = Math.max(13, Math.min(21, state.prefs.font + +v)); save(); applyPrefs(); },
   contrast: () => { state.prefs.hc = !state.prefs.hc; save(); render(); },
-  menu: () => { ui.menu = !ui.menu; render(); },
+  menu: () => { ui.menu = !ui.menu; render(); const target = ui.menu ? $("#account-panel button") : $("#account-trigger"); if (target) target.focus(); },
   setTheme: (v) => { state.prefs.theme = v; save(); render(); },
   theme: () => { const order = ["auto", "light", "dark"]; state.prefs.theme = order[(order.indexOf(state.prefs.theme || "auto") + 1) % 3]; save(); render(); },
   waiver: () => openModal(`<div class="spread"><h2>Volunteer waiver</h2><button class="btn secondary sm" data-act="close">Close</button></div><div class="waiver-text">${esc(state.org.waiver || DEFAULT_WAIVER).replace(/\n/g, "<br>")}</div>`),
@@ -334,7 +349,7 @@ const handlers = {
 
   // Clubs
   logHours: () => openModal(logForm(currentUser())),
-  manageClub: (_, id) => { ui.club = asId(id); handlers.nav("manage"); },
+  manageClub: (_, id) => { ui.club = asId(id); ui.expandClub = ui.club; handlers.nav(currentUser().role === "volunteer" ? "clubs" : "manage"); },
   pickClub: (_, id) => { ui.club = asId(id); render(); },
   newClub: () => openModal(clubForm(null)),
   editClub: (_, id) => openModal(clubForm(clubById(asId(id)))),
@@ -356,7 +371,8 @@ const handlers = {
   // Reports, exports, printing
   preset: (v) => { ui.rep.from = addDays(-+v); ui.rep.to = TODAY; render(); },
   csv: () => { if (ui.csv) copyCSV(ui.csv.build()); },
-  csvDownload: () => { if (ui.csv) downloadCSV(ui.csv.name, ui.csv.build()); },
+  csvDownload: () => { if (ui.csv) downloadCSV(ui.csv.name, ui.csv.build()); const menu = $("#hours-actions"); if (menu){ menu.open = false; menu.querySelector("summary").focus(); } },
+  clubCsvDownload: (_, id) => downloadClubCSV(asId(id)),
   print: () => printView("page"),
   cert: (_, id) => openModal(certificate(userById(asId(id)))),
   printCert: () => printView("modal"),

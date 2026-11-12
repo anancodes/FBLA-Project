@@ -1,10 +1,7 @@
 /*
- * views/volunteer.js
- * Screens for volunteers: Home, Opportunities (list or calendar, with ZIP code +
- * distance search and a verified-organizer filter), the event details pop-up, My schedule,
- * My hours (with certificate), and Profile. Each function takes the logged-in user
- * and returns that screen's HTML. eventCard() and certificate() are also used
- * by pop-ups and by the coordinator screens.
+ * Volunteer screens: compact Home, explicit search with optional city-level
+ * discovery, expandable service history, Hours & clubs, and Profile.
+ * Certificates remain available from the coordinator directory.
  */
 "use strict";
 
@@ -22,10 +19,10 @@ function signupControl(e, u){
   return `<button class="btn secondary" data-act="waitlist" data-id="${e.id}">Join waitlist</button>`;
 }
 
-// Shows how far away an event is when a ZIP search is active, otherwise its town and ZIP.
+// Show an approximate distance from the chosen city, or the event town.
 function placePill(e){
   const o = searchOrigin();
-  return o ? `<span class="pill num">${fmtMiles(milesTo(e, o))} away</span>` : `<span class="pill">${esc(eventZipInfo(e).city)} ${esc(eventZipInfo(e).zip)}</span>`;
+  return o ? `<span class="pill num">${fmtMiles(milesTo(e, o))} away</span>` : `<span class="pill">${esc(placeName(eventZipInfo(e)))}</span>`;
 }
 
 // Full event card used on Find opportunities and in the calendar pop-up.
@@ -77,86 +74,74 @@ function concernForm(e){
 }
 
 function vHome(u){
-  const s = userStats(u.id), pct = Math.min(100, Math.round(s.hours / HOUR_GOAL * 100));
-  const up = s.upcoming.map(r => eventById(r.eventId)).sort(byDate);
-  const soon = up.filter(e => { const h = hoursUntil(e); return h > -duration(e) && h <= 72; });   // shifts in the next 3 days
+  const s = userStats(u.id), up = s.upcoming.map(r => eventById(r.eventId)).filter(Boolean).sort(byDate);
   const recs = state.events.filter(e => e.date >= TODAY && canSeeEvent(e, u) && isVerified(e) && spotsLeft(e) > 0 && !myReg(u.id, e.id) && e.skills.some(k => u.skills.includes(k))).sort(byDate).slice(0, 3);
-  const notes = noticesFor(u.id).filter(n => !n.read);
-  const seen = readSet(u.id), newAnn = announcementsFor(u).filter(a => !seen.has(a.id)).length;
-  const when = e => { const h = hoursUntil(e); return h <= 0 ? "is happening now" : e.date === TODAY ? `starts today at ${fmtTime(e.start)}` : `starts ${fmtDate(e.date, {weekday:"long"})} at ${fmtTime(e.start)}`; };
-  // Everything that needs the volunteer's attention, in one list
-  const items = [
-    ...soon.map(e => ({icon:"clock", tone:"mark", title:`${e.title} ${when(e)}`, detail:`${e.location} · ${timeRange(e)}`, action:`<button class="btn secondary sm" data-act="moreInfo" data-id="${e.id}">Details</button>`})),
-    ...notes.map(n => ({icon:"check", tone:"good", title:n.text, detail:new Date(n.at).toLocaleDateString("en-US", {month:"short", day:"numeric"}), action:`<button class="btn secondary sm" data-act="dismiss" data-id="${n.id}">Dismiss</button>`})),
-    ...(newAnn ? [{icon:"inbox", tone:"accent", title:`${newAnn} new ${newAnn === 1 ? "announcement" : "announcements"}`, detail:"From your coordinators and clubs", action:`<button class="btn secondary sm" data-act="nav" data-v="news">Open inbox</button>`}] : []),
-  ];
-  return `<div class="head"><div><span class="eyebrow">${fmtDate(TODAY, {weekday:"long", month:"long", day:"numeric"})}</span><h1>Welcome back, ${esc(u.name.split(" ")[0])}</h1></div><button class="btn" data-act="nav" data-v="find">Find opportunities</button></div>
-  ${attentionList(items, "For you")}
-  <section class="tiles">
-    <div class="card tile"><span class="lab">Service hours</span><span class="val">${fmtH(s.hours)}<small>hrs</small></span><div class="meter ${pct >= 100 ? "full" : ""}" role="img" aria-label="${pct}% of your ${HOUR_GOAL}-hour goal"><span style="width:${pct}%"></span></div><span class="sub">${pct}% of your ${HOUR_GOAL}-hour goal</span></div>
-    ${tile("Upcoming shifts", up.length, up[0] ? `Next: ${fmtDate(up[0].date)}` : s.waitlisted.length ? `${s.waitlisted.length} on waitlist` : "Nothing scheduled")}
-    ${tile("Events attended", s.attended, s.noShows ? `${s.noShows} missed` : "No missed shifts")}
-  </section>
-  <div class="cols">
-    <section class="card"><div class="spread"><h2>Your next shifts</h2>${up.length > 3 ? `<button class="linkbtn small" data-act="nav" data-v="shifts">See all ${up.length}</button>` : ""}</div>
-      ${up.length ? up.slice(0, 3).map(e => eventMini(e, `<button class="btn secondary sm" data-act="moreInfo" data-id="${e.id}">Details</button>`)).join("") : `<div class="empty" style="margin-top:12px">No upcoming shifts. <button class="linkbtn" data-act="nav" data-v="find">Find one</button></div>`}</section>
-    <section class="card"><h2>Recommended for you</h2><p class="muted small">Based on your skills${u.skills.length ? `: ${esc(u.skills.join(", "))}` : ""}</p>
-      ${recs.length ? recs.map(e => eventMini(e, `<button class="btn sm" data-act="signup" data-id="${e.id}">Sign up</button>`)).join("") : `<div class="empty" style="margin-top:12px">${u.skills.length ? "No matching open shifts right now." : `Add skills on your <button class="linkbtn" data-act="nav" data-v="profile">profile</button> to get suggestions.`}</div>`}</section>
+  return `<div class="head"><div><h1>Welcome back, ${esc(u.name.split(" ")[0])}</h1></div><button class="btn" data-act="nav" data-v="find">Find opportunities</button></div>
+  <dl class="summary-strip">
+    <div><dt>Verified service</dt><dd>${fmtH(s.hours)} <span>hours</span></dd><dd class="metric-detail">${progressMeter(s.hours, HOUR_GOAL, "Service hour goal", "progressbar", `${fmtH(s.hours)} of ${HOUR_GOAL} hours`)}<span class="muted small">${HOUR_GOAL}-hour goal</span></dd></div>
+    <div><dt>Upcoming shifts</dt><dd>${up.length}</dd><dd class="metric-detail">${up[0] ? `Next: ${fmtDate(up[0].date)}` : "Nothing scheduled yet"}</dd></div>
+  </dl>
+  <div class="activity-columns">
+    <section class="section"><div class="spread"><h2>Your next shifts</h2>${up.length > 3 ? `<button class="linkbtn small" data-act="nav" data-v="shifts">See all ${up.length}</button>` : ""}</div>
+      ${up.length ? up.slice(0, 3).map(e => eventMini(e, `<button class="btn secondary sm" data-act="moreInfo" data-id="${e.id}">Details</button>`)).join("") : `<div class="empty">No upcoming shifts. <button class="linkbtn" data-act="nav" data-v="find">Find one</button></div>`}</section>
+    <section class="section"><h2>Recommended for you</h2><p class="muted small">Open shifts that match your skills.</p>
+      ${recs.length ? recs.map(e => eventMini(e, `<button class="btn sm" data-act="signup" data-id="${e.id}">Sign up</button>`)).join("") : `<div class="empty">${u.skills.length ? "No matching open shifts right now." : `Add skills on your <button class="linkbtn" data-act="nav" data-v="profile">profile</button> to get suggestions.`}</div>`}</section>
   </div>`;
 }
 
 function vFind(u){
-  const f = ui.find, q = f.q.trim().toLowerCase();
-  if (f.zip === null) f.zip = u.zip || "";                   // start from the volunteer's saved ZIP
-  const zipTyped = String(f.zip).trim(), zipMsg = zipTyped.length >= 5 || /\D/.test(zipTyped) ? zipError(zipTyped) : "";
-  const origin = searchOrigin();
+  const f = ui.find, q = f.q.trim().toLowerCase(), saved = userLocation(u), origin = searchOrigin();
+  const canShow = !!saved || !!q || f.cat !== "all";
   let list = state.events.filter(e => e.date >= TODAY && canSeeEvent(e, u)).sort(byDate);
   if (f.cat !== "all") list = list.filter(e => e.category === f.cat);
   if (f.verifiedOnly) list = list.filter(isVerified);
-  if (q) list = list.filter(e => (e.title + " " + e.location + " " + e.desc + " " + addressOf(e)).toLowerCase().includes(q));
+  if (q) list = list.filter(e => [e.title, e.category, e.location, e.desc, addressOf(e)].join(" ").toLowerCase().includes(q));
   if (origin){
     if (f.radius !== "any") list = list.filter(e => milesTo(e, origin) <= +f.radius);
-    list.sort((a, b) => milesTo(a, origin) - milesTo(b, origin) || byDate(a, b));   // nearest first
+    list.sort((a,b) => milesTo(a, origin) - milesTo(b, origin) || byDate(a,b));
   }
-  if (f.match) list = list.filter(e => e.skills.length === 0 || e.skills.some(k => u.skills.includes(k)));
+  if (f.match) list = list.filter(e => !e.skills.length || e.skills.some(k => u.skills.includes(k)));
   if (f.hideFull) list = list.filter(e => spotsLeft(e) > 0);
-  const chip = e => { const r = myReg(u.id, e.id);
-    if (r && r.status === "registered") return calChip(e, "mine", "signed up");
-    if (r && r.status === "waitlist") return calChip(e, "wait", "on waitlist");
-    return spotsLeft(e) > 0 ? calChip(e, "open", "open") : calChip(e, "full", "full"); };
-  const legend = `<div class="cal-legend small"><span><i class="sw mine"></i>Signed up</span><span><i class="sw open"></i>Open</span><span><i class="sw wait"></i>On waitlist</span><span><i class="sw full"></i>Full</span></div>`;
-  const hiddenUnverified = f.verifiedOnly ? state.events.filter(e => e.date >= TODAY && !isVerified(e)).length : 0;
-  return `<div class="head"><div><h1>Opportunities</h1><p class="muted">${list.length} upcoming ${list.length === 1 ? "shift" : "shifts"}${origin ? ` ${f.radius === "any" ? "sorted by distance from" : `within ${f.radius} miles of`} ${esc(origin.zip)} (${esc(placeName(origin))}), nearest first.` : " match your filters."}${hiddenUnverified ? ` ${hiddenUnverified} from unverified organizers ${hiddenUnverified === 1 ? "is" : "are"} hidden.` : ""}</p></div>${listCalToggle(f.mode, "find")}</div>
-  <div class="card filters" role="search">
-    <div class="field grow"><label for="f-q">Search</label><input id="f-q" data-filter="find.q" value="${esc(f.q)}" placeholder="Search by name, place, or description"></div>
-    <div class="field"><label for="f-cat">Cause</label><select id="f-cat" data-filter="find.cat"><option value="all">All causes</option>${CATS.map(c => `<option ${f.cat === c ? "selected" : ""}>${c}</option>`).join("")}</select></div>
-    <div class="field zipfield"><label for="f-zip">ZIP code</label><input id="f-zip" data-filter="find.zip" value="${esc(f.zip)}" inputmode="numeric" maxlength="5" autocomplete="postal-code" placeholder="e.g. 20001" ${zipMsg ? 'aria-invalid="true" aria-describedby="f-zip-err"' : ""}><span class="ferr" id="f-zip-err">${esc(zipMsg)}</span></div>
-    <div class="field"><label for="f-radius">Distance</label><select id="f-radius" data-filter="find.radius" ${origin ? "" : "disabled"}>${[["5","Within 5 miles"],["10","Within 10 miles"],["25","Within 25 miles"],["50","Within 50 miles"],["any","Any distance"]].map(([v, l]) => `<option value="${v}" ${f.radius === v ? "selected" : ""}>${l}</option>`).join("")}</select></div>
+  const chip = e => {
+    const r = myReg(u.id,e.id), status = r && r.status === "registered" ? ["mine","Signed up"] : r && r.status === "waitlist" ? ["wait","On waitlist"] : spotsLeft(e) > 0 ? ["open","Spots open"] : ["full","Full"];
+    return calChip(e,status[0],status[1]);
+  };
+  return `<div class="head"><div><h1>Opportunities</h1></div>${canShow ? listCalToggle(f.mode, "find") : ""}</div>
+  <form id="findForm" class="filters search-form${saved ? " has-location" : ""}" role="search" novalidate>
+    <div class="field grow"><label for="f-q">Search opportunities</label><input id="f-q" name="q" value="${esc(f.q)}" placeholder="Event name, place, or cause" aria-describedby="e-q"><span class="ferr" id="e-q"></span></div>
+    <div class="field"><label for="f-cat">Cause</label><select id="f-cat" name="cat"><option value="all">All causes</option>${CATS.map(c => `<option ${f.cat === c ? "selected" : ""}>${c}</option>`).join("")}</select></div>
+    ${saved ? `${cityField("f-location", placeName(origin || saved), "Search near")}<div class="field"><label for="f-radius">Distance from city center</label><select id="f-radius" name="radius">${[["5","Within about 5 miles"],["10","Within about 10 miles"],["25","Within about 25 miles"],["50","Within about 50 miles"],["any","Any distance"]].map(([v,l]) => `<option value="${v}" ${f.radius === v ? "selected" : ""}>${l}</option>`).join("")}</select></div>` : ""}
+    <button class="btn" type="submit">Search</button>
     <div class="filter-checks">
-      <label class="toggle-inline"><input type="checkbox" id="f-verified" data-filter="find.verifiedOnly" ${f.verifiedOnly ? "checked" : ""}> Verified organizers only</label>
-      <label class="toggle-inline"><input type="checkbox" id="f-match" data-filter="find.match" ${f.match ? "checked" : ""}> Matches my skills</label>
-      <label class="toggle-inline"><input type="checkbox" id="f-full" data-filter="find.hideFull" ${f.hideFull ? "checked" : ""}> Hide full events</label>
+      <label class="toggle-inline"><input type="checkbox" name="verifiedOnly" ${f.verifiedOnly ? "checked" : ""}> Verified organizers only</label>
+      <label class="toggle-inline"><input type="checkbox" name="match" ${f.match ? "checked" : ""}> Matches my skills</label>
+      <label class="toggle-inline"><input type="checkbox" name="hideFull" ${f.hideFull ? "checked" : ""}> Hide full events</label>
     </div>
-  </div>
-  ${f.mode === "calendar" ? calendarView(list, chip, legend)
-    : `<div class="evlist">${list.length ? list.map(e => eventCard(e, u)).join("") : `<div class="empty">${origin && f.radius !== "any" ? `No shifts within ${f.radius} miles of ${esc(origin.zip)}. Try a larger distance.` : `No shifts match these filters. Try clearing the search or choosing "All causes".`}</div>`}</div>`}`;
+    ${!saved ? `<p class="muted small search-hint">Search for an event or place to get started. You can add an optional city or town on your <button class="linkbtn" data-act="nav" data-v="profile">profile</button> for nearby results.</p>` : ""}
+  </form>
+  ${canShow ? `<section id="search-results" tabindex="-1" aria-labelledby="search-results-title"><h2 id="search-results-title" class="results-heading">${list.length} ${list.length === 1 ? "opportunity" : "opportunities"}${origin ? ` near ${esc(placeName(origin))}` : " found"}</h2>${origin ? `<p class="muted small">Distances are approximate, measured from the city center.</p>` : ""}
+    ${f.mode === "calendar" ? calendarView(list, chip) : `<div class="evlist">${list.length ? list.map(e => eventCard(e,u)).join("") : `<div class="empty">No opportunities match. Try a different search${origin ? " or a wider distance" : ""}.</div>`}</div>`}</section>`
+    : `<section class="search-start"><h2>What would you like to help with?</h2><p class="muted">Look up an event, a place, or a cause in the search above.</p></section>`}`;
 }
 
+function servicePreview(rows){
+  return `<ul class="service-preview">${rows.map(({r,e}) => `<li><time datetime="${e.date}">${fmtDate(e.date, {month:"short",day:"numeric"})}</time><span>${esc(e.title)}</span><strong class="num">${fmtH(r.hours)} <span class="muted small">hrs</span></strong></li>`).join("")}</ul>`;
+}
 function vShifts(u){
-  const mine = state.regs.filter(r => r.userId === u.id && r.status !== "cancelled").map(r => ({r, e:eventById(r.eventId)}));
-  const up = mine.filter(x => x.e.date >= TODAY && x.r.status === "registered").sort((a, b) => byDate(a.e, b.e));
-  const wait = mine.filter(x => x.e.date >= TODAY && x.r.status === "waitlist").sort((a, b) => byDate(a.e, b.e));
-  const past = mine.filter(x => x.r.status !== "waitlist" && (x.e.date < TODAY || x.r.status !== "registered")).sort((a, b) => byDate(b.e, a.e));
-  return `<div class="head"><div><h1>My schedule</h1><p class="muted">Cancel at least 24 hours ahead when you can. The first person on the waitlist gets your spot automatically.</p></div></div>
-  <section class="card"><h2>Upcoming</h2>
-    ${up.length ? up.map(({r, e}) => eventMini(e, `<div class="row" style="justify-content:flex-end"><button class="btn secondary sm" data-act="moreInfo" data-id="${e.id}">Details</button>${armBtn(`cancel:${r.id}`, "Cancel", "Confirm cancel")}</div>`)).join("") : `<div class="empty" style="margin-top:12px">No upcoming shifts. <button class="linkbtn" data-act="nav" data-v="find">Browse opportunities</button></div>`}
+  const mine = state.regs.filter(r => r.userId === u.id && r.status !== "cancelled").map(r => ({r,e:eventById(r.eventId)})).filter(x => x.e);
+  const up = mine.filter(x => x.e.date >= TODAY && x.r.status === "registered").sort((a,b) => byDate(a.e,b.e));
+  const wait = mine.filter(x => x.e.date >= TODAY && x.r.status === "waitlist").sort((a,b) => byDate(a.e,b.e));
+  const past = mine.filter(x => x.r.status !== "waitlist" && (x.e.date < TODAY || x.r.status !== "registered")).sort((a,b) => byDate(b.e,a.e));
+  const recent = past.filter(x => x.r.status === "attended").slice(0,3);
+  return `<div class="head"><div><h1>My schedule</h1></div></div>
+  <section class="section"><h2>Upcoming</h2>
+    ${up.length ? up.map(({r,e}) => eventMini(e, `<div class="row"><button class="btn secondary sm" data-act="moreInfo" data-id="${e.id}">Details</button>${armBtn(`cancel:${r.id}`, "Cancel", "Confirm cancel")}</div>`)).join("") : `<div class="empty">No upcoming shifts. <button class="linkbtn" data-act="nav" data-v="find">Browse opportunities</button></div>`}
   </section>
-  ${wait.length ? `<section class="card"><h2>Waitlist</h2><p class="muted small">You'll be signed up automatically if a spot opens, and you'll see an update on your Home page.</p>
-    ${wait.map(({r, e}) => eventMini(e, `<div class="row" style="justify-content:flex-end"><span class="pill mark">#${waitlistPosition(r)} in line</span>${armBtn(`leave:${r.id}`, "Leave", "Confirm leave", "secondary sm")}</div>`)).join("")}</section>` : ""}
-  <section><h2 style="margin-bottom:10px">History</h2>
-    <div class="tablewrap"><table><thead><tr><th>Date</th><th>Event</th><th>Status</th><th class="num">Hours</th></tr></thead><tbody>
-    ${past.length ? past.map(({r, e}) => `<tr><td>${fmtDate(e.date, {month:"short", day:"numeric", year:"numeric"})}</td><td>${esc(e.title)}<span class="sub">${esc(e.location)}</span></td><td>${e.date < TODAY && r.status === "registered" ? `<span class="pill warn">Awaiting check-in</span>` : statusPill(r.status)}</td><td class="num">${r.status === "attended" ? fmtH(r.hours) : "—"}</td></tr>`).join("") : `<tr><td colspan="4" class="muted">No past shifts yet.</td></tr>`}
-    </tbody></table></div></section>`;
+  ${wait.length ? `<section class="section"><h2>Waitlist</h2><p class="muted small">If a spot opens, you'll get an update in your Inbox.</p>${wait.map(({r,e}) => eventMini(e, `<div class="row"><span class="pill mark">#${waitlistPosition(r)} in line</span>${armBtn(`leave:${r.id}`, "Leave", "Confirm leave", "secondary sm")}</div>`)).join("")}</section>` : ""}
+  <section class="section"><div class="spread"><h2>History</h2><span class="muted small">Last ${recent.length} attended ${recent.length === 1 ? "event" : "events"}</span></div>
+    ${recent.length ? servicePreview(recent) : `<p class="muted">No attended events yet.</p>`}
+    ${past.length ? `<details class="disclosure" id="schedule-history"><summary>View all ${past.length} past shifts</summary><div class="tablewrap"><table><thead><tr><th>Date</th><th>Event</th><th>Status</th><th class="num">Hours</th></tr></thead><tbody>${past.map(({r,e}) => `<tr><td>${fmtDate(e.date, {month:"short",day:"numeric",year:"numeric"})}</td><td>${esc(e.title)}<span class="sub">${esc(e.location)}</span></td><td>${e.date < TODAY && r.status === "registered" ? `<span class="pill warn">Awaiting check-in</span>` : statusPill(r.status)}</td><td class="num">${r.status === "attended" ? fmtH(r.hours) : "—"}</td></tr>`).join("")}</tbody></table></div></details>` : ""}
+  </section>`;
 }
 
 // Verified-hours certificate for one volunteer, shown in a printable pop-up.
@@ -184,32 +169,33 @@ function certificate(u){
 }
 
 function vHours(u){
-  const rs = state.regs.filter(r => r.userId === u.id && r.status === "attended").map(r => ({r, e:eventById(r.eventId)})).concat(outsideRows(u.id)).sort((a, b) => byDate(b.e, a.e));
-  const total = sum(rs.map(x => x.r.hours));
-  const byCat = [...CATS, "Outside service"].map(c => ({label:c, value:sum(rs.filter(x => x.e.category === c).map(x => x.r.hours))})).filter(x => x.value > 0).sort((a, b) => b.value - a.value);
-  ui.csv = {name:`volunteer-hours-${u.name.toLowerCase().replace(/\s+/g, "-")}.csv`, build:() => toCSV([["Date","Event","Cause","Location","Hours"], ...rs.map(({r, e}) => [e.date, e.title, e.category, e.location, r.hours]), ["","","","Total", total]])};
-  return `<div class="head"><div><h1>My hours</h1><p class="muted">Your verified service record. Hours count once a coordinator checks you in.</p></div>
-    <div class="row no-print"><button class="btn" data-act="cert" data-id="${u.id}">View certificate</button>${exportBar()}</div></div>
-  <section class="tiles">${tile("Total hours", fmtH(total), "", "hrs")}${tile("Events", rs.length)}${tile("Average shift", rs.length ? fmtH(total / rs.length) : "0", "", "hrs")}${tile("Goal progress", Math.min(100, Math.round(total / HOUR_GOAL * 100)), `${HOUR_GOAL}-hour goal`, "%")}</section>
-  <div class="cols">
-    <section class="card stack"><h2>Hours by month</h2>${colChart(hoursByMonth(state.regs.filter(r => r.userId === u.id)))}</section>
-    <section class="card stack"><h2>Hours by cause</h2>${hbars(byCat, " h")}</section>
+  const attended = state.regs.filter(r => r.userId === u.id && r.status === "attended").map(r => ({r,e:eventById(r.eventId)})).filter(x => x.e).sort((a,b) => byDate(b.e,a.e));
+  const rs = attended.concat(outsideRows(u.id)).sort((a,b) => byDate(b.e,a.e)), total = sum(rs.map(x => x.r.hours));
+  const byCat = [...CATS,"Outside service"].map(c => ({label:c,value:sum(rs.filter(x => x.e.category === c).map(x => x.r.hours))})).filter(x => x.value > 0).sort((a,b) => b.value-a.value);
+  const monthly = monthsBack(6).map(key => ({label:monthLabel(key),value:sum(rs.filter(x => monthKey(x.e.date) === key).map(x => x.r.hours))}));
+  ui.csv = {name:`volunteer-hours-${u.name.toLowerCase().replace(/\s+/g,"-")}.csv`,build:() => toCSV([["Date","Event","Cause","Location","Hours"],...rs.map(({r,e}) => [e.date,e.title,e.category,e.location,r.hours]),["","","","Total",total]])};
+  return `<div class="head"><div><h1>My hours</h1><p class="muted">Verified event hours and approved outside service.</p></div>
+    <details class="overflow-menu" id="hours-actions"><summary aria-label="More hour actions">${icon("more")}</summary><div class="overflow-content"><button class="btn secondary" data-act="csvDownload">Download CSV</button></div></details>
   </div>
-  <div class="tablewrap"><table><thead><tr><th>Date</th><th>Event</th><th>Cause</th><th class="num">Hours</th></tr></thead><tbody>
-    ${rs.length ? rs.map(({r, e}) => `<tr><td>${fmtDate(e.date, {month:"short", day:"numeric", year:"numeric"})}</td><td>${esc(e.title)}</td><td>${esc(e.category)}</td><td class="num">${fmtH(r.hours)}</td></tr>`).join("") : `<tr><td colspan="4" class="muted">No verified hours yet.</td></tr>`}
-    ${rs.length ? `<tr><td colspan="3"><b>Total</b></td><td class="num"><b>${fmtH(total)}</b></td></tr>` : ""}
-  </tbody></table></div>`;
+  <dl class="summary-strip"><div><dt>Total verified hours</dt><dd>${fmtH(total)}</dd><dd class="metric-detail">Includes ${fmtH(approvedOutsideHours(u.id))} approved outside hours</dd></div><div><dt>Hour goal</dt><dd>${Math.floor(progressPercent(total,HOUR_GOAL))}<span>%</span></dd><dd class="metric-detail">${progressMeter(total,HOUR_GOAL,"Service hour goal","progressbar",`${fmtH(total)} of ${HOUR_GOAL} hours`)}<span class="muted small">${HOUR_GOAL} hours${total >= HOUR_GOAL ? " · Complete" : ""}</span></dd></div></dl>
+  <section class="section"><div class="spread"><h2>Recent service</h2><span class="muted small">Last ${Math.min(3,attended.length)} attended events</span></div>
+    ${attended.length ? hbars(attended.slice(0,3).map(({r,e}) => ({label:`${fmtDate(e.date, {month:"short",day:"numeric"})} · ${e.title}`,value:r.hours}))," hrs") : `<p class="muted">Your last three attended events will appear here after check-in.</p>`}
+  </section>
+  <details class="disclosure" id="hours-record"><summary>View all hours and breakdowns <span class="muted">(${rs.length} records)</span></summary>
+    <div class="activity-columns"><section class="section"><h2>Hours by month</h2>${colChart(monthly)}</section><section class="section"><h2>Hours by cause</h2>${hbars(byCat," hrs")}</section></div>
+    <div class="tablewrap"><table><thead><tr><th>Date</th><th>Event</th><th>Cause</th><th class="num">Hours</th></tr></thead><tbody>${rs.length ? rs.map(({r,e}) => `<tr><td>${fmtDate(e.date,{month:"short",day:"numeric",year:"numeric"})}</td><td>${esc(e.title)}</td><td>${esc(e.category)}</td><td class="num">${fmtH(r.hours)}</td></tr>`).join("") : `<tr><td colspan="4">No verified hours yet.</td></tr>`}<tr><td colspan="3">Total</td><td class="num">${fmtH(total)}</td></tr></tbody></table></div>
+  </details>`;
 }
 
 function vProfile(u){
-  return `<div class="head"><div><h1>Profile</h1><p class="muted">Your skills and availability help us recommend the right shifts.</p></div></div>
+  return `<div class="head"><div><h1>Profile</h1><p class="muted">Your skills help us suggest shifts. Share a city or town to find opportunities nearby.</p></div></div>
   <form id="profileForm" class="card stack" novalidate style="max-width:720px">
     <div class="grid2">
       <div class="field"><label for="p-name">Full name</label><input id="p-name" name="name" value="${esc(u.name)}"><span class="ferr" id="e-name"></span></div>
       <div class="field"><label for="p-email">Email</label><input id="p-email" value="${esc(u.email)}" disabled><span class="muted small">Contact a coordinator to change your email.</span></div>
       <div class="field"><label for="p-phone">Phone</label><input id="p-phone" name="phone" value="${esc(u.phone)}"><span class="ferr" id="e-phone"></span></div>
       <div class="field"><label for="p-emergency">Emergency contact <span class="muted">(optional)</span></label><input id="p-emergency" name="emergency" maxlength="100" value="${esc(u.emergency || "")}" placeholder="Name and phone, e.g. Ana Chen 555-201-3344"><span class="muted small">Only verified coordinators can see this.</span><span class="ferr" id="e-emergency"></span></div>
-      <div class="field"><label for="p-zip">Home ZIP code <span class="muted">(optional)</span></label><input id="p-zip" name="zip" inputmode="numeric" maxlength="5" value="${esc(u.zip || "")}" placeholder="e.g. 20001"><span class="muted small">Used to show shifts near you first.</span><span class="ferr" id="e-zip"></span></div>
+      ${cityField("p-location", placeName(userLocation(u)))}
     </div>
     <div class="field"><span class="lbl">Skills</span><div class="checks">${SKILLS.map(s => `<label class="check"><input type="checkbox" name="skills" value="${s}" ${u.skills.includes(s) ? "checked" : ""}> ${s}</label>`).join("")}</div></div>
     <div class="field"><span class="lbl">Availability</span><div class="checks">${AVAIL.map(s => `<label class="check"><input type="checkbox" name="availability" value="${s}" ${u.availability.includes(s) ? "checked" : ""}> ${s}</label>`).join("")}</div></div>
@@ -217,7 +203,7 @@ function vProfile(u){
   </form>
   <section class="card stack" style="max-width:720px">
     <h2>Privacy and your account</h2>
-    <p class="muted">${u.waiverAt ? `You accepted the <button class="linkbtn" data-act="waiver">volunteer waiver</button> on ${new Date(u.waiverAt).toLocaleDateString("en-US", {month:"long", day:"numeric", year:"numeric"})}. ` : `Read the <button class="linkbtn" data-act="waiver">volunteer waiver</button>. `}Your phone, ZIP code, and emergency contact are only shown to you and verified coordinators.</p>
+    <p class="muted">${u.waiverAt ? `You accepted the <button class="linkbtn" data-act="waiver">volunteer waiver</button> on ${new Date(u.waiverAt).toLocaleDateString("en-US", {month:"long", day:"numeric", year:"numeric"})}. ` : `Read the <button class="linkbtn" data-act="waiver">volunteer waiver</button>. `}Your phone, saved city or town, and emergency contact are only shown to you and verified coordinators.</p>
     <div class="row">${armBtn("delacct:me", "Delete my account", "Yes, delete it permanently")}</div>
     <p class="muted small">This cancels your upcoming shifts and removes your profile. Hours you've already served stay in the organization's records.</p>
   </section>`;

@@ -13,11 +13,11 @@ Demo accounts (password `demo1234`):
 - Volunteer: `volunteer@demo.org`
 - Coordinator: `coordinator@demo.org`
 
-All data is sample data for a fictional organization. It is saved in your browser only. Use **Reset demo data** at the bottom of the app to start over.
+Demo accounts use fictional sample data saved in your browser only. Configured live accounts use Firebase; see the web app's `SETUP-FIREBASE.md` for setup. Use **Reset demo data** at the bottom of the app to start over.
 
 ## Features
 
-**Volunteers:** find opportunities as a list or calendar, filter by cause, area of town, specific location, skills, and verified organizers, open More info for the address, parking, accessibility, what to bring and wear, minimum age, contact, and who posted it, add a shift to their own calendar (.ics), report a listing that seems wrong or unsafe, sign up (blocks overlapping shifts), join a waitlist for full events and get the spot automatically when someone cancels, reminders for shifts in the next 3 days, track verified hours toward a goal, print a service certificate, download hours as CSV, read announcements, edit skills and availability.
+**Volunteers:** find opportunities as a list or calendar, search by event, place, or cause, optionally find nearby shifts using a saved city or town, and filter by skills and verified organizers, open More info for the address, parking, accessibility, what to bring and wear, minimum age, contact, and who posted it, add a shift to their own calendar (.ics), report a listing that seems wrong or unsafe, sign up (blocks overlapping shifts), join a waitlist for full events and get the spot automatically when someone cancels, track verified hours toward a goal, download hours as CSV, read announcements, edit skills and availability.
 
 **Coordinators:** program overview, create/edit/delete events (list or calendar), waitlists that fill automatically when spots open, check-in (present, no-show, walk-ins) with roster download and print, volunteer directory with reliability and certificates, reports filtered by dates, cause, and volunteer and grouped by volunteer, event, month, or cause, with CSV download, copy, and print, announcements to everyone or to one event's volunteers, and a review list for concerns volunteers report.
 
@@ -47,9 +47,13 @@ All data is sample data for a fictional organization. It is saved in your browse
 
 ## Credits
 
-- Fonts: Bricolage Grotesque and Public Sans, from Google Fonts (SIL Open Font License)
+- Fonts: IBM Plex Sans and IBM Plex Mono, from Google Fonts (SIL Open Font License)
 - AI assistance (Claude) was used as a coding tool. The team reviewed and can explain all code.
 
 ## Design assistance in Codex
 
 Impeccable is included as a project skill. Type `$impeccable init` in Codex, then use `$impeccable critique` or `$impeccable distill` with a specific screen. See [the team usage guide](docs/IMPECCABLE.md) for setup, examples, and installation scope.
+
+## Interface cleanup
+
+See [the change guide](docs/UI_CLEANUP.md) for the current navigation, optional location behavior, compact histories, club workflows, and verification. Run the optional checks using [tests/README.md](tests/README.md).

@@ -33,7 +33,7 @@ function cHome(u){
     ...(waitingOrgs ? [{icon:"shield", tone:"accent", title:`${waitingOrgs} ${waitingOrgs === 1 ? "organizer is" : "organizers are"} waiting for verification`, action:btn("nav", "Review", 'data-v="organizers"')}] : []),
     ...(needs.length ? [{icon:"users", tone:"bad", title:`${needs.length} upcoming ${needs.length === 1 ? "event is" : "events are"} under half full`, detail:names(needs), action:btn("nav", "View events", 'data-v="events"')}] : []),
   ];
-  return `<div class="head"><div><span class="eyebrow">${fmtDate(TODAY, {weekday:"long", month:"long", day:"numeric"})}</span><h1>Overview</h1></div><button class="btn" data-act="newEvent">New event</button></div>
+  return `<div class="head"><div><h1>Overview</h1></div><button class="btn" data-act="newEvent">New event</button></div>
   ${attentionList(items)}
   <section class="tiles">
     ${tile("Active volunteers", active, "Last 90 days")}
@@ -64,8 +64,8 @@ function cEvents(){
   let list = state.events.filter(e => t === "upcoming" ? e.date >= TODAY : e.date < TODAY);
   list.sort(t === "upcoming" ? byDate : (a,b) => byDate(b,a));
   if (q) list = list.filter(e => (e.title + " " + e.location + " " + e.category).toLowerCase().includes(q));
-  const chip = e => { const pct = activeRegs(e.id).length / e.slots; return calChip(e, e.date < TODAY ? "done" : pct >= 1 ? "wait" : pct < 0.5 ? "low" : "open"); };
-  const legend = `<div class="cal-legend small"><span><i class="sw open"></i>Half full or more</span><span><i class="sw low"></i>Needs volunteers</span><span><i class="sw wait"></i>Full</span><span><i class="sw done"></i>Past</span></div>`;
+  const chip = e => { const pct = activeRegs(e.id).length / e.slots, cls = e.date < TODAY ? "done" : pct >= 1 ? "staffed" : pct < .5 ? "low" : "open"; return calChip(e,cls,`${activeRegs(e.id).length} of ${e.slots} spots filled${cls === "done" ? ", past event" : ""}`); };
+  const legend = `<div class="cal-legend small"><span><i class="sw open"></i>Half full or more</span><span><i class="sw low"></i>Needs volunteers</span><span><i class="sw staffed"></i>Full</span><span><i class="sw done"></i>Past</span></div>`;
   const head = `<div class="head"><div><h1>Events</h1><p class="muted">Create shifts, set how many volunteers you need, and track sign-ups.</p></div><div class="row">${listCalToggle(ui.ev.mode, "ev")}<button class="btn" data-act="newEvent">New event</button></div></div>`;
   if (ui.ev.mode === "calendar") return head + calendarView(state.events, chip, legend);
   return `${head}
@@ -152,7 +152,7 @@ function cCheckin(u){
   ${wait.length ? `<section class="card"><h2>Waitlist (${wait.length})</h2><p class="muted small">If someone cancels, the first person in line gets the spot automatically. You can also add more spots by editing the event.</p>
     ${wait.map(({r, u}, i) => `<div class="mini"><span class="datechip" style="padding:8px 0"><strong>${i + 1}</strong></span><div><h3>${esc(u.name)}</h3><p>${esc(u.phone || u.email)}</p></div><div></div></div>`).join("")}</section>` : ""}
   ${locked ? "" : `<section class="card no-print"><h2>Add a walk-in</h2><p class="muted small">Someone showed up without signing up? Add them here and they'll be marked present.</p>
-    <form id="walkinForm" class="row" style="margin-top:12px" novalidate><select id="wi-user" name="user" style="flex:1;min-width:200px"><option value="">Choose a volunteer…</option>${others.map(u => `<option value="${u.id}">${esc(u.name)}</option>`).join("")}</select><button class="btn" type="submit">Add walk-in</button></form></section>`}`;
+    <form id="walkinForm" class="row" style="margin-top:12px" novalidate><select id="wi-user" name="user" aria-label="Volunteer to add as a walk-in" style="flex:1;min-width:200px"><option value="">Choose a volunteer…</option>${others.map(u => `<option value="${u.id}">${esc(u.name)}</option>`).join("")}</select><button class="btn" type="submit">Add walk-in</button></form></section>`}`;
 }
 
 function cVolunteers(){

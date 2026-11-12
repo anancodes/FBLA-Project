@@ -41,7 +41,8 @@ const ui = {
   view:"dashboard", authMode:"login", armed:null, csv:null, tour:null,
   demo:false,        // true while exploring sample data on a site that also has live mode
   liveShell:false,   // true while showing live-mode data (signed in or on the live login page)
-  find:{q:"", cat:"all", zip:null, radius:"25", match:false, hideFull:false, verifiedOnly:true, mode:"list"},   // zip:null = start from the volunteer's saved ZIP
+  find:{q:"", cat:"all", location:null, radius:"25", match:false, hideFull:false, verifiedOnly:true, mode:"list"},
+  disclosures:new Set(), expandClub:null,
   ev:{tab:"upcoming", q:"", mode:"list"}, cal:TODAY.slice(0, 7),
   ciEvent:null, vq:"",
   rep:{from:addDays(-90), to:TODAY, cat:"all", group:"volunteer", vol:"all"},
@@ -165,7 +166,11 @@ function addressOf(e){
   return `${v.address ? v.address + ", " : ""}${z.city}, ${z.st} ${z.zip}`;
 }
 // The ZIP typed on Find opportunities, if it's a real one.
-function searchOrigin(){ const z = String(ui.find.zip || "").trim(); return /^\d{5}$/.test(z) ? lookupZip(z) : null; }
+function searchOrigin(){
+  const u = currentUser(), saved = userLocation(u);
+  if (!saved) return null;
+  return ui.find.location === null ? saved : resolveCity(ui.find.location);
+}
 const milesTo = (e, origin) => distanceMiles(origin, eventPoint(e));
 // Short code from the organization's initials, used on certificate numbers.
 const orgCode = () => (state.org.name.match(/[A-Za-z]+/g) || ["VH"]).map(w => w[0]).join("").slice(0, 4).toUpperCase();

@@ -13,7 +13,7 @@ function loginView(){
     <h1>Every shift filled. Every hour counted.</h1>
     <p class="lead">${esc(state.org.name)} posts its volunteer needs here.${state.org.about ? ` ${esc(state.org.about)}` : ""} Volunteers sign up in a few clicks, and coordinators check people in and report the hours.</p>
     <ul>
-      <li><span class="tick">${icon("check")}</span><span><b>Find a shift near you.</b> Search by ZIP code, cause, and your skills.</span></li>
+      <li><span class="tick">${icon("check")}</span><span><b>Find a shift that fits.</b> Search by place, cause, and your skills.</span></li>
       <li><span class="tick">${icon("check")}</span><span><b>Track club hours</b> for HOSA, NHS, and more, including service you log for approval.</span></li>
       <li><span class="tick">${icon("check")}</span><span><b>Run the program.</b> Coordinators manage events, attendance, and reports.</span></li>
     </ul>
@@ -43,6 +43,7 @@ function loginView(){
       <div class="field"><label for="su-name">Full name</label><input id="su-name" name="name" autocomplete="name"><span class="ferr" id="e-name"></span></div>
       <div class="field"><label for="su-email">Email</label><input id="su-email" name="email" type="email" autocomplete="email"><span class="ferr" id="e-email"></span></div>
       <div class="field"><label for="su-phone">Phone <span class="muted">(optional)</span></label><input id="su-phone" name="phone" type="tel" placeholder="555-123-4567"><span class="ferr" id="e-phone"></span></div>
+      ${cityField("su-location")}
       <div class="field"><span class="lbl">I want to</span><div class="checks" role="radiogroup">
         <label class="check"><input type="radio" name="role" value="volunteer" checked> Volunteer</label>
         <label class="check"><input type="radio" name="role" value="coordinator"> Coordinate volunteers</label></div>
@@ -65,5 +66,5 @@ function loginView(){
   </div>`;
 
   const panel = ui.authMode === "signup" ? signup : ui.authMode === "reset" && live ? reset : login;
-  return `<div class="login">${brand}<section class="login-panel">${panel}</section></div>`;
+  return `<main class="login">${brand}<section class="login-panel">${panel}</section></main>`;
 }

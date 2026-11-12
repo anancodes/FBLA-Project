@@ -8,10 +8,10 @@
 
 const TOURS = {
   volunteer: [
-    {view:"dashboard", title:"Welcome to VolunteerHub", text:"Home shows what needs your attention, like shift reminders and updates, plus your hours and next shifts."},
-    {view:"find", title:"Opportunities", text:"Enter your ZIP code to see shifts near you, nearest first. Filter by cause or skills, or switch to the calendar. Click any title for full details."},
+    {view:"dashboard", title:"Welcome to VolunteerHub", text:"Home keeps your next shifts and recommendations together, with a quick view of verified service hours."},
+    {view:"find", title:"Opportunities", text:"Search for an event, place, or cause. Add an optional city or town on your profile to unlock nearby results. Click a title for full details."},
     {view:"shifts", title:"My schedule", text:"Your upcoming shifts, waitlists, and history. If you can't make it, cancel here so the next person in line gets your spot."},
-    {view:"hours", title:"Hours & clubs", text:"Every verified hour, with a printable certificate. The My clubs tab tracks each club's requirement and lets you log outside service for approval."},
+    {view:"hours", title:"Hours & clubs", text:"See your last three attended events, expand your full service record, or use the More hour actions menu to download CSV. My clubs includes your requirements, outside-service logs, and officer tools when applicable."},
     {view:"news", title:"Inbox", text:"Announcements from coordinators and your clubs. The number in the menu shows what's new."},
     {view:"dashboard", title:"Your account menu", text:"Click your name in the top right for your profile, text size, light or dark theme, high contrast, help, and to replay this tour."},
   ],
@@ -19,7 +19,7 @@ const TOURS = {
     {view:"dashboard", title:"Welcome to VolunteerHub", text:"The Overview lists everything that needs your attention in one place, followed by your program's key numbers."},
     {view:"events", title:"Events", text:"Create, copy, and edit shifts, and see sign-ups and waitlists. Switch to the calendar to see the month."},
     {view:"checkin", title:"Check-in", text:"On event day, mark each volunteer present or a no-show. Hours are credited automatically, and you can add walk-ins."},
-    {view:"volunteers", title:"People", text:"Your volunteer directory with hours and reliability. Site admins verify new organizers in the Organizers tab."},
+    {view:"volunteers", title:"People & clubs", text:"Find volunteers and manage club members and hour approvals in one section. Site admins also get an Organizers tab to review new coordinators."},
     {view:"manage", title:"Clubs", text:"Create clubs like HOSA or NHS, share their join codes, set hour requirements, approve logged hours, and choose officers."},
     {view:"reports", title:"Reports", text:"Hours and attendance by volunteer, event, month, or cause. Filter, then download, copy, or print."},
     {view:"news", title:"Inbox", text:"Post announcements to everyone, or only to the people signed up for one event."},
@@ -27,43 +27,31 @@ const TOURS = {
   ],
 };
 
+function tourSteps(u){ return TOURS[u.role].filter(step => step.view !== "settings" || DB.isVerifiedCoordinator(u)); }
+function focusTourStep(){ const title = document.getElementById("tour-title"); if (title) title.focus(); const nav = document.querySelector(".rail .tour-hl"); if (nav) nav.scrollIntoView({block:"nearest",inline:"nearest"}); }
+function showTourStep(){ ui.view = tourSteps(currentUser())[ui.tour.i].view; render(); focusTourStep(); }
 function startTour(){
-  ui.tour = {i:0};
-  ui.view = TOURS[currentUser().role][0].view;
-  render();
-  const next = document.getElementById("tour-next"); if (next) next.focus();
+  const u = currentUser(); if (!u) return;
+  closeModal(false); ui.menu = false;
+  ui.tour = {i:0,returnView:ui.view,returnFocusId:document.activeElement.id};
+  showTourStep();
 }
 function tourStep(delta){
-  const steps = TOURS[currentUser().role];
+  if (!ui.tour) return;
   const i = ui.tour.i + delta;
-  if (i >= steps.length) return endTour();
-  ui.tour.i = Math.max(0, i);
-  ui.view = steps[ui.tour.i].view;
-  render();
-  window.scrollTo(0, 0);
+  if (i >= tourSteps(currentUser()).length) return endTour();
+  ui.tour.i = Math.max(0,i); showTourStep();
 }
 function endTour(){
-  const u = currentUser();
-  if (!u.toured) DB.update("users", u, {toured:true});
-  ui.tour = null;
-  save(); render();
+  if (!ui.tour) return;
+  const {returnView,returnFocusId} = ui.tour, u = currentUser();
+  if (u && !u.toured) DB.update("users",u,{toured:true});
+  ui.tour = null; ui.view = returnView; save(); render();
+  const target = document.getElementById(returnFocusId) || $("#page-title") || $("#main"); if (target) target.focus();
 }
-// Starts the tour if this person hasn't seen it yet.
-function maybeStartTour(){
-  const u = currentUser();
-  if (u && !u.toured) startTour();
-}
-
+function maybeStartTour(){ const u = currentUser(); if (u && !u.toured) startTour(); }
 function tourCard(u){
   if (!ui.tour) return "";
-  const steps = TOURS[u.role], i = ui.tour.i, st = steps[i], last = i === steps.length - 1;
-  return `<div class="tour" role="dialog" aria-labelledby="tour-title" aria-describedby="tour-text">
-    <span class="eyebrow">Tour · step ${i + 1} of ${steps.length}</span>
-    <h3 id="tour-title">${st.title}</h3>
-    <p id="tour-text">${st.text}</p>
-    <div class="tour-dots" aria-hidden="true">${steps.map((_, k) => `<i class="${k === i ? "on" : ""}"></i>`).join("")}</div>
-    <div class="row"><button class="linkbtn small" data-act="tourEnd">Skip tour</button><span style="flex:1"></span>
-      ${i ? `<button class="btn secondary sm" id="tour-back" data-act="tourStep" data-v="-1">Back</button>` : ""}
-      <button class="btn sm" id="tour-next" data-act="tourStep" data-v="1">${last ? "Finish" : "Next"}</button></div>
-  </div>`;
+  const steps = tourSteps(u), i = ui.tour.i, st = steps[i], last = i === steps.length-1;
+  return `<section class="tour" aria-labelledby="tour-title"><h2 id="tour-title" tabindex="-1" aria-describedby="tour-text">${st.title}<span class="tour-step">Step ${i+1} of ${steps.length}</span></h2><p id="tour-text">${st.text}</p><div class="row"><button class="linkbtn small" data-act="tourEnd">Skip tour</button><span class="tour-spacer"></span>${i ? `<button class="btn secondary sm" id="tour-back" data-act="tourStep" data-v="-1">Back</button>` : ""}<button class="btn sm" id="tour-next" data-act="tourStep" data-v="1">${last ? "Finish" : "Next"}</button></div></section>`;
 }

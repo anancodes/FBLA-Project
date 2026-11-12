@@ -28,7 +28,7 @@ All volunteers, events, and places are sample data. Set your organization's name
 
 ## Features
 
-**Volunteers:** find opportunities as a list or calendar, search by ZIP code and distance (nearest first, with miles shown on each shift), filter by cause, skills, and verified organizers, open More info for the address, parking, accessibility, what to bring and wear, minimum age, contact, and who posted it, add a shift to their own calendar (.ics), report a listing that seems wrong or unsafe, sign up (blocks overlapping shifts), join a waitlist for full events and get the spot automatically when someone cancels, reminders for shifts in the next 3 days, track verified hours toward a goal, print a service certificate, download hours as CSV, read announcements, edit skills and availability.
+**Volunteers:** find opportunities as a list or calendar, search by ZIP code and distance (nearest first, with miles shown on each shift), filter by cause, skills, and verified organizers, open More info for the address, parking, accessibility, what to bring and wear, minimum age, contact, and who posted it, add a shift to their own calendar (.ics), report a listing that seems wrong or unsafe, sign up (blocks overlapping shifts), join a waitlist for full events and get the spot automatically when someone cancels, track verified hours toward a goal, download hours as CSV, read announcements, edit skills and availability.
 
 **Coordinators:** program overview, create/edit/delete events (list or calendar), waitlists that fill automatically when spots open, check-in (present, no-show, walk-ins) with roster download and print, volunteer directory with reliability and certificates, reports filtered by dates, cause, and volunteer and grouped by volunteer, event, month, or cause, with CSV download, copy, and print, announcements to everyone or to one event's volunteers, and a review list for concerns volunteers report.
 
@@ -87,3 +87,7 @@ All volunteers, events, and places are sample data. Set your organization's name
 - Icons: simple line icons drawn for this project (in `js/components.js`)
 - ZIP code locations: from the open-source `zipcodes` package by Sean Pianka (MIT License), github.com/seanpianka/zipcodes
 - AI assistance (Claude) was used as a coding tool. The team reviewed and can explain all code.
+
+## Interface cleanup
+
+See [the change guide](../../docs/UI_CLEANUP.md) and [test instructions](../../tests/README.md).

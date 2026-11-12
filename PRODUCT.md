@@ -52,7 +52,7 @@ VolunteerHub connects nonprofit opportunity discovery and event attendance with 
 ### Confirmed requirements and open decisions
 
 - Keep both school and nonprofit workflows usable as the product evolves.
-- Account creation must allow users to skip providing a location. Location-based discovery is available only after a user provides one; users who skip it can discover opportunities manually through search. The owner requested a specific location instead of ZIP-only input. The location's precise granularity and implementation remain to be decided during that UI work.
+- Account creation must allow users to skip providing a location. Location-based discovery is available only after a user provides one; users who skip it can discover opportunities manually through search. The owner confirmed city or town, with state-based suggestions, instead of ZIP-only input. City-center distances are approximate; no street address or device geolocation is collected.
 - Preserve the current framework and design system during scoped UI changes. A request for initialization is not a redesign.
 - The owner's requested progress semantics are a continuous spectrum from red for low progress, through yellow halfway, to vibrant green at completion. Communicate amounts and status in text as well as color.
 - Real-world use is the confirmed goal. This initialization records that intent; it does not verify a production Firebase deployment, security posture, or launch readiness.
@@ -72,7 +72,7 @@ VolunteerHub connects nonprofit opportunity discovery and event attendance with 
 - `js/clubs.js` and `js/views/clubs.js` implement membership, term requirements, club events, outside-service logging, and review workflows.
 - `js/views/settings.js`, `js/views/organizers.js`, and `firestore.rules` describe organization settings and role-dependent behavior.
 - The repository contains working screens and sample content. No real partner endorsements, testimonials, adoption statistics, or independently verified compliance claims have been supplied.
-- `docs/NEXT_UI_BRIEF.md` captures the owner's queued interface changes. They are a follow-up brief, not evidence that those changes have been implemented.
+- `docs/NEXT_UI_BRIEF.md` records the owner's interface brief. `docs/UI_CLEANUP.md` documents its implementation and verification on the cleanup branch.
 
 ## Product Principles
 

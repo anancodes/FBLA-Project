@@ -10,6 +10,7 @@ const LOGO = `<svg class="logo" viewBox="0 0 28 28" aria-hidden="true"><rect wid
 
 // Line icons (24×24, drawn with strokes so they take the text color). icon("clock") returns an inline SVG.
 const ICONS = {
+  more:'<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
   home:'<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/>',
   search:'<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
   list:'<path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01"/>',
@@ -38,7 +39,13 @@ const icon = (name, cls = "") => `<svg class="icon ${cls}" viewBox="0 0 24 24" a
 function dateChip(d){ const x = parseDate(d); return `<div class="datechip" aria-hidden="true"><span>${x.toLocaleDateString("en-US",{month:"short"})}</span><strong>${x.getDate()}</strong><span>${x.toLocaleDateString("en-US",{weekday:"short"})}</span></div>`; }
 function tile(label, val, sub = "", unit = ""){ return `<div class="card tile"><span class="lab">${label}</span><span class="val">${val}${unit ? `<small>${unit}</small>` : ""}</span>${sub ? `<span class="sub">${sub}</span>` : ""}</div>`; }
 function statusPill(st){ const m = {attended:["good","Attended"], "no-show":["bad","No-show"], registered:["accent","Signed up"], waitlist:["mark","Waitlist"], cancelled:["","Cancelled"]}[st]; return `<span class="pill ${m[0]}">${m[1]}</span>`; }
-function fillMeter(e){ const n = activeRegs(e.id).length, pct = Math.min(100, Math.round(n / e.slots * 100)); const cls = pct >= 100 ? "full" : (e.date >= TODAY && pct < 40 ? "low" : ""); return `<div class="meter ${cls}" role="img" aria-label="${n} of ${e.slots} spots filled"><span style="width:${pct}%"></span></div>`; }
+function progressPercent(value, max){ return Number.isFinite(value) && Number.isFinite(max) && max > 0 ? Math.max(0,Math.min(100,value / max * 100)) : 0; }
+function progressMeter(value, max, label, role = "meter", text = ""){
+  const pct = progressPercent(value,max), low = pct <= 50, mix = low ? pct * 2 : (pct - 50) * 2;
+  const color = `color-mix(in oklch, var(--progress-${low ? "low" : "mid"}) ${100-mix}%, var(--progress-${low ? "mid" : "full"}) ${mix}%)`;
+  return `<div class="meter" role="${role}" aria-label="${esc(label)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}" aria-valuetext="${esc(text || `${fmtH(value)} of ${max}`)}" style="--progress-color:${color}"><span style="width:${pct}%"></span></div>`;
+}
+function fillMeter(e){ return progressMeter(activeRegs(e.id).length,e.slots,`Spots filled for ${e.title}`); }
 function hbars(rows, unit = ""){
   if (!rows.length) return `<div class="empty">No data for these filters.</div>`;
   const max = Math.max(...rows.map(r => r.value)) || 1;
@@ -68,8 +75,44 @@ function armBtn(key, label, armedLabel, cls = "danger sm"){
 }
 
 /* ---------- Modal ---------- */
-function openModal(html){ ui.modalEvent = null; $("#modal").innerHTML = `<div class="overlay" data-act="overlay"><div class="modal" role="dialog" aria-modal="true">${html}</div></div>`; const f = $("#modal input, #modal select, #modal textarea, #modal button"); if (f) f.focus(); }
-function closeModal(){ $("#modal").innerHTML = ""; ui.modalEvent = null; }
+let modalOpener = null;
+function replacementControl(element, root){
+  if (!element) return null;
+  if (root.contains(element)) return element;
+  if (element.id){ const found = document.getElementById(element.id); if (found && root.contains(found)) return found; }
+  if (!element.dataset.act) return null;
+  return [...root.querySelectorAll("[data-act]")].find(el => {
+    if (["arm","confirm"].includes(element.dataset.act)) return ["arm","confirm"].includes(el.dataset.act) && el.dataset.v === element.dataset.v;
+    return ["act","v","id"].every(k => el.dataset[k] === element.dataset[k]);
+  }) || null;
+}
+function modalControls(){
+  return [...document.querySelectorAll('#modal button, #modal input, #modal select, #modal textarea, #modal a[href], #modal [tabindex]')].filter(el => !el.disabled && el.tabIndex >= 0 && el.getClientRects().length);
+}
+function openModal(html){
+  if (!$("#modal").firstElementChild) modalOpener = document.activeElement;
+  ui.modalEvent = null;
+  $("#modal").innerHTML = `<div class="overlay" data-act="overlay"><div class="modal" role="dialog" aria-modal="true" tabindex="-1">${html}</div></div>`;
+  const dialog = $("#modal .modal"), title = dialog.querySelector("h2");
+  if (title){ title.id = "modal-title"; dialog.setAttribute("aria-labelledby",title.id); }
+  else dialog.setAttribute("aria-label","VolunteerHub dialog");
+  $("#app").inert = true;
+  (modalControls()[0] || dialog).focus();
+}
+function closeModal(restore = true){
+  if (!$("#modal").firstElementChild) return;
+  const opener = modalOpener;
+  $("#modal").innerHTML = ""; ui.modalEvent = null; modalOpener = null; $("#app").inert = false;
+  if (restore) queueMicrotask(() => { const target = replacementControl(opener,$("#app")) || $("#page-title") || $("#main"); if (target) target.focus(); });
+}
+function trapModalTab(ev){
+  const dialog = $("#modal .modal"); if (!dialog) return;
+  const controls = modalControls(), first = controls[0], last = controls[controls.length-1];
+  if (!first){ ev.preventDefault(); dialog.focus(); return; }
+  if (!controls.includes(document.activeElement) || (ev.shiftKey ? document.activeElement === first : document.activeElement === last)){
+    ev.preventDefault(); (ev.shiftKey ? last : first).focus();
+  }
+}
 
 function copyCSV(text){
   const fallback = () => openModal(`<div class="spread"><h2>Copy report data</h2><button class="btn secondary sm" data-act="close">Close</button></div><p class="muted">Select all of the text below, copy it, and paste it into Excel or Google Sheets.</p><textarea id="csvbox" rows="12" readonly>${esc(text)}</textarea>`);
@@ -179,7 +222,8 @@ function calendarView(events, chipFor, legend = ""){
     ${legend}</section>`;
 }
 function calChip(e, cls, label = ""){
-  return `<button class="cal-chip ${cls}" data-act="calEvent" data-id="${e.id}" title="${esc(`${e.title}, ${timeRange(e)}${label ? ` (${label})` : ""}`)}"><b>${fmtTime(e.start).replace(":00", "").replace(" ", "").toLowerCase()}</b> ${esc(e.title)}</button>`;
+  const name = `${e.title}, ${fmtDate(e.date)}, ${timeRange(e)}${label ? ` (${label})` : ""}`;
+  return `<button class="cal-chip ${cls}" data-act="calEvent" data-id="${e.id}" aria-label="${esc(name)}" title="${esc(name)}"><b>${fmtTime(e.start).replace(":00", "").replace(" ", "").toLowerCase()}</b> ${esc(e.title)}</button>`;
 }
 function listCalToggle(mode, key){
   return `<div class="tabs" role="tablist" aria-label="View as">

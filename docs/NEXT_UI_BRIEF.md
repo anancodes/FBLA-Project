@@ -1,6 +1,6 @@
 # Queued interface changes
 
-This records the owner's requested next pass. Finish Impeccable initialization first; wait for the owner's instruction to begin the interface work. None of the changes below are implemented by initialization.
+This records the owner's requested interface pass. After initialization, the owner instructed work to continue. The changes are implemented on `codex/interface-cleanup`; see [UI_CLEANUP.md](UI_CLEANUP.md) for decisions and verification.
 
 Use the repository's Impeccable and frontend-design skills. Inspect the current application, preserve its vanilla HTML/CSS/JavaScript stack and useful behavior, and verify mobile and keyboard use. The owner wants fewer unnecessary containers and a more natural, integrated page layout.
 
@@ -15,8 +15,8 @@ Use the repository's Impeccable and frontend-design skills. Inspect the current 
 - Replace ZIP-only discovery with a specific-location approach.
 - Optionally prompt for a location when an account is created.
 - If a user skips location, do not expose location-based filtering. Let that person find opportunities manually through search.
-- Clarify the intended location granularity before choosing an address, city/place, or geolocation implementation. Do not infer consent to collect a precise location.
-- Clarify whether users without a location should see initial results or must enter a search before results appear.
+- Confirmed: optional city or town, with state suggestions. No street address or device geolocation.
+- Users without a saved location enter a keyword or choose a cause and submit Search before results appear.
 
 ## My schedule / My shifts
 
@@ -25,7 +25,7 @@ Use the repository's Impeccable and frontend-design skills. Inspect the current 
 
 ## Hours and clubs
 
-- Apply the same compact/expandable approach to the chart on My hours. Clarify whether "last three" means the last three events or chart periods.
+- Apply the same compact/expandable approach to the chart on My hours. Confirmed by the owner: the last three attended events.
 - Remove the certificate, copy, and print actions from My hours.
 - Put the optional Download CSV action in a … menu.
 - Preserve the useful parts of the existing Clubs view.
@@ -36,7 +36,7 @@ Use the repository's Impeccable and frontend-design skills. Inspect the current 
 
 - Reformat Inbox to improve readability and hierarchy.
 - Remove Settings if it has no meaningful information or action for the current user. Preserve actual organization settings where applicable.
-- Explore merging People and Clubs. Clarify how this should work for coordinator and site-admin roles.
+- Explore merging People and Clubs. Implemented as one coordinator People & clubs section with Volunteers, Clubs, and admin-only Organizers.
 - Review both role interfaces for unnecessary cards, wrappers, borders, and duplicated information. Prefer layouts that feel integrated with the page and clearly express the task.
 
-The role-specific merge boundaries and open points above should be resolved when the owner starts this work, rather than guessed during product-context initialization.
+The student-side club administration tools are embedded in My clubs within Hours & clubs. Coordinator attendance remains under Events; the student-side club check-in entry is removed.

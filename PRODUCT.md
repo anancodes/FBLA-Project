@@ -62,7 +62,8 @@ VolunteerHub connects nonprofit opportunity discovery and event attendance with 
 
 - The product is named VolunteerHub.
 - The owner prefers simple, readable interfaces with deliberate whitespace, order and contrast. Avoid neon accents, vague actions, descriptive clutter on tabs, and unnecessary dropdown menus. SignUpGenius is an explicit anti-reference for clutter.
-- A replacement visual direction is being reviewed through two proposals and one working volunteer Home screen. Do not treat that prototype as approval to restyle the rest of the app.
+- The owner selected Open agenda: a dark blue sidebar, readable Public Sans, equal-weight dated shifts and full-width recommendations. Apply that visual direction consistently to the existing website while preserving navigation and functionality.
+- The owner explicitly wants a website rather than a native-app aesthetic. Use ordinary web links, browser navigation, natural page scrolling and responsive layouts; avoid OS window chrome and app-like bottom navigation.
 - The organization's identity is configurable. Use the configured organization's details in the product rather than treating the fictional sample organization as a permanent brand or real partner.
 - Use plain, task-oriented language and keep the distinction between signed up, waitlisted, attended, pending approval, and approved clear.
 

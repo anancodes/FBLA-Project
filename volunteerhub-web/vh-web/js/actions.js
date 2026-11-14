@@ -260,7 +260,7 @@ function copyText(text, what){
 /* ----- Button handlers ----- */
 
 const handlers = {
-  homeDisplay: () => { ui.homeDisplay = !ui.homeDisplay; render(); },
+  display: () => { ui.displayOpen = !ui.displayOpen; render(); },
   // Navigation and account
   nav: (v) => {
     const u = currentUser();
@@ -272,6 +272,7 @@ const handlers = {
     }
     ui.view = v; ui.armed = null; closeModal(false);
     if (ui.tour){ const i = tourSteps(u).findIndex(step => step.view === v); if (i >= 0) ui.tour.i = i; }
+    if (!ui.fromHistory && !ui.tour) setPageURL(v);
     render();
     if (ui.tour) return focusTourStep();
     const m = $("#page-title") || $("#main"); if (m) m.focus({preventScroll:true}); window.scrollTo(0, 0);
@@ -284,6 +285,7 @@ const handlers = {
     toast(`Signed in as ${userById(asId(v)).name}.`); maybeStartTour();
   },
   logout: () => {
+    clearPageURL(); ui.displayOpen = false;
     ui.authMode = "login"; ui.armed = null; ui.tour = null; ui.cal = TODAY.slice(0, 7); ui.find.mode = ui.ev.mode = "list"; ui.find.location = null; ui.find.q = ""; ui.disclosures.clear(); ui.view = "dashboard";
     if (DB.live) return Cloud.logout();
     state.session.userId = null; save();
@@ -292,7 +294,6 @@ const handlers = {
   },
   font: (v) => { state.prefs.font = Math.max(13, Math.min(21, state.prefs.font + +v)); save(); applyPrefs(); },
   contrast: () => { state.prefs.hc = !state.prefs.hc; save(); render(); },
-  menu: () => { ui.menu = !ui.menu; render(); const target = ui.menu ? $("#account-panel button") : $("#account-trigger"); if (target) target.focus(); },
   setTheme: (v) => { state.prefs.theme = v; save(); render(); },
   theme: () => { const order = ["auto", "light", "dark"]; state.prefs.theme = order[(order.indexOf(state.prefs.theme || "auto") + 1) % 3]; save(); render(); },
   waiver: () => openModal(`<div class="spread"><h2>Volunteer waiver</h2><button class="btn secondary sm" data-act="close">Close</button></div><div class="waiver-text">${esc(state.org.waiver || DEFAULT_WAIVER).replace(/\n/g, "<br>")}</div>`),

@@ -73,22 +73,6 @@ function concernForm(e){
   </form>`;
 }
 
-function vHome(u){
-  const s = userStats(u.id), up = s.upcoming.map(r => eventById(r.eventId)).filter(Boolean).sort(byDate);
-  const recs = state.events.filter(e => e.date >= TODAY && canSeeEvent(e, u) && isVerified(e) && spotsLeft(e) > 0 && !myReg(u.id, e.id) && e.skills.some(k => u.skills.includes(k))).sort(byDate).slice(0, 3);
-  return `<div class="head"><div><h1>Welcome back, ${esc(u.name.split(" ")[0])}</h1></div><button class="btn" data-act="nav" data-v="find">Find opportunities</button></div>
-  <dl class="summary-strip">
-    <div><dt>Verified service</dt><dd>${fmtH(s.hours)} <span>hours</span></dd><dd class="metric-detail">${progressMeter(s.hours, HOUR_GOAL, "Service hour goal", "progressbar", `${fmtH(s.hours)} of ${HOUR_GOAL} hours`)}<span class="muted small">${HOUR_GOAL}-hour goal</span></dd></div>
-    <div><dt>Upcoming shifts</dt><dd>${up.length}</dd><dd class="metric-detail">${up[0] ? `Next: ${fmtDate(up[0].date)}` : "Nothing scheduled yet"}</dd></div>
-  </dl>
-  <div class="activity-columns">
-    <section class="section"><div class="spread"><h2>Your next shifts</h2>${up.length > 3 ? `<button class="linkbtn small" data-act="nav" data-v="shifts">See all ${up.length}</button>` : ""}</div>
-      ${up.length ? up.slice(0, 3).map(e => eventMini(e, `<button class="btn secondary sm" data-act="moreInfo" data-id="${e.id}">Details</button>`)).join("") : `<div class="empty">No upcoming shifts. <button class="linkbtn" data-act="nav" data-v="find">Find one</button></div>`}</section>
-    <section class="section"><h2>Recommended for you</h2><p class="muted small">Open shifts that match your skills.</p>
-      ${recs.length ? recs.map(e => eventMini(e, `<button class="btn sm" data-act="signup" data-id="${e.id}">Sign up</button>`)).join("") : `<div class="empty">${u.skills.length ? "No matching open shifts right now." : `Add skills on your <button class="linkbtn" data-act="nav" data-v="profile">profile</button> to get suggestions.`}</div>`}</section>
-  </div>`;
-}
-
 function vFind(u){
   const f = ui.find, q = f.q.trim().toLowerCase(), saved = userLocation(u), origin = searchOrigin();
   const canShow = !!saved || !!q || f.cat !== "all";

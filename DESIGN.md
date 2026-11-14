@@ -1,308 +1,128 @@
 ---
-name: VolunteerHub — provisional Home proposal
-description: Extracted Clear workspace baseline for volunteer Home only; awaiting owner style review.
+name: VolunteerHub — Open agenda
+description: A readable service website with dark blue wayfinding and clear records.
 colors:
-  surface: '#fff'
-  surface-2: '#eef2f6'
-  ink: '#1e2d3b'
-  muted: '#526170'
-  faint: '#617181'
-  line: '#dfe5eb'
-  line-strong: '#bdc9d5'
-  accent: '#31577f'
-  accent-hover: '#244566'
-  accent-ink: '#fff'
-  accent-soft: '#e2ebf4'
-  rail: '#eef2f6'
-  rail-ink: '#405363'
-  rail-active: '#dae5f0'
-  rail-active-ink: '#173c61'
-  good: '#247044'
-  warn: '#926014'
-  bad: '#ad463e'
-  bad-soft: '#faeeec'
-  progress-low: '#b45c52'
-  progress-mid: '#ad851b'
-  progress-full: '#248348'
-  surface-dark: '#202831'
-  surface-2-dark: '#293440'
-  ink-dark: '#e5ebf1'
-  muted-dark: '#b4c1ce'
-  faint-dark: '#a9b8c7'
-  line-dark: '#394958'
-  line-strong-dark: '#6a7e91'
-  accent-dark: '#c0d2e5'
-  accent-hover-dark: '#d6e2ee'
-  accent-ink-dark: '#243c54'
-  accent-soft-dark: '#33485d'
-  rail-dark: '#1a242e'
-  rail-ink-dark: '#c1ced9'
-  rail-active-dark: '#33485d'
-  rail-active-ink-dark: '#f4f7fa'
-  good-dark: '#9ec7ae'
-  warn-dark: '#dfc18d'
-  bad-dark: '#e2aaa4'
-  bad-soft-dark: '#4b3332'
-  progress-low-dark: '#c17c72'
-  progress-mid-dark: '#bda15a'
-  progress-full-dark: '#70b88a'
+  action: "#496a80"
+  action-hover: "#34566d"
+  sidebar: "#263f50"
+  field: "#ffffff"
+  field-quiet: "#f2f5f7"
+  ink: "#182c3c"
+  muted: "#526b7b"
+  divider: "#dce5eb"
+  control-line: "#7c94a4"
+  selected: "#e7eef3"
+  progress-low: "#b45c52"
+  progress-mid: "#ad851b"
+  progress-full: "#248348"
 typography:
-  display:
-    fontFamily: Public Sans, Segoe UI, sans-serif
-    fontSize: 2.75rem
-    fontWeight: 500
-    lineHeight: 1.2
-    letterSpacing: -0.04em
-  headline:
-    fontFamily: Public Sans, Segoe UI, sans-serif
-    fontSize: 2rem
-    fontWeight: 600
-    lineHeight: 1.2
-    letterSpacing: -0.035em
-  title:
-    fontFamily: Public Sans, Segoe UI, sans-serif
-    fontSize: 1.125rem
-    fontWeight: 600
-    lineHeight: 1.4
-    letterSpacing: -0.02em
-  event-title:
-    fontFamily: Public Sans, Segoe UI, sans-serif
-    fontSize: 1.0625rem
-    fontWeight: 600
-    lineHeight: 1.4
-    letterSpacing: -0.02em
-  body:
-    fontFamily: Public Sans, Segoe UI, sans-serif
-    fontSize: 1rem
-    fontWeight: 400
-    lineHeight: 1.5
-  label:
-    fontFamily: Public Sans, Segoe UI, sans-serif
-    fontSize: 1rem
-    fontWeight: 600
-    lineHeight: 1
-  label-small:
-    fontFamily: Public Sans, Segoe UI, sans-serif
-    fontSize: 0.875rem
-    fontWeight: 600
-    lineHeight: 1
-  link:
-    fontFamily: Public Sans, Segoe UI, sans-serif
-    fontSize: 0.9375rem
-    fontWeight: 500
-    lineHeight: 1.5
-  meta:
-    fontFamily: Public Sans, Segoe UI, sans-serif
-    fontSize: 0.875rem
-    fontWeight: 400
-    lineHeight: 1.5
-  small:
-    fontFamily: Public Sans, Segoe UI, sans-serif
-    fontSize: 0.8125rem
-    fontWeight: 400
-    lineHeight: 1.5
-  date-value:
-    fontFamily: Public Sans, Segoe UI, sans-serif
-    fontSize: 1.625rem
-    fontWeight: 500
-    lineHeight: 1.2
-    letterSpacing: -0.04em
-rounded:
-  control: 8px
-  dialog: 12px
-  meter: 4px
-  avatar: 50%
-spacing:
-  '4': 4px
-  '8': 8px
-  '12': 12px
-  '16': 16px
-  '20': 20px
-  '24': 24px
-  '28': 28px
-  '32': 32px
-  '40': 40px
-  '48': 48px
-  '56': 56px
+  headline: {fontFamily: 'Public Sans, "Segoe UI", sans-serif', fontSize: "1.875rem", fontWeight: 600, lineHeight: 1.35, letterSpacing: "-0.025em"}
+  title: {fontFamily: 'Public Sans, "Segoe UI", sans-serif', fontSize: "1.3125rem", fontWeight: 600, lineHeight: 1.5, letterSpacing: "-0.018em"}
+  event: {fontFamily: 'Public Sans, "Segoe UI", sans-serif', fontSize: "1.125rem", fontWeight: 600, lineHeight: 1.4, letterSpacing: "-0.012em"}
+  body: {fontFamily: 'Public Sans, "Segoe UI", sans-serif', fontSize: "1rem", fontWeight: 400, lineHeight: 1.5}
+  label: {fontFamily: 'Public Sans, "Segoe UI", sans-serif', fontSize: "0.9375rem", fontWeight: 500, lineHeight: 1}
+  meta: {fontFamily: 'Public Sans, "Segoe UI", sans-serif', fontSize: "0.875rem", fontWeight: 400, lineHeight: 1.5}
+rounded: {control: "4px", dialog: "12px"}
+spacing: {fine: "4px", small: "8px", compact: "12px", normal: "16px", group: "24px", section: "32px", desktop: "56px"}
 components:
-  button-primary:
-    backgroundColor: '{colors.accent}'
-    textColor: '{colors.accent-ink}'
-    typography: '{typography.label}'
-    rounded: '{rounded.control}'
-    padding: 12px 18px
-  button-primary-hover:
-    backgroundColor: '{colors.accent-hover}'
-  button-secondary:
-    backgroundColor: '{colors.surface}'
-    textColor: '{colors.ink}'
-    typography: '{typography.label}'
-    rounded: '{rounded.control}'
-    padding: 12px 18px
-  button-secondary-hover:
-    backgroundColor: '{colors.surface-2}'
-  button-shift:
-    backgroundColor: '{colors.surface}'
-    textColor: '{colors.ink}'
-    typography: '{typography.label-small}'
-    rounded: '{rounded.control}'
-    padding: 10px 14px
-  button-small:
-    typography: '{typography.label-small}'
-    rounded: '{rounded.control}'
-    padding: 8px 12px
-  button-link:
-    backgroundColor: transparent
-    textColor: '{colors.accent}'
-    typography: '{typography.link}'
-    padding: '0'
-  event-title-action:
-    backgroundColor: transparent
-    textColor: '{colors.accent}'
-    typography: '{typography.event-title}'
-    padding: '0'
-  nav-item:
-    backgroundColor: transparent
-    textColor: '{colors.rail-ink}'
-    rounded: '{rounded.control}'
-    padding: 0 12px
-    height: 44px
-  nav-item-current:
-    backgroundColor: '{colors.rail-active}'
-    textColor: '{colors.rail-active-ink}'
-  textarea:
-    backgroundColor: '{colors.surface}'
-    textColor: '{colors.ink}'
-    rounded: '{rounded.control}'
-    padding: 7px 10px
-  status-text:
-    textColor: '{colors.ink}'
-  service-summary:
-    textColor: '{colors.muted}'
-  display-panel:
-    padding: 12px 8px
-  event-dialog:
-    backgroundColor: '{colors.surface}'
-    textColor: '{colors.ink}'
-    rounded: '{rounded.dialog}'
-    padding: 32px
-    width: 100%
+  button-primary: {backgroundColor: "{colors.action}", textColor: "{colors.field}", typography: "{typography.label}", rounded: "{rounded.control}", padding: "10px 18px"}
+  button-secondary: {backgroundColor: "{colors.field}", textColor: "{colors.ink}", typography: "{typography.label}", rounded: "{rounded.control}", padding: "10px 18px"}
+  input: {backgroundColor: "{colors.field}", textColor: "{colors.ink}", rounded: "{rounded.control}", padding: "7px 10px"}
+  nav-link: {backgroundColor: "{colors.sidebar}", textColor: "#f0f5f8", rounded: "{rounded.control}", padding: "10px 12px"}
+  progress: {backgroundColor: "{colors.divider}", rounded: "0", height: "6px"}
+  inline-settings: {backgroundColor: "{colors.sidebar}", padding: "12px 0 20px"}
 ---
 
-# Design System: VolunteerHub — provisional Home proposal
+# Design System: VolunteerHub
 
 ## Overview
 
-**Creative North Star: "Clear workspace" (proposed; awaiting owner review)**
+**Creative North Star: "Open agenda"**
 
-**Provisional scope: volunteer Home only.** This records the built Clear workspace proposal for `body.home-preview`, enabled only for a volunteer on `dashboard`. It is a review baseline, not an owner-approved site-wide system. Do not extend it to other routes before the owner reviews both directions and the working Home screen. Other screens continue to use `css/styles.css` and IBM Plex; Open agenda is a static alternative, not implemented app guidance.
+The owner selected Open agenda and explicitly required a website. Dark blue wayfinding, a white reading field, readable Public Sans and ordinary web controls establish a simple, ordered service website. This system applies to login, signup and both existing role experiences.
 
-Clear workspace is the proposal's working name, not an owner-selected brand commitment. The confirmed priorities are simplicity, readability, whitespace, order and contrast. The built screen expresses a campus student-services workspace through Public Sans, pale navigation, a white reading field, clear dates and explicit actions. Its first commitment leads; verified service and recommendations remain quieter. These composition choices describe this Home proposal only.
+Schools and nonprofits receive equal care. Clear dates, explicit actions and distinct service states support people finding opportunities and coordinators maintaining accurate records. Organization details remain configurable; sample content does not establish customers or endorsements.
 
-Source authority is `volunteerhub-web/vh-web/css/home-preview.css` and `js/views/home-preview.js`, with inherited primitives from `css/styles.css` and scoped integration in `js/app.js` and `index.html`. The surface contract is `.impeccable/surfaces/volunteerhub-web-vh-web-js-views-home-preview-js.md` (`seed:d1036f369104af8f`). Token names are extraction keys, not new owner commitments. The frontmatter governs only this scope; dark suffixes record the source overrides. Sidecar tonal ramps are synthesized panel previews, not shipped token scales.
+Source authority is `volunteerhub-web/vh-web/css/open-agenda.css` and `js/website.js`, composed with `css/styles.css`, `js/app.js` and `index.html`. The selected code-led reference is `.impeccable/mocks/decision/open-agenda.html`; the website direction contract is `.impeccable/surfaces/volunteerhub-web-vh-web-js-website-js.md`. Frontmatter records reused light-mode tokens; source overrides govern dark and high-contrast modes. Sidecar ramps are panel previews, not shipped scales.
 
-The finish verdict cleared four scored fixes: visible mobile destinations, underlined recommendation details, semantic progress in the alternate sketch, and complete city-origin copy in the dialog. It does not approve the whole surface or a site-wide rollout. The reported 34 isolated checks use sample data and stubbed Firebase configuration; they do not establish production Firebase or load-test readiness. See `docs/VISUAL_PREVIEW.md` for the two proposals and verification context.
+The finish disposition is **ship** for the reviewed states (28 required captures and sampled source). The 38 isolated workflow, responsive, keyboard and axe checks use fixtures; they do not establish production Firebase behavior or load-test readiness.
 
 **Key Characteristics:**
 
-- Flat reading areas, pale navigation and restrained slate-blue actions.
-- One UI family, tabular dates and service amounts, explicit action labels.
-- Visible mobile destinations, inline display preferences and retained keyboard access.
-- Text accompanies semantic progress and status color; no decorative imagery or shipped raster UI.
+- Dark blue navigation and flat, generously spaced reading areas.
+- One readable UI family, tabular dates and amounts, explicit task labels.
+- Real navigation links, browser history, natural page scrolling and visible mobile destinations.
+- Numeric and verbal status alongside color, with retained display preferences and keyboard access.
 
 ## Colors
 
-The light palette combines a white reading field, blue-grey rail, dark ink and restrained slate-blue actions. The frontmatter preserves source hex values for selected reused roles rather than every inherited alias.
-
 ### Primary
 
-- **Slate-blue action** (`accent`, `accent-hover`, `accent-ink`, `accent-soft`): primary actions, links, focus and selected display settings. Dark mode uses pale blue action fills with dark text.
+Slate-blue action and its deeper hover state identify deliberate controls. Dark blue sidebar anchors wayfinding; the pale selected tone identifies the current destination with dark ink. The login identity panel uses the same sidebar family.
 
 ### Neutral
 
-- **White reading field** (`surface`): workspace and dialog background.
-- **Pale navigation** (`rail`, `surface-2`): light sidebar and secondary hover surfaces.
-- **Dark ink and quiet metadata** (`ink`, `muted`, `faint`): primary text, practical details and support text.
-- **Divider and control stroke** (`line`, `line-strong`): list separators and outlined controls.
-- **Navigation states** (`rail-ink`, `rail-active`, `rail-active-ink`): a visible current destination and quiet inactive labels.
+White field carries content; quiet field supports table headers and secondary hover states. Ink carries primary reading, muted supports practical detail, divider separates records, and control line gives fields a stronger boundary. Navigation uses its own light text and subdued account detail from the source.
 
-Semantic `good`, `warn` and `bad` remain available to existing detail/status components; `bad-soft` supports field errors. `progress-low`, `progress-mid` and `progress-full` are the three continuous progress anchors. Every listed role has a `-dark` counterpart. Auto follows the system preference unless Light or Dark is explicitly selected. High contrast maps muted/faint text and divider strokes to ink, and the secondary surface to the main surface.
+### Named Rules
 
-**The Semantic Progress Rule.** Within this proposal, progress continuously mixes low red through midpoint yellow to completion green, with amounts and a percentage in text. Do not substitute a single accent fill.
+**The Semantic Progress Rule.** Progress continuously mixes low red through midpoint yellow to completion green in OKLCH, accompanied by amounts and percentage text. Keep pending claims distinct from verified service.
+
+Dark mode uses a deep slate reading field with pale blue actions and softer semantic colors; the sidebar stays dark blue. High contrast promotes quiet text and borders to ink and thickens supported control borders. Preserve these source variants rather than deriving them from the light preview ramps.
 
 ## Typography
 
-**Display and Body Font:** Public Sans, with Segoe UI and sans-serif fallbacks. The local variable font supports weights 400–700 with `font-display: swap`; its font file and `Public-Sans-OFL.txt` license live in `volunteerhub-web/vh-web/fonts/`.
+Public Sans is self-hosted in `fonts/public-sans-latin.woff2` with weights (400–700) and a Segoe UI/sans-serif fallback. It carries headings, body text and controls. Technical codes and inherited dialog textareas retain a system monospace.
 
-**Character:** A readable, consistent UI voice. This Home scope also maps the inherited mono role to Public Sans. The default root is 15px; the existing text-size preference adjusts it from 13px to 21px, so retain rem-based type.
+The runtime preference starts at (16px), preserves saved preferences, and adjusts the root between (13px) and (21px). Body copy follows the root; the stylesheet's pre-runtime fallback is (15px).
 
-### Hierarchy
+- **Headline:** page title; reduces to (1.75rem) at the narrow breakpoint.
+- **Title / event:** Home section heading and readable event title; the section heading reduces to (1.25rem) on narrow phones.
+- **Body / label / meta:** normal reading, standard buttons and supporting text. Existing forms and tables retain their denser subordinate sizes.
+- Dates use tabular numerals; Home date values use the headline size with line height (1.25). Verified hours use (1.625rem), weight (600), line height (1.3).
 
-- **Display:** verified hours use `display`, reducing to 2.25rem on mobile.
-- **Headline:** the greeting uses `headline`, reducing to 1.75rem below 1200px.
-- **Title:** section headings use `title`, reducing to 1.0625rem at the mobile breakpoint. Event titles use `event-title`; the first shift rises to 1.25rem, then 1.1875rem on narrow phones.
-- **Body and labels:** `body`, `label`, `label-small`, `link`, `meta` and `small` separate reading text, controls and quieter details. Event times use 0.9375rem with 1.5 line height.
-- **Dates and amounts:** tabular numerals; `date-value` rises to 2.25rem for the next shift. There is no uniform mathematical scale ratio.
-
-**The One UI Family Rule.** Public Sans carries Home headings, body text, dates, controls and dialog text. Other routes retain their existing typography until a separate owner decision.
+**The Readable Preference Rule.** Use rem-based hierarchy and retain text size, Auto/Light/Dark and high-contrast controls across the website.
 
 ## Layout
 
-The desktop frame pairs a 240px rail with a flexible workspace. At 1199px and below the rail is 220px. The reading area is centered with a 1120px maximum width; main horizontal padding steps from 56px to 32px, then 24px at 780px and 20px at 520px. Page gaps are 32px, then 28px on mobile. The rail is sticky and scrollable vertically from 781px upward.
+Desktop uses a navigation column (256px) and a flexible reading column; the rail becomes (224px) at widths up to (1200px). Main content has padding (56px 56px 48px), a centered maximum width (1280px) and a page gap (28px). The document scrolls normally; above (900px), the sidebar is sticky and independently scrolls only when needed.
 
-Within this Home composition, the schedule leads a flexible column beside a 220px service summary (180px at the intermediate breakpoint). Recommendations follow below, using two columns on desktop. At 780px and below the rail becomes a compact header, all five navigation destinations wrap visibly, content becomes one column, and recommendations use single rows. At 520px and below shift and recommendation actions move beneath the event text. Profile stays direct; mobile Help provides access to replay the tour.
+At widths up to (900px), navigation becomes a header with wrapped links and no navigation icons; main padding becomes (32px 24px 36px). At (620px), horizontal padding is (20px) and Home becomes one column. Tables retain local overflow. Login's two equal columns collapse at (820px), with forms capped at (380px).
 
-Print hides the shell utilities and removes main padding, with one content column. No app-wide layout migration is implied.
+Home shows equal-weight dated shifts beside a quieter hours column (224px; 192px at the intermediate size), then recommendations across the full width. Groups use whitespace and hairline dividers. Footer actions remain in the normal document flow. Print hides navigation and footer and restores a single reading column.
 
 ## Elevation & Depth
 
-The Home reading surface is flat: tonal contrast, whitespace and thin rules establish structure. Shift rows, the service summary, progress and the tour have no decorative elevation. Dialogs and toasts retain the inherited pop-up shadow; the dialog overlay uses `rgba(10,14,18,.45)`. Exact shadows and motion are in the sidecar because the frontmatter schema does not carry them.
+**The Flat Reading Surface Rule.** Use whitespace, tone and divider lines for page structure. Shifts, recommendations and service summaries do not become raised cards.
 
-**The Flat Reading Surface Rule.** Home content uses whitespace and divider rules at rest. Pop-up shadows belong to inherited dialogs and toasts, not to each shift or summary.
+Inherited dialogs and toasts use the existing popup shadow, with a darker shadow in dark mode. Fields add a soft focus ring; visible keyboard focus uses an outline (2px) offset (4px), with a pale outline on the sidebar. Button state transitions take (0.16s); reduced motion removes transitions and animations.
 
 ## Shapes
 
-Controls and navigation use the `control` radius; the event dialog uses `dialog`, the Home meter uses `meter`, and profile initials use `avatar`. Event lists are open rows with thin dividers, not individually boxed cards. No decorative imagery or raster interface artwork ships with this proposal; documentation screenshots are evidence only.
+Regular controls use the small frontmatter radius; progress on Home is square-ended. Dialogs use the larger radius with padding (32px), reduced to (24px) on narrow phones. Existing demo-choice and waiver surfaces retain their own (8px) corners. Line icons remain SVG; status dots are accompanied by text.
 
 ## Components
 
-### Buttons
+**Buttons.** Primary actions use slate blue and white; hover deepens background and border. Secondary actions use a white field, dark ink and a stronger divider, with a quiet-field hover. Standard controls have minimum height (42px); small controls use (34px), while Home row actions use (40px) and padding (8px 15px). Disabled controls reduce opacity to (0.45).
 
-Clear, task-named controls. Normal buttons have a minimum height of 42px; shift and recommendation actions use 40px, and small buttons use 34px. Filled actions use the primary colors; outlined actions use the reading surface, ink and strong stroke. Hover changes fill/border without lifting the control. The transition is 0.16s; reduced motion disables transitions and animations. Disabled buttons retain the inherited 0.45 opacity.
+**Inputs.** Labels sit above fields with a small gap (5px). Fields use a stronger control boundary, minimum height (36px) and font size (0.92rem). Focus adds the action-colored boundary and accent-soft ring; invalid fields use the red boundary, ring and error text. Textareas can resize vertically.
 
-### Links and navigation
+**Navigation.** Destinations are anchors with usable URL fragments and `aria-current="page"`. Desktop links have minimum height (48px); header links use (44px), wrap on phones, and retain every destination. Current links use pale fill, dark ink and weight (600). Subnavigation uses an accent underline. Role guards still decide which pages exist for each user; Back, Forward, refresh and new-tab navigation resolve through the same routes.
 
-Recommendation titles are underlined action buttons at rest, separate from Sign up; hover changes the action color. Secondary text actions underline on hover. Desktop navigation uses 44px rows, drawn SVG icons and an `aria-current` selected state. Mobile hides icons and wraps every destination without horizontal scrolling. Counts retain readable labels rather than becoming decorative badges.
+**Progress and records.** Home uses a slim meter with numeric hours, goal and percentage. Other progress surfaces retain their existing compact boundaries and status text. Signed up, waitlisted, attended, pending and approved remain separate states.
 
-### Containers and service progress
-
-Open schedule/recommendation lists and a divider-separated service summary replace repeated metric cards in this proposal. The Home meter is 7px tall, with no inset shadow. `progressMeter` interpolates in OKLCH over the two halves of the spectrum and exposes progress values and text through ARIA; the screen also prints hours, goal and percentage.
-
-### Display preferences
-
-A named button expands an inline panel using `aria-expanded`, `aria-controls` and `hidden`. Text-size controls, Auto/Light/Dark buttons and high contrast remain explicit. Theme and contrast states use `aria-pressed`. Segmented theme/text controls are 36px tall on desktop and 40px on mobile. Profile opens directly; Home has no account dropdown. The final volunteer tour step describes these controls and Help.
-
-### Dialogs, fields and status
-
-The existing detail dialog is 100% wide up to 720px, with 32px padding (24px on mobile), the scoped dialog radius and inherited pop-up depth. Its background follows the Home theme. Opening makes the app inert, traps focus, and closing returns focus to the matching action even after redraws. The detail flow retains plain status text with small semantic dots, complete approximate city-distance copy, signup and existing event actions.
-
-The inherited concern textarea uses the scoped control radius, reading surface, strong stroke and `7px 10px` padding; dialog textareas use Public Sans at 0.82rem. Field focus retains the accent border and soft ring; invalid fields use the existing bad/bad-soft treatment. These are inherited controls within the Home detail flow, not a new form redesign.
-
-Every Home focus-visible target has a 2px accent outline offset by 4px. The skip link appears on focus. High contrast also retains thicker control borders and an outlined meter. These are implemented accessibility behaviors, not a claim of certification.
+**Inline settings.** Display settings expand inside navigation with a labeled text-size pair, theme segments and an `aria-pressed` high-contrast control. Help and Profile are ordinary links; tour, sign-out and demo reset remain explicit actions in the footer.
 
 ## Do's and Don'ts
 
 ### Do:
 
-- Do keep this baseline confined to the volunteer Home proposal until the owner chooses the next scope.
-- Do retain all five navigation destinations at rest on phones, with wrapping rather than clipped horizontal navigation.
-- Do use explicit actions such as View shift, Find opportunities, View my hours and Sign up; keep recommendation titles visibly underlined at rest.
-- Do preserve text size, Auto/Light/Dark, high contrast, reduced motion and keyboard focus behavior.
-- Do retain numeric progress and clear service/status text alongside semantic color.
+- **Do** keep website links, browser navigation, ordinary scrolling and all mobile destinations usable.
+- **Do** preserve saved display preferences, reduced motion, visible keyboard focus and text alongside semantic color.
+- **Do** use explicit actions and maintain accurate role, permission and service-state distinctions.
 
 ### Don't:
 
-- Don't treat Clear workspace, its extracted token names, the finish verdict or this file as owner style approval.
-- Don't copy Open agenda's static composition into the app as an established system.
-- Don't introduce neon accents, vague actions, descriptive tab clutter or unnecessary account dropdowns; the owner rejects SignUpGenius-style clutter.
-- Don't replace working navigation, event IDs, data handlers or permission distinctions while applying visual changes.
+- **Don't** add OS window chrome, app-like bottom navigation, neon accents or unnecessary account dropdowns.
+- **Don't** add descriptive tab clutter or vague actions; the owner rejects SignUpGenius-style clutter.
+- **Don't** turn sample organizations, demo records or isolated checks into commercial, production-readiness or accessibility-certification claims.

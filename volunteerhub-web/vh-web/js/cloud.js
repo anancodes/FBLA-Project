@@ -201,7 +201,7 @@ const Cloud = {
     return this.auth.createUserWithEmailAndPassword(profile.email, password).then(cred => {
       ui.view = profile.role === "volunteer" ? "profile" : "dashboard";
       return this.fs.collection("users").doc(cred.user.uid).set(clean({id:cred.user.uid, ...profile}));
-    }).then(() => toast(profile.role === "volunteer" ? "Welcome! Add your skills and ZIP code so we can recommend shifts." : "Welcome! A site admin will verify your organizer account."));
+    }).then(() => toast(profile.role === "volunteer" ? "Welcome! Add your skills to find opportunities that fit." : "Welcome! A site admin will verify your organizer account."));
   },
   resetPassword(email){ return this.auth.sendPasswordResetEmail(email); },
   logout(){ return this.auth.signOut(); },

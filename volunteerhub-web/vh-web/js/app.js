@@ -21,6 +21,7 @@ function render(){
   const focusDisclosureId = focusDisclosure && focusDisclosure.id;
   let sel = null; try { sel = a && typeof a.selectionStart === "number" ? [a.selectionStart, a.selectionEnd] : null; } catch(e){}
   const u = currentUser();
+  if (u && ui.requestedRoute){ ui.view = ui.requestedRoute; ui.requestedRoute = null; }
   if (ui.renderKey) document.querySelectorAll("#app details[id]").forEach(el => {
     const key = `${ui.renderKey}:${el.id}`;
     if (el.open) ui.disclosures.add(key); else ui.disclosures.delete(key);
@@ -30,8 +31,10 @@ function render(){
   const typed = [...document.querySelectorAll("#app form [id]")].filter(el => !el.dataset.filter && "value" in el && el.form && el.form.id !== ui.justSubmitted)
     .map(el => [el.id, el.type === "checkbox" || el.type === "radio" ? el.checked : el.value]);
   $("#app").innerHTML = u ? shell(u) : loginView();
-  document.body.classList.toggle("home-preview",isHomePreview(u));
+  document.body.classList.add("open-agenda");
+  if (u && !ui.tour) setPageURL(ui.view,true);
   const pageTitle = $("#main h1"); if (pageTitle){ pageTitle.id = "page-title"; pageTitle.tabIndex = -1; }
+  document.title = pageTitle ? `${pageTitle.textContent} | VolunteerHub` : "VolunteerHub";
   ui.renderKey = `${u ? u.id : "auth"}:${ui.view}`;
   document.querySelectorAll("#app details[id]").forEach(el => { if (ui.disclosures.has(`${ui.renderKey}:${el.id}`)) el.open = true; });
   ui.expandClub = null;
@@ -59,7 +62,7 @@ const NAV = {
   coordinator: [["dashboard","Overview"],["events","Events"],["volunteers","People & clubs"],["reports","Reports"],["news","Inbox"],["settings","Settings"]],
 };
 const VIEWS = {
-  volunteer: {dashboard:vHome, find:vFind, shifts:vShifts, hours:vHours, clubs:vMyClubs, news:newsView, profile:vProfile, help:helpView},
+  volunteer: {dashboard:volunteerHome, find:vFind, shifts:vShifts, hours:vHours, clubs:vMyClubs, news:newsView, profile:vProfile, help:helpView},
   coordinator: {dashboard:cHome, events:cEvents, checkin:cCheckin, volunteers:cVolunteers, reports:cReports, news:newsView, settings:cSettings, organizers:cOrganizers, manage:manageClubsView, help:helpView},
 };
 const NAV_ICON = {dashboard:"home", find:"search", shifts:"calendar", hours:"clock", news:"inbox", events:"calendar", volunteers:"users", reports:"chart", settings:"sliders"};
@@ -80,69 +83,17 @@ function sectionOf(u, view){
 }
 
 function shell(u){
-  const nav = menuFor(u);
   const personal = u.role === "volunteer" ? ["profile","help"] : ["help"];
-  if (!VIEWS[u.role][ui.view] || (!sectionOf(u, ui.view) && !personal.includes(ui.view))) ui.view = "dashboard";
-  if (isHomePreview(u)) return homePreviewShell(u);
-  const sec = sectionOf(u, ui.view), tabs = sec ? tabsFor(u, sec) : [];
-  const upCount = u.role === "volunteer" ? userStats(u.id).upcoming.length : 0;
-  const unread = unreadCount(u);
-  const pendingLogs = managedClubs(u).reduce((n, c) => n + state.hourLogs.filter(l => l.clubId === c.id && l.status === "pending" && l.userId !== u.id).length, 0);
-  const pendingOrgs = u.admin ? state.users.filter(x => x.role === "coordinator" && !x.verified).length : 0;
-  const counts = {shifts:upCount, news:unread, hours:pendingLogs, volunteers:pendingOrgs + pendingLogs};
-  const badge = k => counts[k] ? `<span class="count" aria-label="${counts[k]} new">${counts[k]}</span>` : "";
-  const roleName = u.role === "coordinator" ? (u.admin ? "Site admin" : u.verified ? "Coordinator" : "Coordinator · not yet verified") : "Volunteer";
-  const footer = DB.live
-    ? `<span>Signed in as ${esc(u.email)}</span><span class="pill ${Cloud.online ? "good" : "warn"}" id="sync-status">${Cloud.online ? "Connected" : "Offline: changes will sync when you reconnect"}</span>`
-    : `<span>${ui.demo ? "Demo with sample data. Nothing here affects your live site." : "Demo with sample data, saved in this browser only."}</span>${armBtn("reset", "Reset demo data", "Click again to reset", "secondary sm")}`;
-  return `<div class="shell">
-    ${ui.demo ? `<div class="mode-bar">You're exploring the demo with sample data. <button class="linkbtn" data-act="logout">Exit demo</button></div>` : ""}
-    <header class="top">
-      <div class="brand">${LOGO}<div><strong>VolunteerHub</strong><span>${esc(state.org.name)}</span></div></div>
-      <div class="tools">${accountMenu(u, roleName)}</div>
-    </header>
-    <div class="frame">
-      <nav class="rail" aria-label="Main">
-        ${nav.map(([k, l]) => `<button data-act="nav" data-v="${k}" ${sec === k ? 'aria-current="page"' : ""} class="${ui.tour && sec === k ? "tour-hl" : ""}">${icon(NAV_ICON[k] || "home")}<span>${l}</span>${badge(k)}</button>`).join("")}
-      </nav>
-      <main id="main" tabindex="-1"><div class="page">
-        ${tourCard(u)}
-        ${tabs.length ? `<nav class="subtabs" aria-label="${esc(nav.find(n => n[0] === sec)[1])}">${tabs.map(([v, l]) => `<button data-act="nav" data-v="${v}" ${ui.view === v ? 'aria-current="page"' : ""}>${l}${v === "organizers" && pendingOrgs ? ` <span class="count">${pendingOrgs}</span>` : ""}</button>`).join("")}</nav>` : ""}
-        ${VIEWS[u.role][ui.view](u)}
-      </div></main>
-    </div>
-    <footer class="foot">${footer}</footer>
-  </div>`;
-}
-
-// Avatar button with a drop-down: profile, display settings, help, and log out.
-function accountMenu(u, roleName){
-  const t = state.prefs.theme || "auto";
-  return `<div class="acct">
-    <button class="acct-btn" id="account-trigger" data-act="menu" aria-label="${esc(initials(u.name))} ${esc(u.name)} ${esc(roleName)} account menu" aria-controls="account-panel" aria-expanded="${!!ui.menu}"><span class="avatar" aria-hidden="true">${esc(initials(u.name))}</span> <span class="who-name">${esc(u.name)} <small>${roleName}</small></span>${icon("chevron")}</button>
-    ${ui.menu ? `<div class="menu" id="account-panel" role="group" aria-label="Account and display settings">
-      <div class="menu-head"><b>${esc(u.name)}</b><span>${esc(u.email)}</span></div>
-      ${u.role === "volunteer" ? `<button data-act="nav" data-v="profile">${icon("user")}Profile</button>` : ""}
-      <button data-act="nav" data-v="help">${icon("help")}Help</button>
-      <button data-act="tour">${icon("compass")}Take the tour</button>
-      <div class="menu-sep"></div>
-      <div class="menu-row"><span>Text size</span><span class="seg"><button data-act="font" data-v="-2" aria-label="A−, smaller text">A−</button><button data-act="font" data-v="2" aria-label="A+, larger text">A+</button></span></div>
-      <div class="menu-row"><span>Theme</span><span class="seg">${["auto","light","dark"].map(x => `<button data-act="setTheme" data-v="${x}" aria-pressed="${t === x}">${THEME_LABEL[x]}</button>`).join("")}</span></div>
-      <div class="menu-row"><span>High contrast</span><span class="seg"><button data-act="contrast" aria-pressed="${state.prefs.hc}">${state.prefs.hc ? "On" : "Off"}</button></span></div>
-      <div class="menu-sep"></div>
-      <button data-act="logout">${icon("logout")}${ui.demo ? "Exit demo" : "Log out"}</button>
-    </div>` : ""}
-  </div>`;
+  if (!VIEWS[u.role][ui.view] || (!sectionOf(u,ui.view) && !personal.includes(ui.view))) ui.view = "dashboard";
+  return websiteShell(u);
 }
 
 document.addEventListener("click", ev => {
   const el = ev.target.closest("[data-act]");
-  if (!el && ui.menu && !ev.target.closest(".menu")){ ui.menu = false; render(); return; }   // click outside closes the menu
   if (!el || el.disabled) return;
+  if (el.tagName === "A" && (ev.ctrlKey || ev.metaKey || ev.shiftKey || ev.altKey || ev.button !== 0)) return;
   const act = el.dataset.act;
   if (ui.armed && act !== "confirm" && act !== "arm") ui.armed = null;
-  // Close the account menu after picking something outside the display settings
-  if (ui.menu && !["menu", "font", "setTheme", "contrast"].includes(act)) ui.menu = false;
   if (handlers[act]){ if (act !== "overlay") ev.preventDefault(); handlers[act](el.dataset.v, el.dataset.id, ev); }
 });
 
@@ -204,12 +155,14 @@ document.addEventListener("keydown", ev => {
   if (ev.key === "Tab") return trapModalTab(ev);
   if (ev.key !== "Escape") return;
   if ($("#modal").innerHTML) return closeModal();
-  if (isHomePreview(currentUser()) && ui.homeDisplay){ ui.homeDisplay = false; render(); $("#display-trigger").focus(); return; }
-  if (ui.menu){ ui.menu = false; render(); $("#account-trigger").focus(); return; }
+  if (ui.displayOpen){ ui.displayOpen = false; render(); $("#display-trigger").focus(); return; }
   const disclosure = $("#app details.overflow-menu[open]") || document.activeElement.closest("#app details[open]");
   if (disclosure){ disclosure.open = false; disclosure.querySelector("summary").focus(); return; }
   if (ui.tour) endTour();
 });
 
+ui.requestedRoute = pageFromURL();
+window.addEventListener("popstate",followPageURL);
+window.addEventListener("hashchange",followPageURL);
 render();
 Cloud.boot();     // turns on live mode if Firebase settings are filled in (see firebase-config.js)

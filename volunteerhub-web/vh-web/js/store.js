@@ -26,7 +26,7 @@ function load(){
   return null;
 }
 // Preferences (text size, contrast, theme) belong to this device in both modes.
-function loadPrefs(){ try { return Object.assign({font:15, hc:false, theme:"auto"}, JSON.parse(localStorage.getItem(KEY + "-prefs") || "{}")); } catch(e){ return {font:15, hc:false, theme:"auto"}; } }
+function loadPrefs(){ try { return Object.assign({font:16, hc:false, theme:"auto"}, JSON.parse(localStorage.getItem(KEY + "-prefs") || "{}")); } catch(e){ return {font:16, hc:false, theme:"auto"}; } }
 function save(){
   try {
     localStorage.setItem(KEY + "-prefs", JSON.stringify(state.prefs));
@@ -39,6 +39,7 @@ let state = demoState();
 // Temporary screen state (filters, open tabs, calendar month). Not saved.
 const ui = {
   view:"dashboard", authMode:"login", armed:null, csv:null, tour:null,
+  displayOpen:false, requestedRoute:null, fromHistory:false,
   demo:false,        // true while exploring sample data on a site that also has live mode
   liveShell:false,   // true while showing live-mode data (signed in or on the live login page)
   find:{q:"", cat:"all", location:null, radius:"25", match:false, hideFull:false, verifiedOnly:true, mode:"list"},

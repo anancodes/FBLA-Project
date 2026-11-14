@@ -41,5 +41,5 @@ function helpView(u){
   <section class="card spread"><div><h2>New here?</h2><p class="muted small">Take a one-minute tour of every screen.</p></div><button class="btn" data-act="tour">Take the tour</button></section>
   <section><h2 style="margin-bottom:10px">Common questions</h2>${faq.map(([q, a]) => `<details><summary>${q}</summary><p>${a}</p></details>`).join("")}</section>
   <section class="card stack"><h2>Accessibility</h2>
-    <p class="muted">Open your account menu (your name, top right) to change the <b>text size</b>, switch between <b>light and dark</b> themes, or turn on <b>high contrast</b>. Every action works with a keyboard: <kbd>Tab</kbd> moves between controls, <kbd>Enter</kbd> activates them, and <kbd>Esc</kbd> closes pop-up forms.</p></section>`;
+    <p class="muted">Open <b>Display settings</b> in the website navigation to change the <b>text size</b>, switch between <b>light and dark</b> themes, or turn on <b>high contrast</b>. Every action works with a keyboard: <kbd>Tab</kbd> moves between controls, <kbd>Enter</kbd> activates them, and <kbd>Esc</kbd> closes pop-up forms.</p></section>`;
 }

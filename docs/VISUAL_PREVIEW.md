@@ -1,6 +1,6 @@
 # VolunteerHub visual proposals
 
-This branch contains two proposed visual directions and **one working Home preview**. The owner has not approved a site-wide direction. Other screens retain the interface from `codex/interface-cleanup`.
+This is the historical proposal comparison. The owner subsequently selected **Open agenda** and confirmed the website direction; see [the implemented website](OPEN_AGENDA.md) for current previews. The original Clear workspace implementation remains on `codex/visual-redesign-preview`.
 
 ## Clear workspace — working preview
 
@@ -43,4 +43,4 @@ The owner supplied [SignUpGenius](https://www.signupgenius.com/) as an anti-refe
 
 The isolated test suite passes 34 checks. The Home-specific checks cover descriptive actions, existing event IDs, signup updates, dialog focus after redraws, complete city-level distance labels, keyboard-operated inline preferences, direct profile/help access, empty-state recovery, local font loading, and styling scope. Responsive checks cover 320, 390, 768, 1024, 1415 and 1440px, including enlarged text/high contrast and all five navigation destinations visible without horizontal scrolling. Axe scans cover Home, expanded preferences and event dialogs in light and dark themes. Existing account, discovery, club, attendance, Inbox and export checks continue to pass.
 
-Browser checks stub the Firebase configuration and use sample data. They do not establish production Firebase readiness or load-test capacity. Visual preference remains the owner's decision: review the two proposals and the working Home screen before extending either direction.
+Browser checks stub the Firebase configuration and use sample data. They do not establish production Firebase readiness or load-test capacity. The owner subsequently selected Open agenda; the current implementation and checks are documented in [OPEN_AGENDA.md](OPEN_AGENDA.md).

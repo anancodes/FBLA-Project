@@ -145,7 +145,7 @@ test('settings and organizer controls follow permissions and contain actual orga
 test('Inbox combines shift updates with announcements and expands messages without cards',async t => {
   const p = await helper.page(t,{viewport:{width:390,height:844}}); await helper.signIn(p);
   await p.locator('.rail [data-v="news"]').click();
-  assert.ok((await p.locator('.rail').boundingBox()).height <= 56,'Mobile navigation retains its natural height on short pages');
+  assert.ok(await p.locator('.rail').evaluate(nav=>{const r=nav.getBoundingClientRect();const end=Math.max(...[...nav.children].map(e=>e.getBoundingClientRect().bottom));return r.bottom-end<=16}),'Mobile navigation fits its visible rows without an empty stretched area');
   await p.evaluate(() => { state.notices.push({id:999,userId:2,text:'Your shift was updated.',at:new Date().toISOString(),read:false}); handlers.nav('news'); });
   assert.equal(await p.locator('.message').count(),4); assert.equal(await p.locator('.message.card').count(),0);
   const message = p.locator('#message-update-999'); await message.locator('summary').focus(); await p.keyboard.press('Enter');

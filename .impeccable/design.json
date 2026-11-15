@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-14T20:57:10Z",
+  "generatedAt": "2026-11-15T22:44:03Z",
   "title": "Design System: VolunteerHub",
   "extensions": {
     "colorMeta": {
@@ -73,11 +73,11 @@
     "typographyMeta": {
       "headline": {
         "displayName": "Page title",
-        "purpose": "Shared page h1; 1.75rem below 620px."
+        "purpose": "Signed-in page h1; 1.75rem below 620px."
       },
       "title": {
         "displayName": "Section heading",
-        "purpose": "Home section headings; 1.25rem below 620px."
+        "purpose": "Signed-in Home section headings; 1.25rem below 620px."
       },
       "event": {
         "displayName": "Event title",
@@ -85,15 +85,43 @@
       },
       "body": {
         "displayName": "Body",
-        "purpose": "Reading text follows the saved root text-size preference."
+        "purpose": "Signed-in reading text follows the saved root text-size preference."
       },
       "label": {
         "displayName": "Standard action",
-        "purpose": "Normal button typography; compact variants remain in source."
+        "purpose": "Signed-in button typography; compact variants remain in source."
       },
       "meta": {
         "displayName": "Supporting detail",
         "purpose": "Quiet supporting copy; individual existing surfaces retain subordinate sizes."
+      },
+      "public-display": {
+        "displayName": "Public page heading",
+        "purpose": "Bitter h1 on the landing and account pages; the hero uses 2.375rem at widths up to 700px. Locally served weights 400–700; signed-in headings retain Public Sans."
+      },
+      "public-headline": {
+        "displayName": "Public section heading",
+        "purpose": "Process, audience and demo section headings; account demo h2 uses 1.25rem."
+      },
+      "public-title": {
+        "displayName": "Public process or role title",
+        "purpose": "Process, sample-record, audience and role-demo h3 on the public landing and account pages."
+      },
+      "public-body": {
+        "displayName": "Public reading",
+        "purpose": "Bitter public root and inherited reading, capped at 68ch where applicable; shares saved root text-size preferences. Font source: fonts/bitter-latin.woff2; license: fonts/Bitter-OFL.txt."
+      },
+      "public-label": {
+        "displayName": "Public action",
+        "purpose": "Public primary and secondary actions with 46px minimum height; narrower masthead and footer settings have source-specific variants."
+      },
+      "public-field": {
+        "displayName": "Public account field",
+        "purpose": "Sign-in, signup and live reset text/select fields; 44px minimum height, with inherited labeled-field focus and error states."
+      },
+      "public-meta": {
+        "displayName": "Public supporting detail",
+        "purpose": "Sample-record rows and footer copy; smaller caption and account variants remain in source."
       }
     },
     "shadows": [
@@ -136,16 +164,24 @@
         "value": "1200px"
       },
       {
-        "name": "header-navigation-maximum",
+        "name": "header-navigation-and-public-hero-stack-maximum",
         "value": "900px"
-      },
-      {
-        "name": "login-stack-maximum",
-        "value": "820px"
       },
       {
         "name": "narrow-phone-maximum",
         "value": "620px"
+      },
+      {
+        "name": "public-columns-and-footer-stack-maximum",
+        "value": "700px"
+      },
+      {
+        "name": "public-record-label-stack-maximum",
+        "value": "360px"
+      },
+      {
+        "name": "public-wide-hero-minimum",
+        "value": "1600px"
       }
     ]
   },
@@ -197,14 +233,46 @@
       "description": "Expanded navigation settings; preview buttons demonstrate states without mutating preferences.",
       "html": "<section class=\"ds-display\" aria-label=\"Display settings\"><div><span>Text size</span><span class=\"ds-segments\"><button aria-label=\"A−, smaller text\">A−</button><button aria-label=\"A+, larger text\">A+</button></span></div><div><span>Theme</span><span class=\"ds-segments\"><button aria-pressed=\"true\">Auto</button><button aria-pressed=\"false\">Light</button><button aria-pressed=\"false\">Dark</button></span></div><div><span>High contrast</span><button class=\"ds-contrast\" aria-pressed=\"false\">Off</button></div></section>",
       "css": ".ds-display{padding:12px 0 20px;display:grid;gap:16px;background:var(--rail,#263f50);color:var(--rail-ink,#f0f5f8);font-family:\"Public Sans\",\"Segoe UI\",sans-serif;line-height:1.5}.ds-display>div{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;font-size:.8125rem}.ds-segments{display:inline-flex;border:1px solid #7e97a7;border-radius:4px;overflow:hidden}.ds-segments button{height:36px;padding:0 8px;border:0;font-family:\"Public Sans\",\"Segoe UI\",sans-serif;font-size:.8125rem;font-weight:500;background:var(--rail,#263f50);color:var(--rail-ink,#f0f5f8);cursor:pointer}.ds-segments button+button{border-left:1px solid #7e97a7}.ds-segments button:hover{background:var(--rail,#263f50)}.ds-segments button[aria-pressed=\"true\"],.ds-contrast[aria-pressed=\"true\"]{background:var(--rail-active,#e7eef3);color:var(--rail-active-ink,#182c3c)}.ds-contrast{min-height:34px;padding:8px 12px;border:1px solid #7e97a7;border-radius:4px;font-family:\"Public Sans\",\"Segoe UI\",sans-serif;font-size:.875rem;line-height:1;font-weight:500;background:var(--rail,#263f50);color:var(--rail-ink,#f0f5f8);cursor:pointer;transition:background .16s,border-color .16s}.ds-contrast:hover{border-color:#7e97a7}.ds-display button:focus-visible{outline:2px solid #e7eef3;outline-offset:4px}@media(max-width:900px){.ds-display{padding:8px 0 16px}.ds-display>div{font-size:.875rem}.ds-segments button{height:40px;padding:0 12px;font-size:.875rem}}@media(prefers-reduced-motion:reduce){.ds-contrast{transition:none}}"
+    },
+    {
+      "name": "Public primary action",
+      "kind": "button",
+      "refersTo": "public-button-primary",
+      "description": "Sign-in has primary emphasis within the approved Bitter public variant; existing signed-in buttons retain Public Sans.",
+      "html": "<a class=\"ds-public-primary\" href=\"#login\">Sign in</a>",
+      "css": ".ds-public-primary{display:inline-flex;align-items:center;justify-content:center;gap:6px;font-family:\"Bitter\",Georgia,serif;font-size:.9375rem;line-height:1;font-weight:600;min-height:46px;padding:10px 20px;border:1px solid var(--accent,#496a80);border-radius:4px;background:var(--accent,#496a80);color:var(--accent-ink,#fff);cursor:pointer;white-space:nowrap;text-decoration:none;transition:background .16s,border-color .16s}.ds-public-primary:hover{background:var(--accent-hover,#34566d);border-color:var(--accent-hover,#34566d)}.ds-public-primary:focus-visible{outline:2px solid var(--accent,#496a80);outline-offset:4px}.ds-public-primary:disabled{opacity:.45;cursor:not-allowed}@media(prefers-reduced-motion:reduce){.ds-public-primary{transition:none}}"
+    },
+    {
+      "name": "Public secondary action",
+      "kind": "button",
+      "refersTo": "public-button-secondary",
+      "description": "Adjacent hero demo entry and both role demo actions use the quiet public treatment; production demo buttons retain their existing handlers.",
+      "html": "<button class=\"ds-public-secondary\">Try volunteer demo</button>",
+      "css": ".ds-public-secondary{display:inline-flex;align-items:center;justify-content:center;gap:6px;font-family:\"Bitter\",Georgia,serif;font-size:.9375rem;line-height:1;font-weight:600;min-height:46px;padding:10px 20px;border:1px solid var(--accent,#496a80);border-radius:4px;background:var(--surface,#fff);color:var(--ink,#182c3c);border-color:var(--line-strong,#b7c8d3);cursor:pointer;white-space:nowrap;text-decoration:none;transition:background .16s,border-color .16s}.ds-public-secondary:hover{background:var(--surface-2,#f2f5f7);border-color:var(--accent-hover,#34566d)}.ds-public-secondary:focus-visible{outline:2px solid var(--accent,#496a80);outline-offset:4px}.ds-public-secondary:disabled{opacity:.45;cursor:not-allowed}@media(prefers-reduced-motion:reduce){.ds-public-secondary{transition:none}}"
+    },
+    {
+      "name": "Public account field",
+      "kind": "input",
+      "refersTo": "public-input",
+      "description": "Bitter account text/select fields keep explicit labels, visible keyboard focus, invalid boundaries and error text.",
+      "html": "<div class=\"ds-public-field\"><label for=\"ds-public-email\">Email</label><input id=\"ds-public-email\" type=\"email\" autocomplete=\"username\" placeholder=\"name@example.org\"></div>",
+      "css": ".ds-public-field{display:flex;flex-direction:column;gap:5px;font-family:\"Bitter\",Georgia,serif;line-height:1.65;color:var(--ink,#182c3c)}.ds-public-field label{font-size:.84rem;font-weight:500}.ds-public-field input{font-family:inherit;font-size:1rem;font-weight:400;line-height:1.65;background:var(--surface,#fff);color:var(--ink,#182c3c);border:1px solid var(--control-line,#7c94a4);border-radius:4px;padding:7px 10px;width:100%;min-width:0;min-height:44px;caret-color:var(--accent,#496a80)}.ds-public-field input::placeholder{color:var(--faint,#586f7e)}.ds-public-field input:focus{outline:none;border-color:var(--accent,#496a80);box-shadow:0 0 0 3px var(--accent-soft,#e7eef3)}.ds-public-field input:focus-visible{outline:2px solid var(--accent,#496a80);outline-offset:4px}.ds-public-field input[aria-invalid=\"true\"]{border-color:var(--bad,#ad463e);box-shadow:0 0 0 3px var(--bad-soft,#faeeec)}"
+    },
+    {
+      "name": "Public masthead",
+      "kind": "nav",
+      "refersTo": "public-navigation",
+      "description": "White horizontal masthead with Bitter wordmark, two useful section links and primary sign-in; wraps into a full navigation row on phones.",
+      "html": "<header class=\"ds-public-masthead\"><a class=\"ds-public-brand\" href=\"#home\">VolunteerHub</a><nav aria-label=\"Main navigation\"><a href=\"#how-it-works\">How it works</a><a href=\"#schools\">Schools &amp; nonprofits</a><a class=\"ds-public-signin\" href=\"#login\">Sign in</a></nav></header>",
+      "css": ".ds-public-masthead{display:flex;align-items:center;justify-content:space-between;gap:1.5rem;min-height:76px;padding:12px clamp(1.25rem,4vw,4rem);background:var(--surface,#fff);color:var(--ink,#182c3c);font-family:\"Bitter\",Georgia,serif;line-height:1.65}.ds-public-brand{font-size:1.5rem;font-weight:650;letter-spacing:-.035em;color:var(--ink,#182c3c);text-decoration:none;line-height:1.3}.ds-public-masthead nav{display:flex;align-items:center;flex-wrap:wrap;gap:1.5rem}.ds-public-masthead nav>a:not(.ds-public-signin){display:flex;align-items:center;min-height:44px;font-size:.9375rem;color:var(--ink,#182c3c);text-decoration:none}.ds-public-masthead nav>a:not(.ds-public-signin):hover{text-decoration:underline}.ds-public-masthead a{text-underline-offset:4px}.ds-public-masthead a:hover{text-decoration-thickness:2px}.ds-public-signin{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:10px 20px;border:1px solid var(--accent,#496a80);border-radius:4px;background:var(--accent,#496a80);color:var(--accent-ink,#fff);font-size:.9375rem;font-weight:600;line-height:1;text-decoration:none;white-space:nowrap;transition:background .16s,border-color .16s}.ds-public-signin:hover{background:var(--accent-hover,#34566d);border-color:var(--accent-hover,#34566d)}.ds-public-masthead a:focus-visible{outline:2px solid var(--accent,#496a80);outline-offset:4px}@media(max-width:900px){.ds-public-masthead{align-items:flex-start;gap:1rem;flex-wrap:wrap}.ds-public-masthead nav{gap:1rem}}@media(max-width:700px){.ds-public-masthead{padding-block:1rem}.ds-public-masthead nav{width:100%;justify-content:space-between;gap:.5rem}.ds-public-masthead nav>a:not(.ds-public-signin){font-size:.8125rem}.ds-public-signin{font-size:.875rem;padding:8px 14px;min-height:44px}}@media(max-width:360px){.ds-public-masthead nav>a:not(.ds-public-signin){font-size:.75rem}.ds-public-signin{padding-inline:10px}}@media(prefers-reduced-motion:reduce){.ds-public-signin{transition:none}}"
     }
   ],
   "narrative": {
     "northStar": "Open agenda",
-    "overview": "The owner selected Open agenda and explicitly required a website. Dark blue wayfinding, a white reading field, readable Public Sans and ordinary web controls establish a simple, ordered service website. This system applies to login, signup and both existing role experiences.\n\nSchools and nonprofits receive equal care. Clear dates, explicit actions and distinct service states support people finding opportunities and coordinators maintaining accurate records. Organization details remain configurable; sample content does not establish customers or endorsements.\n\nSource authority is `volunteerhub-web/vh-web/css/open-agenda.css` and `js/website.js`, composed with `css/styles.css`, `js/app.js` and `index.html`. The selected code-led reference is `.impeccable/mocks/decision/open-agenda.html`; the website direction contract is `.impeccable/surfaces/volunteerhub-web-vh-web-js-website-js.md`. Frontmatter records reused light-mode tokens; source overrides govern dark and high-contrast modes. Sidecar ramps are panel previews, not shipped scales.\n\nThe finish disposition is **ship** for the reviewed states (28 required captures and sampled source). The 38 isolated workflow, responsive, keyboard and axe checks use fixtures; they do not establish production Firebase behavior or load-test readiness.",
+    "overview": "The owner selected Open agenda and explicitly required a website. Dark blue wayfinding, a white reading field, readable Public Sans and ordinary web controls establish a simple, ordered service website for both signed-in roles. The approved public landing, sign-in, signup and reset variant uses Bitter's sturdy serif voice within the same navy, white and slate system.\n\nSchools and nonprofits receive equal care. Clear dates, explicit actions and distinct service states support people finding opportunities and coordinators maintaining accurate records. Organization details remain configurable; sample content does not establish customers or endorsements.\n\nSource authority is `volunteerhub-web/vh-web/css/open-agenda.css` and `js/website.js`, composed with `css/styles.css`, `js/app.js` and `index.html`. The selected code-led reference is `.impeccable/mocks/decision/open-agenda.html`; the website direction contract is `.impeccable/surfaces/volunteerhub-web-vh-web-js-website-js.md`. Frontmatter records reused light-mode tokens; source overrides govern dark and high-contrast modes. Sidecar ramps are panel previews, not shipped scales.\n\nThe public variant is grounded in `css/landing.css`, `js/views/landing.js` and `js/views/auth.js` under the same web root, with its scoped direction recorded in `.impeccable/surfaces/volunteerhub-web-vh-web-js-views-landing-js.md`. It merges the community-led composition with the owner's requested restraint, short purposeful copy and one large photograph; it does not replace the signed-in system.\n\nThe prior Open agenda finish disposition was **ship** for its 28 required captures and 38 isolated fixture checks. The current public review found no material UI defect in 17 required captures; the reported 43 browser/workflow checks use sample data and mocked Firebase. The full review’s **fix** concerned persistence and workflow documentation. A subsequent narrow **ship** verdict resolved those two findings through accurate documentation and explicit disclosure; it covers those scored fixes only. Automated Impeccable remains open at **SPEC**: font matching reports no resolvable browser/catalog despite installed Chromium/Playwright, and the approximately 70% comparison is recorded drift with owner-authorized type, content and photo-removal deviations. No asset/assembly acceptance or automated gate pass is claimed. Neither review establishes production database behavior, load capacity or deployment readiness.",
     "keyCharacteristics": [
       "Dark blue navigation and flat, generously spaced reading areas.",
-      "One readable UI family, tabular dates and amounts, explicit task labels.",
+      "Public Bitter and signed-in Public Sans, tabular dates and amounts, explicit task labels.",
       "Real navigation links, browser history, natural page scrolling and visible mobile destinations.",
       "Numeric and verbal status alongside color, with retained display preferences and keyboard access."
     ],
@@ -217,6 +285,11 @@
       {
         "name": "The Readable Preference Rule",
         "body": "Use rem-based hierarchy and retain text size, Auto/Light/Dark and high-contrast controls across the website.",
+        "section": "typography"
+      },
+      {
+        "name": "The Public Type Scope Rule",
+        "body": "Use Bitter for the public landing and account pages; keep Public Sans on signed-in screens.",
         "section": "typography"
       },
       {

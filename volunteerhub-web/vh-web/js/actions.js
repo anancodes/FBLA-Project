@@ -47,7 +47,7 @@ function doReset(form){
   const email = String(new FormData(form).get("email")).trim();
   if (V.email(email)) return showErrors(form, {email:V.email(email)});
   Cloud.resetPassword(email)
-    .then(() => { ui.authMode = "login"; render(); toast("Check your email for a link to reset your password."); })
+    .then(() => { navigatePublic("login"); toast("Check your email for a link to reset your password."); })
     .catch(e => showErrors(form, {email:Cloud.friendly(e)}));
 }
 
@@ -277,7 +277,7 @@ const handlers = {
     if (ui.tour) return focusTourStep();
     const m = $("#page-title") || $("#main"); if (m) m.focus({preventScroll:true}); window.scrollTo(0, 0);
   },
-  authmode: (v) => { ui.authMode = v; render(); },
+  authmode: (v) => navigatePublic(v),
   demo: (v) => {
     if (Cloud.enabled && !ui.demo) Cloud.enterDemo();       // explore sample data without touching live data
     Object.assign(ui.find, {q:"", location:null}); ui.disclosures.clear();
@@ -285,7 +285,7 @@ const handlers = {
     toast(`Signed in as ${userById(asId(v)).name}.`); maybeStartTour();
   },
   logout: () => {
-    clearPageURL(); ui.displayOpen = false;
+    clearPageURL(); setPageURL("login",true); ui.displayOpen = false;
     ui.authMode = "login"; ui.armed = null; ui.tour = null; ui.cal = TODAY.slice(0, 7); ui.find.mode = ui.ev.mode = "list"; ui.find.location = null; ui.find.q = ""; ui.disclosures.clear(); ui.view = "dashboard";
     if (DB.live) return Cloud.logout();
     state.session.userId = null; save();

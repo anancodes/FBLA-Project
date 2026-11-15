@@ -1,6 +1,6 @@
 # VolunteerHub
 
-The selected [Open agenda website](docs/OPEN_AGENDA.md) is implemented on `codex/open-agenda-website`, with previews and local run instructions.
+The [public landing page](docs/PUBLIC_LANDING.md) adds the selected one-photo composition and serif typography on `codex/public-landing-redesign`. It builds on the [Open agenda website](docs/OPEN_AGENDA.md); both guides include previews and local run instructions.
 
 **Live demo:** https://anancodes.github.io/FBLA-Project/volunteerhub-web/vh-web/
 
@@ -34,12 +34,14 @@ Demo accounts use fictional sample data saved in your browser only. Configured l
 | `index.html` | Page skeleton; loads the stylesheet and scripts in order |
 | `css/styles.css` | Existing screen styles, with colors defined once as variables |
 | `css/open-agenda.css` | Shared Open agenda website design |
+| `css/landing.css` | Scoped public landing and account design |
 | `js/utils.js` | General helpers: dates, times, HTML escaping, CSV |
 | `js/data.js` | Constants and the sample (seed) data |
 | `js/store.js` | App data, saving/loading with localStorage, waitlist logic, query helpers |
 | `js/validation.js` | Input validation and error display |
 | `js/components.js` | Reusable pieces: charts, calendar, tiles, pop-ups, messages, CSV export, printing |
 | `js/views/auth.js` | Login and create-account screens |
+| `js/views/landing.js` | Public landing, public links and demo entry points |
 | `js/views/volunteer.js` | Volunteer screens |
 | `js/website.js` | Shared website shell, page URLs and volunteer Home |
 | `js/views/coordinator.js` | Coordinator screens and report calculations |
@@ -51,7 +53,8 @@ Demo accounts use fictional sample data saved in your browser only. Configured l
 
 ## Credits
 
-- Fonts: self-hosted Public Sans (SIL Open Font License), with system monospace for code
+- Fonts: self-hosted Public Sans and Bitter (SIL Open Font License), with system monospace for code
+- Public landing image: generated temporary placeholder, to be replaced with the team's photo
 - AI assistance (Claude) was used as a coding tool. The team reviewed and can explain all code.
 
 ## Design assistance in Codex

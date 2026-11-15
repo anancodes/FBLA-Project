@@ -22,8 +22,15 @@ typography:
   body: {fontFamily: 'Public Sans, "Segoe UI", sans-serif', fontSize: "1rem", fontWeight: 400, lineHeight: 1.5}
   label: {fontFamily: 'Public Sans, "Segoe UI", sans-serif', fontSize: "0.9375rem", fontWeight: 500, lineHeight: 1}
   meta: {fontFamily: 'Public Sans, "Segoe UI", sans-serif', fontSize: "0.875rem", fontWeight: 400, lineHeight: 1.5}
+  public-display: {fontFamily: 'Bitter, Georgia, serif', fontSize: "clamp(2.25rem, 3.25vw, 3rem)", fontWeight: 550, lineHeight: 1.15, letterSpacing: "-0.025em"}
+  public-headline: {fontFamily: 'Bitter, Georgia, serif', fontSize: "clamp(1.75rem, 2.4vw, 2.25rem)", fontWeight: 500, lineHeight: 1.25, letterSpacing: "-0.025em"}
+  public-title: {fontFamily: 'Bitter, Georgia, serif', fontSize: "1.1875rem", fontWeight: 600, lineHeight: 1.4, letterSpacing: "-0.025em"}
+  public-body: {fontFamily: 'Bitter, Georgia, serif', fontSize: "1rem", fontWeight: 400, lineHeight: 1.65}
+  public-label: {fontFamily: 'Bitter, Georgia, serif', fontSize: "0.9375rem", fontWeight: 600, lineHeight: 1}
+  public-field: {fontFamily: 'Bitter, Georgia, serif', fontSize: "1rem", fontWeight: 400, lineHeight: 1.65}
+  public-meta: {fontFamily: 'Bitter, Georgia, serif', fontSize: "0.875rem", fontWeight: 400, lineHeight: 1.65}
 rounded: {control: "4px", dialog: "12px"}
-spacing: {fine: "4px", small: "8px", compact: "12px", normal: "16px", group: "24px", section: "32px", desktop: "56px"}
+spacing: {fine: "4px", small: "8px", compact: "12px", normal: "16px", group: "24px", section: "32px", desktop: "56px", public-gutter: "clamp(1.25rem, 4vw, 4rem)", public-section: "3.5rem", public-columns: "4rem"}
 components:
   button-primary: {backgroundColor: "{colors.action}", textColor: "{colors.field}", typography: "{typography.label}", rounded: "{rounded.control}", padding: "10px 18px"}
   button-secondary: {backgroundColor: "{colors.field}", textColor: "{colors.ink}", typography: "{typography.label}", rounded: "{rounded.control}", padding: "10px 18px"}
@@ -31,6 +38,11 @@ components:
   nav-link: {backgroundColor: "{colors.sidebar}", textColor: "#f0f5f8", rounded: "{rounded.control}", padding: "10px 12px"}
   progress: {backgroundColor: "{colors.divider}", rounded: "0", height: "6px"}
   inline-settings: {backgroundColor: "{colors.sidebar}", padding: "12px 0 20px"}
+  public-button-primary: {backgroundColor: "{colors.action}", textColor: "{colors.field}", typography: "{typography.public-label}", rounded: "{rounded.control}", padding: "10px 20px"}
+  public-button-secondary: {backgroundColor: "{colors.field}", textColor: "{colors.ink}", typography: "{typography.public-label}", rounded: "{rounded.control}", padding: "10px 20px"}
+  public-input: {backgroundColor: "{colors.field}", textColor: "{colors.ink}", typography: "{typography.public-field}", rounded: "{rounded.control}", padding: "7px 10px"}
+  public-navigation: {backgroundColor: "{colors.field}", textColor: "{colors.ink}", padding: "12px clamp(1.25rem, 4vw, 4rem)"}
+  public-sample-record: {backgroundColor: "{colors.field-quiet}", textColor: "{colors.ink}", typography: "{typography.public-meta}", rounded: "0", padding: "1.75rem 2rem"}
 ---
 
 # Design System: VolunteerHub
@@ -39,18 +51,20 @@ components:
 
 **Creative North Star: "Open agenda"**
 
-The owner selected Open agenda and explicitly required a website. Dark blue wayfinding, a white reading field, readable Public Sans and ordinary web controls establish a simple, ordered service website. This system applies to login, signup and both existing role experiences.
+The owner selected Open agenda and explicitly required a website. Dark blue wayfinding, a white reading field, readable Public Sans and ordinary web controls establish a simple, ordered service website for both signed-in roles. The approved public landing, sign-in, signup and reset variant uses Bitter's sturdy serif voice within the same navy, white and slate system.
 
 Schools and nonprofits receive equal care. Clear dates, explicit actions and distinct service states support people finding opportunities and coordinators maintaining accurate records. Organization details remain configurable; sample content does not establish customers or endorsements.
 
 Source authority is `volunteerhub-web/vh-web/css/open-agenda.css` and `js/website.js`, composed with `css/styles.css`, `js/app.js` and `index.html`. The selected code-led reference is `.impeccable/mocks/decision/open-agenda.html`; the website direction contract is `.impeccable/surfaces/volunteerhub-web-vh-web-js-website-js.md`. Frontmatter records reused light-mode tokens; source overrides govern dark and high-contrast modes. Sidecar ramps are panel previews, not shipped scales.
 
-The finish disposition is **ship** for the reviewed states (28 required captures and sampled source). The 38 isolated workflow, responsive, keyboard and axe checks use fixtures; they do not establish production Firebase behavior or load-test readiness.
+The public variant is grounded in `css/landing.css`, `js/views/landing.js` and `js/views/auth.js` under the same web root, with its scoped direction recorded in `.impeccable/surfaces/volunteerhub-web-vh-web-js-views-landing-js.md`. It merges the community-led composition with the owner's requested restraint, short purposeful copy and one large photograph; it does not replace the signed-in system.
+
+The prior Open agenda finish disposition was **ship** for its 28 required captures and 38 isolated fixture checks. The current public review found no material UI defect in 17 required captures; the reported 43 browser/workflow checks use sample data and mocked Firebase. The full review’s **fix** concerned persistence and workflow documentation. A subsequent narrow **ship** verdict resolved those two findings through accurate documentation and explicit disclosure; it covers those scored fixes only. Automated Impeccable remains open at **SPEC**: font matching reports no resolvable browser/catalog despite installed Chromium/Playwright, and the approximately 70% comparison is recorded drift with owner-authorized type, content and photo-removal deviations. No asset/assembly acceptance or automated gate pass is claimed. Neither review establishes production database behavior, load capacity or deployment readiness.
 
 **Key Characteristics:**
 
 - Dark blue navigation and flat, generously spaced reading areas.
-- One readable UI family, tabular dates and amounts, explicit task labels.
+- Public Bitter and signed-in Public Sans, tabular dates and amounts, explicit task labels.
 - Real navigation links, browser history, natural page scrolling and visible mobile destinations.
 - Numeric and verbal status alongside color, with retained display preferences and keyboard access.
 
@@ -58,7 +72,7 @@ The finish disposition is **ship** for the reviewed states (28 required captures
 
 ### Primary
 
-Slate-blue action and its deeper hover state identify deliberate controls. Dark blue sidebar anchors wayfinding; the pale selected tone identifies the current destination with dark ink. The login identity panel uses the same sidebar family.
+Slate-blue action and its deeper hover state identify deliberate controls. Dark blue sidebar anchors signed-in wayfinding; the pale selected tone identifies the current destination with dark ink. The public masthead and account pages use the white field and reading ink, with slate-blue sign-in emphasis.
 
 ### Neutral
 
@@ -72,7 +86,7 @@ Dark mode uses a deep slate reading field with pale blue actions and softer sema
 
 ## Typography
 
-Public Sans is self-hosted in `fonts/public-sans-latin.woff2` with weights (400–700) and a Segoe UI/sans-serif fallback. It carries headings, body text and controls. Technical codes and inherited dialog textareas retain a system monospace.
+Public Sans is self-hosted in `fonts/public-sans-latin.woff2` with weights (400–700) and a Segoe UI/sans-serif fallback. It carries signed-in headings, body text and controls. Technical codes and inherited dialog textareas retain a system monospace. Public landing and account typography uses locally served `fonts/bitter-latin.woff2`, weights (400–700), with Georgia/serif fallbacks and the license in `fonts/Bitter-OFL.txt`.
 
 The runtime preference starts at (16px), preserves saved preferences, and adjusts the root between (13px) and (21px). Body copy follows the root; the stylesheet's pre-runtime fallback is (15px).
 
@@ -80,16 +94,23 @@ The runtime preference starts at (16px), preserves saved preferences, and adjust
 - **Title / event:** Home section heading and readable event title; the section heading reduces to (1.25rem) on narrow phones.
 - **Body / label / meta:** normal reading, standard buttons and supporting text. Existing forms and tables retain their denser subordinate sizes.
 - Dates use tabular numerals; Home date values use the headline size with line height (1.25). Verified hours use (1.625rem), weight (600), line height (1.3).
+- **Public hierarchy:** scoped display, headline and title tokens serve account/page headings, section headings and process/demo headings. Public reading has a generous line height and maximum measure (68ch); hero introduction text uses (1.0625rem), then (1rem) at widths up to (900px). The masthead wordmark uses (1.5rem), weight (650), line height (1.3) and tracking (-0.035em). At widths up to (700px), the hero heading uses (2.375rem); account demo section headings use (1.25rem), while role headings retain the public title token.
 
 **The Readable Preference Rule.** Use rem-based hierarchy and retain text size, Auto/Light/Dark and high-contrast controls across the website.
+
+**The Public Type Scope Rule.** Use Bitter for the public landing and account pages; keep Public Sans on signed-in screens.
 
 ## Layout
 
 Desktop uses a navigation column (256px) and a flexible reading column; the rail becomes (224px) at widths up to (1200px). Main content has padding (56px 56px 48px), a centered maximum width (1280px) and a page gap (28px). The document scrolls normally; above (900px), the sidebar is sticky and independently scrolls only when needed.
 
-At widths up to (900px), navigation becomes a header with wrapped links and no navigation icons; main padding becomes (32px 24px 36px). At (620px), horizontal padding is (20px) and Home becomes one column. Tables retain local overflow. Login's two equal columns collapse at (820px), with forms capped at (380px).
+At widths up to (900px), signed-in navigation becomes a header with wrapped links and no navigation icons; main padding becomes (32px 24px 36px). At (620px), horizontal padding is (20px) and Home becomes one column. Tables retain local overflow.
 
 Home shows equal-weight dated shifts beside a quieter hours column (224px; 192px at the intermediate size), then recommendations across the full width. Groups use whitespace and hairline dividers. Footer actions remain in the normal document flow. Print hides navigation and footer and restores a single reading column.
+
+Public pages use fluid gutters from the frontmatter. The horizontal masthead has minimum height (76px); the broad hero has minimum height (32rem), increasing to (36rem) at widths from (1600px), with a left white introduction inset (30rem wide, 2rem padding). Sections center within (82rem); process and sample record, audiences and demo choices use equal columns. At widths up to (900px), the photograph stacks above the full-width introduction, with image height clamped from (12rem) to (23rem); column gaps reduce to (2rem). At (700px), section columns stack, section padding becomes (2.5rem), navigation fills a wrapped row and the footer stacks. At (360px), sample-record labels and values stack.
+
+Sign-in, signup and live password reset share the public masthead/footer and a single centered account column (31rem maximum) with padding (3.5rem 1.5rem 4rem), reducing top padding to (2rem) at (700px). Sign-in places the two role demos below a divider; signup and reset keep their form focus.
 
 ## Elevation & Depth
 
@@ -97,13 +118,17 @@ Home shows equal-weight dated shifts beside a quieter hours column (224px; 192px
 
 Inherited dialogs and toasts use the existing popup shadow, with a darker shadow in dark mode. Fields add a soft focus ring; visible keyboard focus uses an outline (2px) offset (4px), with a pale outline on the sidebar. Button state transitions take (0.16s); reduced motion removes transitions and animations.
 
+The public inset and sample record use flat surface tone rather than added shadow; open sections use whitespace and divider lines. The same theme, high-contrast and reduced-motion behavior remains in effect.
+
 ## Shapes
 
-Regular controls use the small frontmatter radius; progress on Home is square-ended. Dialogs use the larger radius with padding (32px), reduced to (24px) on narrow phones. Existing demo-choice and waiver surfaces retain their own (8px) corners. Line icons remain SVG; status dots are accompanied by text.
+Regular controls and the desktop public introduction use the small frontmatter radius; progress on Home, the sample record and the narrow public introduction are square-ended. Dialogs use the larger radius with padding (32px), reduced to (24px) on narrow phones. Waiver surfaces retain their own (8px) corners. Line icons remain SVG; status dots are accompanied by text.
 
 ## Components
 
 **Buttons.** Primary actions use slate blue and white; hover deepens background and border. Secondary actions use a white field, dark ink and a stronger divider, with a quiet-field hover. Standard controls have minimum height (42px); small controls use (34px), while Home row actions use (40px) and padding (8px 15px). Disabled controls reduce opacity to (0.45).
+
+**Public actions and fields.** Scoped buttons use the public label tokens and minimum height (46px); the masthead sign-in reduces to (44px) at (700px). Footer segmented preference buttons use height (36px); its high-contrast button retains the public minimum. Account text/select fields use the public field tokens and minimum height (44px), retaining visible labels, error text and focus treatment. Live forms disable submission while connecting; password reset appears in live mode and returns to sign-in after requesting the link.
 
 **Inputs.** Labels sit above fields with a small gap (5px). Fields use a stronger control boundary, minimum height (36px) and font size (0.92rem). Focus adds the action-colored boundary and accent-soft ring; invalid fields use the red boundary, ring and error text. Textareas can resize vertically.
 
@@ -112,6 +137,10 @@ Regular controls use the small frontmatter radius; progress on Home is square-en
 **Progress and records.** Home uses a slim meter with numeric hours, goal and percentage. Other progress surfaces retain their existing compact boundaries and status text. Signed up, waitlisted, attended, pending and approved remain separate states.
 
 **Inline settings.** Display settings expand inside navigation with a labeled text-size pair, theme segments and an `aria-pressed` high-contrast control. Help and Profile are ordinary links; tour, sign-out and demo reset remain explicit actions in the footer.
+
+**Public navigation and content.** The masthead links to process and school/nonprofit sections and keeps sign-in primary. The hero's adjacent demo link leads to both existing volunteer and coordinator demo handlers. Ordinary fragment links, browser history, a skip link, route-heading focus and focusable section targets support keyboard navigation. The lower page pairs an ordered three-step process with a labeled sample record, gives schools and nonprofits equal standing, offers both fictional role demos and ends with footer demo access and expandable saved display settings. Dark/high-contrast colors and root text-size preferences remain shared; the sample record gains an ink outline in high contrast.
+
+**Public photograph.** One generated garden photograph is a temporary owner-accepted filler, replaceable with the owner's own image; it is disclosed as illustrative and does not depict verified VolunteerHub volunteers. Keep the broad crop with subjects toward the right for the desktop inset and review its tighter phone crop. Replace its alt text, visible caption and provenance with accurate information when replacing the image. On image failure, hide the image/caption and retain the introduction and actions in a shorter usable hero. The one-photo limit belongs to this public variant, not a global ban on imagery.
 
 ## Do's and Don'ts
 

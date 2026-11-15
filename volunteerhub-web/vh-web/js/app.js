@@ -32,10 +32,11 @@ function render(){
     .map(el => [el.id, el.type === "checkbox" || el.type === "radio" ? el.checked : el.value]);
   $("#app").innerHTML = u ? shell(u) : loginView();
   document.body.classList.add("open-agenda");
+  document.body.classList.toggle("public-view",!u);
   if (u && !ui.tour) setPageURL(ui.view,true);
   const pageTitle = $("#main h1"); if (pageTitle){ pageTitle.id = "page-title"; pageTitle.tabIndex = -1; }
   document.title = pageTitle ? `${pageTitle.textContent} | VolunteerHub` : "VolunteerHub";
-  ui.renderKey = `${u ? u.id : "auth"}:${ui.view}`;
+  ui.renderKey = `${u ? u.id : "auth"}:${u ? ui.view : ui.authMode}`;
   document.querySelectorAll("#app details[id]").forEach(el => { if (ui.disclosures.has(`${ui.renderKey}:${el.id}`)) el.open = true; });
   ui.expandClub = null;
   typed.forEach(([id, v]) => { const el = document.getElementById(id); if (!el) return; if (typeof v === "boolean") el.checked = v; else el.value = v; });
@@ -161,7 +162,9 @@ document.addEventListener("keydown", ev => {
   if (ui.tour) endTour();
 });
 
-ui.requestedRoute = pageFromURL();
+const initialRoute = pageFromURL();
+ui.authMode = publicModeFromURL(initialRoute);
+ui.requestedRoute = isPublicRoute(initialRoute) ? null : initialRoute;
 window.addEventListener("popstate",followPageURL);
 window.addEventListener("hashchange",followPageURL);
 render();

@@ -51,6 +51,7 @@ All volunteers, events, and places are sample data. Set your organization's name
 | `index.html` | Page skeleton; loads the stylesheet and scripts in order |
 | `css/styles.css` | Base components and layout styles |
 | `css/open-agenda.css` | Shared Open agenda design, responsive layouts and accessible themes |
+| `css/landing.css` | Scoped public landing and account design |
 | `js/website.js` | Website navigation, page URLs and volunteer Home |
 | `js/utils.js` | General helpers: dates, times, HTML escaping, CSV |
 | `js/zipdata.js` | US ZIP codes with locations, so distance search works offline |
@@ -63,6 +64,7 @@ All volunteers, events, and places are sample data. Set your organization's name
 | `js/validation.js` | Input validation and error display |
 | `js/components.js` | Reusable pieces: charts, calendar, tiles, pop-ups, messages, CSV export, printing |
 | `js/views/auth.js` | Login and create-account screens |
+| `js/views/landing.js` | Public landing, public links and demo entry points |
 | `js/views/volunteer.js` | Volunteer screens |
 | `js/views/coordinator.js` | Coordinator screens and report calculations |
 | `js/views/help.js` | Help screen |
@@ -85,7 +87,8 @@ All volunteers, events, and places are sample data. Set your organization's name
 ## Credits
 
 - Firebase (Google): accounts and database, loaded from Google's servers in live mode
-- Font: locally served Public Sans (SIL Open Font License; bundled in `assets/fonts/`)
+- Fonts: locally served Public Sans and Bitter (SIL Open Font License; bundled in `fonts/`)
+- Landing image: generated temporary placeholder, to be replaced with the team's photo
 - Icons: simple line icons drawn for this project (in `js/components.js`)
 - ZIP code locations: from the open-source `zipcodes` package by Sean Pianka (MIT License), github.com/seanpianka/zipcodes
 - AI assistance (Claude) was used as a coding tool. The team reviewed and can explain all code.
@@ -95,3 +98,5 @@ All volunteers, events, and places are sample data. Set your organization's name
 See [the change guide](../../docs/UI_CLEANUP.md) and [test instructions](../../tests/README.md).
 
 The selected visual redesign is documented in [Open agenda](../../docs/OPEN_AGENDA.md), with desktop and mobile screenshots.
+
+See [the public landing page](../../docs/PUBLIC_LANDING.md) for the selected one-photo composition, account navigation and image replacement instructions.

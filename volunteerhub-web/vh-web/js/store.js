@@ -38,7 +38,7 @@ let state = demoState();
 
 // Temporary screen state (filters, open tabs, calendar month). Not saved.
 const ui = {
-  view:"dashboard", authMode:"login", armed:null, csv:null, tour:null,
+  view:"dashboard", authMode:"landing", armed:null, csv:null, tour:null,
   displayOpen:false, requestedRoute:null, fromHistory:false,
   demo:false,        // true while exploring sample data on a site that also has live mode
   liveShell:false,   // true while showing live-mode data (signed in or on the live login page)

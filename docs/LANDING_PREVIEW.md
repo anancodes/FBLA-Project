@@ -1,6 +1,6 @@
 # VolunteerHub public landing previews
 
-These are design proposals for the page visitors see **before signing in**. They retain the selected Open agenda identity. The operational website is unchanged at this stage.
+These are the original design proposals for the page visitors see **before signing in**. The owner selected proposal 2 with the restraint of proposal 3, one hero photo, purposeful copy and serif-led public typography. See [the implementation and screenshots](PUBLIC_LANDING.md).
 
 The owner confirmed that sign-in should have primary emphasis, with a visible demo option for presenting to judges. All proposals keep both school and nonprofit workflows in the story; implementation will retain the volunteer and coordinator demos, signup and password reset.
 
@@ -36,4 +36,4 @@ All proposal photography is generated illustrative material, not evidence of rea
 
 The three compositions inherit the current Public Sans, navy/white palette and small control shapes. No backend migration, paid service, new framework or global design-system replacement is planned.
 
-Implementation starts after the visual choice required by the project's comp-first Impeccable workflow. These previews are not a deployed landing page.
+The selected proposal's sidecar records the owner's approval and changes. These images remain historical design proposals; current behavior is documented in the implementation guide. The owner will replace the single placeholder photo with their own.

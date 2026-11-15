@@ -10,8 +10,8 @@ function setPageURL(view, replace = false){
 }
 function clearPageURL(){ history.replaceState(null,"",location.pathname + location.search); ui.requestedRoute = null; }
 function followPageURL(){
+  if (!currentUser()) return followPublicURL();
   const view = pageFromURL(); if (!view) return;
-  if (!currentUser()){ ui.requestedRoute = view; return; }
   if (ui.view === view) return;
   ui.fromHistory = true;
   try { handlers.nav(view); } finally { ui.fromHistory = false; }

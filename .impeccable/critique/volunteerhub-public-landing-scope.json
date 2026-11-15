@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Record owner-authorized adaptations and the actual shipping surface; this is not a build-gate or user-review receipt.",
+  "primaryTarget": "volunteerhub-web/vh-web/js/views/landing.js",
+  "referenceComp": ".impeccable/mocks/decision/landing-community.webp",
+  "seedReference": "seed:935a6cb90cfffdfc",
+  "approvedScope": {
+    "composition": "Community-led opening with the service-led proposal's restraint",
+    "photographs": "One large hero image; remove all three supporting photographs",
+    "typography": "Scoped Bitter serif public landing/account variant; preserve signed-in Public Sans",
+    "content": "Purposeful short explanation, sample service record, school/nonprofit context and both demos",
+    "placeholder": "Owner said the current image is okay for now and will be replaced with their own image"
+  },
+  "shippingAssetMap": {
+    "garden": "volunteerhub-web/vh-web/images/community-garden.webp"
+  },
+  "retiredReferenceRegions": [
+    "reference-photo-1",
+    "reference-photo-2",
+    "reference-photo-3",
+    "process-arrow-one",
+    "process-arrow-two"
+  ],
+  "referenceInterpretation": "The original measured map inventories the original comp. Its retired regions and old default plate paths are historical reference data, not requirements to add images or assets to the approved production scope.",
+  "verification": {
+    "browserChecks": "43 isolated checks passed with sample data and mocked Firebase configuration",
+    "visualEvidence": ".impeccable/review/landing/capture-report.json",
+    "visualReview": "17 captures valid; no material page/UI defect found",
+    "automatedWorkflow": "SPEC open; font-match reports no resolvable browser/catalog; subsequent automated phases remain pending",
+    "automatedCompletionClaimed": false,
+    "userAssetOrAssemblyReceiptCreated": false
+  }
+}

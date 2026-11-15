@@ -7,6 +7,13 @@
   "surface": "VolunteerHub public landing page",
   "mode": "persuade",
   "composition": "community",
-  "approved": false,
-  "seedReference": "seed:935a6cb90cfffdfc"
+  "approved": true,
+  "seedReference": "seed:935a6cb90cfffdfc",
+  "approval": {
+    "source": "Owner reply in conversation",
+    "selection": "Community-led composition with service-led restraint",
+    "scope": "One large hero photograph only; remove supporting photo row; concise purposeful copy; serif-led landing typography instead of generic sans.",
+    "quote": "the idea of a big image at the top also seems pretty good. When creating this design, try and limit how many real photos of volunteers we need, but other than that, the second is pretty good.",
+    "additionalQuote": "also, stray away from the AI slop sans type font."
+  }
 }

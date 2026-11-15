@@ -17,14 +17,14 @@ npm --cache /tmp/volunteerhub-npm-cache install --prefix /tmp/volunteerhub-test-
 Use an installed Chromium executable:
 
 ```sh
-NODE_PATH=/tmp/volunteerhub-test-tools/node_modules BROWSER_PATH=/usr/bin/chromium node --test tests/location.test.cjs tests/ui-cleanup.browser.cjs tests/home-preview.browser.cjs tests/website-navigation.browser.cjs
+NODE_PATH=/tmp/volunteerhub-test-tools/node_modules BROWSER_PATH=/usr/bin/chromium node --test tests/location.test.cjs tests/ui-cleanup.browser.cjs tests/home-preview.browser.cjs tests/website-navigation.browser.cjs tests/public-landing.browser.cjs
 ```
 
 Or install Playwright's Chromium and omit `BROWSER_PATH`:
 
 ```sh
 /tmp/volunteerhub-test-tools/node_modules/.bin/playwright install chromium
-NODE_PATH=/tmp/volunteerhub-test-tools/node_modules node --test tests/location.test.cjs tests/ui-cleanup.browser.cjs tests/home-preview.browser.cjs tests/website-navigation.browser.cjs
+NODE_PATH=/tmp/volunteerhub-test-tools/node_modules node --test tests/location.test.cjs tests/ui-cleanup.browser.cjs tests/home-preview.browser.cjs tests/website-navigation.browser.cjs tests/public-landing.browser.cjs
 ```
 
 The fixture starts its own local server and isolated browser contexts, replaces the Firebase configuration for testing, and never connects to the production database. The live-signup test captures the profile handoff using a mock. `AXE_CORE_PATH` can point to an existing `axe.min.js`; when axe-core is unavailable, its scan is explicitly skipped.
@@ -32,3 +32,5 @@ The fixture starts its own local server and isolated browser contexts, replaces 
 The suite covers role-specific workflows, location behavior, complete CSV export, progressive disclosure, dialog/menu focus, all main viewport sizes, calendar names/targets, and accessibility scans in both themes. See [the change guide](../docs/UI_CLEANUP.md) for the full scope and deliberate access points.
 
 The website checks also cover browser Back/Forward/refresh, new tabs, direct URL permissions and focused/invalid field borders. See [the selected design](../docs/OPEN_AGENDA.md) for the current scope and previews.
+
+The public landing checks cover account links and history/new tabs, both demo roles and permissions, keyboard sign-in/error recovery, connection/reset behavior, responsive themes, enlarged text and missing-image recovery. See [the public landing guide](../docs/PUBLIC_LANDING.md).

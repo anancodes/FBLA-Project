@@ -1,0 +1,12 @@
+{
+  "prompt": "Create an exceptional, finished public landing website for VolunteerHub, edge to edge in a desktop landscape 1440-by-1000-style viewport, crisp readable text, with no browser frame, device, desk, or presentation border. VolunteerHub helps people find volunteering, nonprofits coordinate events, and school clubs track approved service hours. The attached real website is an identity reference only: retain its dark navy, white, slate-blue action palette, Public Sans character and restrained control shapes. Do not reuse its dashboard layout as this landing page.\n\nThis composition is community-led and substantially different from a centered headline above a product screenshot. A single broad documentary-style image of people actively planting and tending a neighborhood community garden is the dominant opening move. It should feel specific, lived-in and human, not posed stock models. Make it part of a well-composed website, not a photograph with a few captions. The opening headline is \u201cShow up for your community.\u201d Clear nearby copy explains: \u201cFind a shift, organize your volunteers, and keep service hours connected to your school or organization.\u201d Place immediately visible functional Sign in and Try the demo actions in a legible quiet website surface joined to the image, with Sign in primary. The horizontal masthead holds VolunteerHub, How it works, For schools, and Sign in. Continue visibly into the next substantive section: \u201cFrom a good intention to a recorded hour.\u201d Connect finding a service opportunity, coordinator check-in and approved club hours through readable service content, not identical feature cards. All illustrated records or photographic activity are demonstration material, never actual customers; include a discreet \u201cIllustrative community service\u201d caption. Bring stronger composition and warmth through the subject while preserving clean blue-and-white website aesthetics, meaningful detail and whitespace. No customer logos, invented adoption statistics, testimonials, neon, gradients, floating badges, or native-app chrome.\n",
+  "createdAt": "2026-11-15T22:06:53.589Z",
+  "referenceImages": [
+    "docs/open-agenda/home.png"
+  ],
+  "surface": "VolunteerHub public landing page",
+  "mode": "persuade",
+  "composition": "community",
+  "approved": false,
+  "seedReference": "seed:935a6cb90cfffdfc"
+}

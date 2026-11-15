@@ -1,0 +1,12 @@
+{
+  "prompt": "Create a polished desktop public landing website for VolunteerHub, edge to edge in a landscape 1440-by-1000-style viewport, crisp readable text, with no browser, device, desktop, or presentation border. VolunteerHub connects local volunteer opportunities, coordinator attendance, and school-club service hours. This is a real website introduction, not the signed-in dashboard. The attached existing website is the visual identity reference: carry over its dark navy, white, slate-blue actions, Public Sans character and restrained controls; its content and sidebar layout belong only inside the product preview, never the landing page's own navigation.\n\nThis composition is product-led. Start with a simple horizontal website masthead: VolunteerHub, How it works, For schools, a prominent Sign in action and a visible Try demo. The opening makes the purpose intelligible with \u201cLocal service. Connected from the first shift.\u201d and concise supporting copy about finding shifts, organizing volunteers and tracking approved hours. The dominant visual is one generous, full-width authentic VolunteerHub preview spanning the page below the introduction: navy side navigation, dated upcoming service shifts, and an approved-hours summary, clearly labeled Sample data. It must feel like useful evidence embedded in a website, not a laptop mockup or floating app card. Show real sample content: Saturday Food Sort, Main Pantry Warehouse, 9:00 AM\u201312:00 PM, 3 service hours. Sign in has primary weight; Explore the demo is visible alongside it. Continue into the beginning of a substantive lower section about volunteering and coordinating. Let composition, legible typography and purposeful content provide distinction; use no invented customers, impact metrics, testimonials, neon, stock feature-card grid, or decorative floating symbols.\n",
+  "createdAt": "2026-11-15T22:06:53.296Z",
+  "referenceImages": [
+    "docs/open-agenda/home.png"
+  ],
+  "surface": "VolunteerHub public landing page",
+  "mode": "persuade",
+  "composition": "product",
+  "approved": false,
+  "seedReference": "seed:935a6cb90cfffdfc"
+}

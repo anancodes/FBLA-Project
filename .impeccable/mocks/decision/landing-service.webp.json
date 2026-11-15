@@ -1,0 +1,12 @@
+{
+  "prompt": "Design a finished public landing website for VolunteerHub, edge to edge in a landscape desktop 1440-by-1000-style viewport, with crisp readable text and no browser window, device, desk or presentation border. VolunteerHub joins nonprofit opportunity discovery and event attendance with school-club service requirements. The attached existing website carries the established identity: retain its dark navy, white, slate-blue actions, Public Sans character and restrained controls. Carry the identity, not its dashboard composition.\n\nThis composition is service-record-led: show what one real-looking act of service becomes, with all example content explicitly labeled \u201cSample service record.\u201d The first viewport has a compact website masthead with VolunteerHub, How it works, For schools, primary Sign in and secondary Try demo. The introduction is \u201cEvery hour has a story.\u201d Explain plainly that visitors find volunteer shifts, organizers record attendance, and school clubs track approved service. Keep Sign in prominent and demo entry immediately available. The dominant proof moment is one broad, generous service entry across the page, not a card grid, certificate, faux document, split SaaS hero, or floating device mockup. Its concrete example is Maya Chen, Saturday Food Sort, Main Pantry Warehouse, 9:00 AM\u201312:00 PM, 3 hours, Attendance recorded. A documentary-style glimpse of food sorting connects the record to people actually helping. Use the navy-and-white system to give that single record compositional presence while the surrounding website remains calm, open and clear. The next section begins visibly, explaining opportunity discovery and coordination so this does not become an hours-only product. Show a school-club progress example only as labeled sample data if useful. No invented partner logos, customer counts, testimonials, impact statistics, neon, gradients, decorative badges, raised feature-card kit or native-app chrome.\n",
+  "createdAt": "2026-11-15T22:06:53.751Z",
+  "referenceImages": [
+    "docs/open-agenda/home.png"
+  ],
+  "surface": "VolunteerHub public landing page",
+  "mode": "persuade",
+  "composition": "service",
+  "approved": false,
+  "seedReference": "seed:935a6cb90cfffdfc"
+}

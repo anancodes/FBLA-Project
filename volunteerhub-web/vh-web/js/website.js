@@ -31,7 +31,7 @@ function websiteShell(u){
   return `<div class="shell pv-shell">
     <a class="pv-skip" href="#main">Skip to main content</a>
     <div class="frame pv-frame">
-      <aside class="pv-sidebar">
+      <aside class="pv-sidebar" ${loading ? "inert" : ""}>
         <div class="pv-brand"><a href="#dashboard" data-act="nav" data-v="dashboard">VolunteerHub</a>${state.org.name !== "Your Organization" ? `<span>${esc(state.org.name)}</span>` : ""}${!DB.live ? `<span>Demo data</span>` : ""}</div>
         <nav class="rail" aria-label="Main">${menuFor(u).map(([view,label]) => `<a href="#${view}" data-act="nav" data-v="${view}" ${section === view ? 'aria-current="page"' : ""} class="${ui.tour && section === view ? "tour-hl" : ""}">${icon(NAV_ICON[view])}<span>${label}</span>${!loading && counts[view] ? `<span class="count" aria-label="${counts[view]} ${countLabel[view]}">${counts[view]}</span>` : ""}</a>`).join("")}</nav>
         <div class="pv-sidebar-bottom">
@@ -42,7 +42,7 @@ function websiteShell(u){
         </div>
       </aside>
       <div class="pv-workspace">
-        <main id="main" tabindex="-1"><div class="page pv-page">${!loading && !home ? tourCard(u) : ""}${tabs.length ? `<nav class="subtabs" aria-label="${esc(menuFor(u).find(n => n[0] === section)[1])}">${tabs.map(([view,label]) => `<a href="#${view}" data-act="nav" data-v="${view}" ${ui.view === view ? 'aria-current="page"' : ""}>${label}${view === "organizers" && !loading && pendingOrgs ? ` <span class="count">${pendingOrgs}</span>` : ""}</a>`).join("")}</nav>` : ""}${loading ? workspaceLoading(u, labels.find(([view]) => view === ui.view)?.[1]) : VIEWS[u.role][ui.view](u)}</div></main>
+        <main id="main" tabindex="-1"><div class="page pv-page">${!loading && !home ? tourCard(u) : ""}${tabs.length ? `<nav class="subtabs" ${loading ? "inert" : ""} aria-label="${esc(menuFor(u).find(n => n[0] === section)[1])}">${tabs.map(([view,label]) => `<a href="#${view}" data-act="nav" data-v="${view}" ${ui.view === view ? 'aria-current="page"' : ""}>${label}${view === "organizers" && !loading && pendingOrgs ? ` <span class="count">${pendingOrgs}</span>` : ""}</a>`).join("")}</nav>` : ""}${loading ? workspaceLoading(u, labels.find(([view]) => view === ui.view)?.[1]) : VIEWS[u.role][ui.view](u)}</div></main>
         <footer class="foot pv-footer"><div class="pv-footer-data">${DB.live ? `<span>Signed in as ${esc(u.email)}</span><span class="pill ${Cloud.online && !syncFailed && !loading ? "good" : "warn"}" id="sync-status">${syncFailed ? "Couldn’t sync records" : loading ? "Syncing your records" : Cloud.online ? "Connected" : "Offline: changes will sync when you reconnect"}</span>` : `<span>Sample data, saved in this browser.</span>${armBtn("reset","Reset demo data","Confirm reset","secondary sm")}`}</div><div class="pv-utility-links">${!loading ? '<button data-act="tour">Take the tour</button>' : ""}<button data-act="logout">${DB.live ? "Sign out" : "Exit demo"}</button></div></footer>
       </div>
     </div>
@@ -63,10 +63,10 @@ function agendaDate(date){
   return `<time class="pv-event-date" datetime="${date}" aria-label="${esc(fmtDate(date,{weekday:"long",month:"long",day:"numeric"}))}"><span>${d.toLocaleDateString("en-US",{month:"short"})}</span><strong>${d.getDate()}</strong><span>${d.toLocaleDateString("en-US",{weekday:"short"})}</span></time>`;
 }
 function agendaShift(e){
-  return `<li class="pv-shift">${agendaDate(e.date)}<div class="pv-event-copy"><h3>${esc(e.title)}</h3><p class="pv-event-time">${timeRange(e)}</p><p class="pv-event-place">${esc(e.location)}</p></div><button class="btn secondary" data-act="moreInfo" data-id="${e.id}" aria-label="View shift: ${esc(e.title)}">View shift</button></li>`;
+  return `<li class="pv-shift">${agendaDate(e.date)}<div class="pv-event-copy"><h3>${esc(e.title)}</h3><p class="pv-event-time">${timeRange(e)}</p><p class="pv-event-place">${esc(e.location)}</p></div><button class="btn secondary" data-act="moreInfo" data-id="${esc(e.id)}" aria-label="View shift: ${esc(e.title)}">View shift</button></li>`;
 }
 function agendaRecommendation(e){
-  return `<li class="pv-recommendation">${agendaDate(e.date)}<div class="pv-event-copy"><h3><button class="pv-title-action" data-act="moreInfo" data-id="${e.id}">${esc(e.title)}</button></h3><p class="pv-event-place">${esc(e.location)}</p></div><p class="pv-event-time">${timeRange(e)}</p><button class="btn secondary" data-act="signup" data-id="${e.id}" aria-label="Sign up for ${esc(e.title)}">Sign up</button></li>`;
+  return `<li class="pv-recommendation">${agendaDate(e.date)}<div class="pv-event-copy"><h3><button class="pv-title-action" data-act="moreInfo" data-id="${esc(e.id)}">${esc(e.title)}</button></h3><p class="pv-event-place">${esc(e.location)}</p></div><p class="pv-event-time">${timeRange(e)}</p><button class="btn secondary" data-act="signup" data-id="${esc(e.id)}" aria-label="Sign up for ${esc(e.title)}">Sign up</button></li>`;
 }
 function volunteerHome(u){
   const s = userStats(u.id), up = s.upcoming.map(r => eventById(r.eventId)).filter(Boolean).sort(byDate);

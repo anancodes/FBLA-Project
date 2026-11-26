@@ -77,7 +77,7 @@ const VIEWS = {
 const NAV_ICON = {dashboard:"home", find:"search", shifts:"calendar", hours:"clock", news:"inbox", events:"calendar", volunteers:"users", reports:"chart", settings:"sliders"};
 const THEME_LABEL = {auto:"Auto", light:"Light", dark:"Dark"};
 function menuFor(u){
-  return NAV[u.role].filter(([view]) => view !== "settings" || DB.isVerifiedCoordinator(u));
+  return NAV[u.role].filter(([view]) => view !== "settings" || (DB.live ? u.admin : DB.isVerifiedCoordinator(u)));
 }
 function tabsFor(u, sec){
   if (sec === "hours") return [["hours","My hours"],["clubs","My clubs"]];
@@ -100,6 +100,7 @@ function shell(u){
 document.addEventListener("click", ev => {
   const el = ev.target.closest("[data-act]");
   if (!el || el.disabled) return;
+  if (Cloud.loadPhase === "workspace" && DB.live && !["retryLoad","logout"].includes(el.dataset.act)){ ev.preventDefault(); return; }
   if (actionBlocked(el)){ ev.preventDefault(); return; }
   if (el.tagName === "A" && (ev.ctrlKey || ev.metaKey || ev.shiftKey || ev.altKey || ev.button !== 0)) return;
   const act = el.dataset.act;
@@ -108,7 +109,13 @@ document.addEventListener("click", ev => {
 });
 
 function setFilter(path, value){
-  const parts = path.split("."); let o = ui; while (parts.length > 1) o = o[parts.shift()]; o[parts[0]] = value;
+  const keys = path.split("."), field = keys.pop();
+  let target = ui;
+  for (const key of keys){
+    if (!Object.hasOwn(target, key) || typeof target[key] !== "object" || !target[key]) return;
+    target = target[key];
+  }
+  if (Object.hasOwn(target, field)) target[field] = value;
 }
 document.addEventListener("input", ev => {
   const el = ev.target;
@@ -134,11 +141,13 @@ document.addEventListener("change", ev => {
 
 document.addEventListener("submit", ev => {
   const form = ev.target; ev.preventDefault();
+  if (Cloud.loadPhase === "workspace" && DB.live) return;
   if (actionBlocked(form.querySelector('button[type="submit"]'))) return;
   ui.justSubmitted = form.id;                      // a saved form starts fresh instead of keeping old text
   try { handleSubmit(form); } finally { ui.justSubmitted = null; }
 });
 function handleSubmit(form){
+  if (form.id === "deleteAccountForm") return confirmAccountDeletion(form);
   if (form.id === "loginForm") doLogin(form);
   if (form.id === "signupForm") doSignup(form);
   if (form.id === "resetForm") doReset(form);
@@ -157,7 +166,7 @@ function handleSubmit(form){
     if (spotsLeft(e) <= 0) return toast("This event is full. Raise the number of volunteers needed in Events first.", "bad");
     const ex = state.regs.find(r => r.userId === uid && r.eventId === e.id);
     const fields = {status:"attended", hours:duration(e)};
-    const record = {id:DB.newId("regs"), userId:uid, eventId:e.id, ...fields};
+    const record = {id:DB.registrationId(e.id, uid), userId:uid, eventId:e.id, ...fields};
     const success = () => toast(`${userById(uid).name} was added and marked present.`);
     if (DB.live) return saveLiveRecords(`attendance:${e.id}`, "Adding walk-in…", form.querySelector('[type="submit"]'), "regs",
       [ex ? {id:ex.id, fields} : {id:record.id, record}], success);

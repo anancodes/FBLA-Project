@@ -68,26 +68,40 @@ const approvedOutsideHours = uid => sum(state.hourLogs.filter(l => l.userId === 
 
 /* ----- Join codes ----- */
 function makeCode(short){
-  const letters = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";       // no 0/O or 1/I/L, so codes are easy to read aloud
-  let tail = ""; for (let i = 0; i < 6; i++) tail += letters[Math.floor(Math.random() * letters.length)];
-  return `${(short || "CLUB").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6) || "CLUB"}-${tail}`;
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const random = crypto.getRandomValues(new Uint8Array(12));
+  const tail = [...random].map(byte => alphabet[byte % alphabet.length]).join("");
+  return `${short}-${tail}`;
 }
 const normalizeCode = s => String(s).trim().toUpperCase().replace(/\s+/g, "");
 
 /* ----- Actions ----- */
 function joinClub(form){
   const code = normalizeCode(new FormData(form).get("code")), u = currentUser();
-  if (!/^[A-Z0-9]{1,6}-[A-Z0-9]{6}$/.test(code)) return showErrors(form, {code:"Enter the code your club gave you, like HOSA-7K2PQM."});
-  const finish = clubId => {
-    const c = clubById(clubId);
-    if (!c) return showErrors(form, {code:"We couldn't find a club with that code. Check it with your club officers."});
-    if (membershipOf(clubId, u.id)) return showErrors(form, {code:`You're already a member of ${c.name}.`});
-    DB.add("memberships", {id:`${clubId}_${u.id}`, clubId, userId:u.id, role:"member", name:u.name, email:u.email, joinedAt:TODAY, code});
-    save(); render(); toast(`Welcome to ${c.name}!`);
-  };
-  if (DB.live) return Cloud.findClubByCode(code).then(id => finish(id)).catch(() => showErrors(form, {code:"We couldn't find a club with that code. Check it with your club officers."}));
-  const hit = Object.entries(state.clubCodes).find(([, c]) => c === code);
-  finish(hit ? asId(hit[0]) : null);
+  if (!/^[A-Z0-9]{2,6}-([A-Z0-9]{6}|[A-Z0-9]{12})$/.test(code)) return showErrors(form, {code:"Enter the code your club gave you, like HOSA-7K2PQM."});
+  const newMembership = clubId => ({id:`${clubId}_${u.id}`, clubId, userId:u.id, role:"member", name:u.name, email:u.email, joinedAt:TODAY, code});
+  if (DB.live){
+    let joined;
+    const request = async () => {
+      const id = await Cloud.findClubByCode(code);
+      joined = clubById(id);
+      if (!joined || membershipOf(id, u.id)) throw new Error("Club unavailable or already joined");
+      const record = newMembership(id);
+      await DB.commit("memberships", [{id:record.id, record}]);
+    };
+    return runPending("join-club", "Joining club…", form.querySelector('[type="submit"]'), request,
+      () => { render(); toast(`Welcome to ${joined.name}!`); },
+      () => {
+        const current = document.getElementById("joinForm");
+        if (current) showErrors(current, {code:"We couldn't join the club. Check your code or look under My clubs."});
+      });
+  }
+  const hit = Object.entries(state.clubCodes).find(([, c]) => c === code), clubId = hit ? asId(hit[0]) : null;
+  const club = clubById(clubId);
+  if (!club) return showErrors(form, {code:"We couldn't find a club with that code. Check it with your club officers."});
+  if (membershipOf(clubId, u.id)) return showErrors(form, {code:`You're already a member of ${club.name}.`});
+  DB.add("memberships", newMembership(clubId));
+  save(); render(); toast(`Welcome to ${club.name}!`);
 }
 
 function saveHourLog(form){
@@ -97,10 +111,10 @@ function saveHourLog(form){
     club: !clubById(clubId) ? "Choose a club." : "",
     date: !/^\d{4}-\d{2}-\d{2}$/.test(d.date) ? "Choose the date you volunteered." : d.date > TODAY ? "You can't log hours for a future date." : d.date < addDays(-365) ? "Hours must be from the past year." : "",
     hours: !(hours >= 0.25 && hours <= 24) ? "Enter between 0.25 and 24 hours." : Math.round(hours * 4) !== hours * 4 ? "Use quarter hours, like 1.5 or 2.25." : "",
-    place: d.place.trim().length < 2 ? "Enter where you volunteered." : "",
-    activity: d.activity.trim().length < 10 ? "Describe what you did in at least a few words." : "",
-    supervisor: d.supervisor.trim().length < 2 ? "Enter the name of the person who supervised you." : "",
-    contact: !V.email(d.contact) || d.contact.replace(/\D/g, "").length === 10 ? "" : "Enter your supervisor's email or 10-digit phone, so officers can confirm.",
+    place:V.text(d.place.trim(), "the location", 2, 160),
+    activity:V.text(d.activity.trim(), "the activity", 10, 1000, true),
+    supervisor:V.text(d.supervisor.trim(), "the supervisor’s name", 2, 80),
+    contact: !V.email(d.contact) || (!V.phone(d.contact.trim()) && d.contact.trim().length > 0) ? "" : "Enter your supervisor's email or 10-digit phone, so officers can confirm.",
   };
   if (!showErrors(form, errs)) return;
   DB.add("hourLogs", {id:DB.newId("hourLogs"), clubId, userId:u.id, name:u.name, date:d.date, hours, place:d.place.trim(), activity:d.activity.trim(),
@@ -111,7 +125,7 @@ function saveHourLog(form){
 function reviewLog(id, status, note = ""){
   const l = state.hourLogs.find(x => x.id === id), u = currentUser();
   if (!l || !isClubManager(l.clubId, u)) return toast("Only this club's officers and adviser can review hours.", "bad");
-  if (l.userId === u.id && !u.admin) return toast("Someone else needs to approve your own hours.", "bad");
+  if (l.userId === u.id) return toast("Someone else needs to approve your own hours.", "bad");
   DB.update("hourLogs", l, {status, reviewedBy:u.name, reviewedAt:TODAY, note});
   notify(l.userId, status === "approved" ? `${clubById(l.clubId).name} approved your ${fmtH(l.hours)} hours at ${l.place}.` : `${clubById(l.clubId).name} didn't approve your ${fmtH(l.hours)} hours at ${l.place}${note ? `: ${note}` : "."}`, `log-${l.id}-${status}`, l.clubId);
   save(); render(); toast(status === "approved" ? `Approved ${fmtH(l.hours)} hours for ${l.name}.` : `Hours not approved. ${l.name} was told why.`);
@@ -121,10 +135,11 @@ function saveClub(form){
   const fd = new FormData(form), d = Object.fromEntries(fd.entries()), id = form.dataset.id ? asId(form.dataset.id) : null, old = id ? clubById(id) : null;
   const hours = d.reqHours === "" ? 0 : Number(d.reqHours);
   const errs = {
-    name: d.name.trim().length < 2 ? "Enter the club's name." : "",
+    name:V.text(d.name.trim(), "the club name", 2, 80),
+    about:V.text(d.about.trim(), "the club description", 0, 1000, true),
     short: !/^[A-Za-z0-9]{2,6}$/.test(d.short.trim()) ? "Use 2–6 letters or numbers, like HOSA." : "",
-    reqHours: !(hours >= 0 && hours <= 500) ? "Enter 0 to 500 hours." : "",
-    label: hours && d.label.trim().length < 2 ? "Name the term, like Fall 2026." : "",
+    reqHours: !(hours === 0 || (hours >= 0.25 && hours <= 500)) ? "Enter 0 to 500 hours." : "",
+    label: hours ? V.text(d.label.trim(), "the term name", 2, 30) : "",
     start: hours && !d.start ? "Choose when the term starts." : "",
     end: hours && (!d.end || d.end <= d.start) ? "The term must end after it starts." : "",
   };
@@ -132,15 +147,23 @@ function saveClub(form){
   const club = {name:d.name.trim(), short:d.short.trim().toUpperCase(), about:d.about.trim(), req:hours ? {hours, label:d.label.trim(), start:d.start, end:d.end} : null};
   if (old){ DB.update("clubs", old, club); toast(`${club.name} was updated.`); }
   else {
-    const u = currentUser(), c = DB.add("clubs", {id:DB.newId("clubs"), ...club, createdBy:u.id});
-    DB.add("memberships", {id:`${c.id}_${u.id}`, clubId:c.id, userId:u.id, role:"adviser", name:u.name, email:u.email, joinedAt:TODAY});
-    setClubCode(c, makeCode(c.short));
-    ui.club = c.id; toast(`${c.name} was created. Share the join code with your members.`);
+    const u = currentUser(), clubId = DB.newId("clubs");
+    const record = {id:clubId, ...club, createdBy:u.id};
+    const adviser = {id:`${clubId}_${u.id}`, clubId, userId:u.id, role:"adviser", name:u.name, email:u.email, joinedAt:TODAY};
+    const code = makeCode(club.short);
+    const done = () => { ui.club = clubId; toast(`${club.name} was created. Share the join code with your members.`); };
+    if (DB.live) return runPending("create-club", "Creating club…", form.querySelector('[type="submit"]'),
+      () => Cloud.createClub(record, adviser, code),
+      () => { if (form.isConnected) closeModal(); done(); render(); },
+      error => toast(Cloud.friendly(error), "bad"));
+    DB.add("clubs", record);
+    DB.add("memberships", adviser);
+    setClubCode(record, code);
+    done();
   }
   save(); closeModal(); render();
 }
 function setClubCode(c, code){
-  const old = state.clubCodes[c.id];
+  if (DB.live) return Cloud.setClubCode(c.id, code);
   state.clubCodes[c.id] = code;
-  if (DB.live) Cloud.setClubCode(c.id, code, old);
 }

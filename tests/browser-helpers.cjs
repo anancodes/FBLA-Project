@@ -36,3 +36,10 @@ exports.signIn = async (page,id = 2) => {
   await page.evaluate(() => state.users.forEach(u => u.toured = true));
   await page.locator(`[data-act="demo"][data-v="${id}"]`).click();
 };
+
+exports.loadAxe = async (page, path) => {
+  if (await page.evaluate(() => !!window.axe)) return;
+  const url = new URL('/fixture/axe.js', page.url()).href;
+  await page.route(url, route => route.fulfill({path, contentType:'text/javascript'}));
+  await page.addScriptTag({url});
+};

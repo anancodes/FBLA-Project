@@ -74,7 +74,7 @@ test('public pages remain readable across sizes, themes and a missing hero image
         await p.evaluate(()=>document.fonts.ready);
         assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`${mode} ${theme} ${width}px`);
         if(axePath&&width===390){
-          assert.ok(fs.existsSync(axePath));await p.addScriptTag({path:axePath});
+          assert.ok(fs.existsSync(axePath));await helper.loadAxe(p,axePath);
           const violations=await p.evaluate(async()=> (await axe.run(document,{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21aa']}})).violations);
           assert.deepEqual(violations.map(v=>({id:v.id,nodes:v.nodes.map(n=>n.target)})),[],`${mode} ${theme}`);
         }

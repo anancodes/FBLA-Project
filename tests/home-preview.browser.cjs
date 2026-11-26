@@ -98,7 +98,7 @@ test('the new font loads locally without Google Fonts',async t=>{
 });
 
 test('expanded Home states pass accessibility checks in light and dark themes',{skip:!axePath},async t=>{
- const p=await helper.page(t);await helper.signIn(p);await p.addScriptTag({path:axePath});
+ const p=await helper.page(t);await helper.signIn(p);await helper.loadAxe(p,axePath);
  const scan=async label=>assert.deepEqual(await p.evaluate(async()=>(await axe.run()).violations.map(v=>({id:v.id,targets:v.nodes.map(n=>n.target)}))),[],label);
  for(const width of[1440,390,320])for(const theme of['light','dark']){
   await p.setViewportSize({width,height:1000});await p.evaluate(theme=>{state.prefs={font:15,theme,hc:false};ui.displayOpen=false;render()},theme);

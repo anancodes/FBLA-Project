@@ -9,22 +9,24 @@ test.after(helper.stop);
 // independently, and writes can be observed locally before they are acknowledged.
 function installFirebaseMock(){
   const listeners = new Map();
-  function ref(path){
+  function ref(path, filter = null){
     return {
       path,
       doc:id => ref(`${path}/${id}`),
-      where:() => ref(path),
+      where:(field, op, value) => ref(path, [field, op, value]),
       set:async () => {},
       onSnapshot(options, next, error){
         if (typeof options === "function"){ error = next; next = options; }
-        const listener = {next, error};
-        listeners.set(path, listener);
-        return () => { if (listeners.get(path) === listener) listeners.delete(path); };
+        const key = filter ? path + "|" + JSON.stringify(filter) : path;
+        const listener = {next, error, filter};
+        listeners.set(key, listener);
+        return () => { if (listeners.get(key) === listener) listeners.delete(key); };
       },
     };
   }
   const auth = {
     currentUser:null,
+    async setPersistence(){},
     onAuthStateChanged(next){ this.notify = next; },
     signInWithEmailAndPassword(){
       mock.signIns++;
@@ -36,16 +38,28 @@ function installFirebaseMock(){
     signIns:0, batches:[],
     ready:() => !!auth.notify,
     signedOut:() => auth.notify(null),
-    user(id){ auth.currentUser = {uid:String(id)}; auth.notify(auth.currentUser); },
+    user(id, emailVerified = true){
+      auth.currentUser = {uid:String(id), emailVerified, email:"person@example.org",
+        async reload(){ this.emailVerified = mock.emailVerified; }, async getIdToken(){}, async sendEmailVerification(){}};
+      auth.notify(auth.currentUser);
+    },
     fail(path, code){ listeners.get(path).error({code}); },
     doc(path, record, fromCache = false){
       listeners.get(path).next({exists:!!record, metadata:{fromCache}, data:() => structuredClone(record)});
     },
     push(path, records, {fromCache = false, pending = []} = {}){
-      listeners.get(path).next({
-        metadata:{fromCache, hasPendingWrites:pending.length > 0},
-        docs:records.map(record => ({id:String(record.id), metadata:{hasPendingWrites:pending.includes(record.id)}, data:() => structuredClone(record)})),
-      });
+      for (const [key, listener] of listeners){
+        if (key !== path && !key.startsWith(path + "|")) continue;
+        const scoped = records.filter(record => {
+          if (!listener.filter) return true;
+          const [field, op, value] = listener.filter;
+          return op === "array-contains" ? record[field]?.includes(value) : record[field] === value;
+        });
+        listener.next({
+          metadata:{fromCache, hasPendingWrites:pending.length > 0},
+          docs:scoped.map(record => ({id:String(record.id), metadata:{hasPendingWrites:pending.includes(record.id)}, data:() => structuredClone(record)})),
+        });
+      }
     },
   };
   window.firebaseMock = mock;
@@ -53,7 +67,7 @@ function installFirebaseMock(){
     initializeApp(){},
     auth:() => auth,
     firestore:() => ({
-      enablePersistence:async () => {},
+      clearPersistence:async () => {},
       doc:ref, collection:ref,
       batch(){
         const changes = [];
@@ -65,6 +79,8 @@ function installFirebaseMock(){
       },
     }),
   };
+  window.firebase.auth.Auth = {Persistence:{SESSION:"session"}};
+  window.firebase.firestore.FieldValue = {serverTimestamp:() => "fixture-timestamp"};
 }
 
 async function livePage(t, options){
@@ -92,8 +108,9 @@ function initialRecords(role){
   const roster = [3,4].map((userId, k) => ({id:801 + k, userId, eventId:902, status:"registered", hours:0}));
   firebaseMock.user(me.id);
   firebaseMock.doc(`users/${me.id}`, me);
-  for (const name of ["events","regs","announcements","notices","concerns","clubs","memberships","hourLogs","users"]){
-    const records = {events, regs:role === "coordinator" ? roster : [], users:sample.users};
+  for (const name of ["events","regs","announcements","notices","concerns","clubs","memberships","hourLogs","users","organizers"]){
+    const records = {events, regs:role === "coordinator" ? roster : [], users:sample.users,
+      organizers:sample.users.filter(user => user.role === "coordinator")};
     firebaseMock.push(name, records[name] || []);
   }
 }
@@ -120,19 +137,24 @@ test('account startup and workspace hold empty cache results and recover without
     firebaseMock.push("events",[],{fromCache:true});
   });
   await page.clock.fastForward(350);
-  await page.locator('.rail a[data-v="find"]').click();
-  assert.match(await page.locator('.load-status').textContent(),/Loading volunteer opportunities/);
+  const sidebar = page.locator('.pv-sidebar');
+  assert.equal(await sidebar.evaluate(element => element.inert), true);
+  await page.locator('.rail a[data-v="find"]').dispatchEvent('click');
+  assert.equal(await page.evaluate(() => ui.view), "dashboard", "Navigation stays frozen while events load");
+  assert.match(await page.locator('.load-status').textContent(),/Loading your shifts and service hours/);
   assert.equal(await page.locator('.load-skeleton-row span').first().evaluate(e => getComputedStyle(e).animationName), 'none');
   assert.equal(await page.locator('#findForm').count(), 0, 'No empty results before the live reads arrive');
   await page.clock.fastForward(8100);
-  assert.match(await page.locator('.load-status').textContent(),/Still loading volunteer opportunities/);
+  assert.match(await page.locator('.load-status').textContent(),/Still loading your shifts and service hours/);
   await page.clock.fastForward(7000);
-  assert.match(await page.locator('.load-status').textContent(),/couldn't load volunteer opportunities/);
+  assert.match(await page.locator('.load-status').textContent(),/couldn't load your shifts and service hours/);
   assert.equal(await page.getByRole('button',{name:'Try again',exact:true}).isEnabled(), true);
   await page.evaluate(() => {
-    for (const name of ["events","regs","announcements","notices","concerns","clubs","memberships","hourLogs","users"]) firebaseMock.push(name,[]);
+    for (const name of ["events","regs","announcements","notices","concerns","clubs","memberships","hourLogs","users","organizers"]) firebaseMock.push(name,[]);
   });
   await page.clock.fastForward(100);
+  await page.waitForFunction(() => !document.querySelector('.pv-sidebar').inert);
+  await page.locator('.rail a[data-v="find"]').click();
   assert.equal(await page.locator('#findForm').isVisible(), true);
   assert.equal(await page.locator('.load-skeleton').count(), 0);
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
@@ -236,4 +258,33 @@ test('recurring events share one commit and a failed save keeps the event form i
   await page.waitForFunction(() => state.events.filter(e => e.title === 'Garden cleanup series').length === 3);
   assert.equal(await page.locator('#eventForm').count(), 0);
   assert.match(await page.locator('#toast').textContent(), /was created for 3 weeks/);
+});
+
+
+test('an unverified email cannot open the workspace until refreshed verification succeeds', async t => {
+  const page = await livePage(t);
+  await page.evaluate(() => firebaseMock.user("pending-volunteer", false));
+  await page.getByRole('heading', {name:'Verify your email'}).waitFor();
+  assert.equal(await page.locator('.pv-sidebar').count(), 0);
+  await page.getByRole('button', {name:'Check verification'}).click();
+  assert.match(await page.locator('#toast').textContent(), /still unverified/);
+  await page.evaluate(() => { firebaseMock.emailVerified = true; });
+  await page.getByRole('button', {name:'Check verification'}).click();
+  await page.waitForFunction(() => Cloud.loadPhase === "profile" && !Cloud.verificationUser);
+});
+
+test('text remains literal in the event list and exported spreadsheet fields', async t => {
+  const page = await helper.page(t);
+  await helper.signIn(page, 2);
+  const results = await page.evaluate(() => {
+    const title = 'Service <strong>Workshop</strong>';
+    const node = document.createElement("div");
+    const event = {...state.events[0], title};
+    node.innerHTML = eventMini(event);
+    return {title:node.querySelector('h3').textContent, markup:node.querySelector('h3 strong') !== null,
+      csv:toCSV([['+Community Centre','Line one\rLine two',-12,'O’Connor']])};
+  });
+  assert.equal(results.title, 'Service <strong>Workshop</strong>');
+  assert.equal(results.markup, false);
+  assert.equal(results.csv, `"'+Community Centre","Line one\rLine two",-12,O’Connor`);
 });

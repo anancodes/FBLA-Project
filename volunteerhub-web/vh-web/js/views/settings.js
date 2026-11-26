@@ -9,8 +9,8 @@
 "use strict";
 
 function cSettings(u){
-  const o = state.org, canEdit = DB.isVerifiedCoordinator(u);
-  if (!canEdit) return `<div class="head"><div><h1>Settings</h1></div></div><div class="empty">Organization settings unlock once a site admin verifies your organizer account.</div>`;
+  const o = state.org, canEdit = DB.live ? !!u.admin : DB.isVerifiedCoordinator(u);
+  if (!canEdit) return `<div class="head"><div><h1>Settings</h1></div></div><div class="empty">Only site admins can change organization settings.</div>`;
   return `<div class="head"><div><h1>Settings</h1><p class="muted">Your organization's details. Changes show up everywhere on the site right away.</p></div></div>
   <form id="orgForm" class="settings-form stack" novalidate>
     <h2>Organization</h2>

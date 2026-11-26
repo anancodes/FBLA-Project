@@ -65,7 +65,9 @@ const spotsLeft = e => e.slots - activeRegs(e.id).length;
 // A user's current registration for an event, including waitlist (ignores cancelled).
 const myReg = (uid, eid) => state.regs.find(r => r.userId === uid && r.eventId === eid && r.status !== "cancelled");
 // Waitlist in first-come, first-served order.
-const waitlistFor = eid => state.regs.filter(r => r.eventId === eid && r.status === "waitlist").sort((a, b) => a.id - b.id);
+const registrationOrder = r => r.createdAt?.toMillis?.() ?? (typeof r.id === "number" ? r.id / 100 : Number.MAX_SAFE_INTEGER);
+const compareRegistrations = (a, b) => registrationOrder(a) - registrationOrder(b) || String(a.id).localeCompare(String(b.id));
+const waitlistFor = eid => state.regs.filter(r => r.eventId === eid && r.status === "waitlist").sort(compareRegistrations);
 const waitlistPosition = r => waitlistFor(r.eventId).findIndex(x => x.id === r.id) + 1;
 
 // Does this user already have a shift that overlaps event e on the same day?
@@ -105,7 +107,7 @@ function fixOverbooking(e){
   if (e.date < TODAY) return moved;
   const extra = activeRegs(e.id).length - e.slots;
   if (extra <= 0) return moved;
-  const newest = activeRegs(e.id).filter(r => r.status === "registered").sort((a, b) => b.id - a.id).slice(0, extra);
+  const newest = activeRegs(e.id).filter(r => r.status === "registered").sort((a, b) => compareRegistrations(b, a)).slice(0, extra);
   for (const r of newest){
     if (!DB.canManageReg(r)) continue;
     DB.update("regs", r, {status:"waitlist"});
@@ -129,7 +131,9 @@ const noticesFor = uid => state.notices.filter(n => n.userId === uid).sort((a, b
 // Announcements go to everyone, or only to people signed up for one event.
 function announcementsFor(u){
   return state.announcements
-    .filter(a => u.role === "coordinator" || a.audience === "all" || activeRegs(+a.audience).some(r => r.userId === u.id) || waitlistFor(+a.audience).some(r => r.userId === u.id))
+    .filter(a => (u.role === "coordinator" && (!DB.live || DB.isVerifiedCoordinator(u))) || a.audience === "all" ||
+      (a.recipientIds ? a.recipientIds.includes(u.id) : !DB.live &&
+        [...activeRegs(+a.audience), ...waitlistFor(+a.audience)].some(r => r.userId === u.id)))
     .sort((a, b) => b.at.localeCompare(a.at));
 }
 const readSet = uid => new Set(userById(uid).reads || []);
@@ -140,7 +144,7 @@ function unreadCount(u){
 }
 function markAllRead(u){
   const ids = announcementsFor(u).map(a => a.id), seen = readSet(u.id);
-  if (ids.some(id => !seen.has(id))) DB.update("users", u, {reads:ids});
+  if (ids.some(id => !seen.has(id))) DB.update("users", u, {reads:ids.slice(0, 1000)});
   noticesFor(u.id).filter(n => !n.read).forEach(n => DB.update("notices", n, {read:true}));
 }
 

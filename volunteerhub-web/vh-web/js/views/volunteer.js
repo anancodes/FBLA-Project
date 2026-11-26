@@ -15,8 +15,8 @@ function signupControl(e, u){
   const r = myReg(u.id, e.id), left = spotsLeft(e);
   if (r && r.status === "registered") return `<span class="pill good">You're signed up</span>`;
   if (r && r.status === "waitlist") return `<span class="pill mark">Waitlist #${waitlistPosition(r)}</span>${armBtn(`leave:${r.id}`, "Leave waitlist", "Confirm leave", "secondary sm")}`;
-  if (left > 0) return `<button class="btn" data-act="signup" data-id="${e.id}">Sign up</button>`;
-  return `<button class="btn secondary" data-act="waitlist" data-id="${e.id}">Join waitlist</button>`;
+  if (left > 0) return `<button class="btn" data-act="signup" data-id="${esc(e.id)}">Sign up</button>`;
+  return `<button class="btn secondary" data-act="waitlist" data-id="${esc(e.id)}">Join waitlist</button>`;
 }
 
 // Show an approximate distance from the chosen city, or the event town.
@@ -34,12 +34,12 @@ function eventCard(e, u){
   const o = searchOrigin();
   return `<article class="ev">${dateChip(e.date)}
     <div class="ev-body">
-      <button class="ev-title" data-act="moreInfo" data-id="${e.id}">${esc(e.title)}</button>
+      <button class="ev-title" data-act="moreInfo" data-id="${esc(e.id)}">${esc(e.title)}</button>
       <p class="ev-meta">${fmtDate(e.date)} · ${timeRange(e)} · ${esc(e.location)}${o ? ` · ${fmtMiles(milesTo(e, o))} away` : ""}</p>
       <div class="tags">${status}${e.date === TODAY ? `<span class="pill mark">Today</span>` : ""}<span class="pill">${esc(e.category)}</span>${match ? `<span class="pill">Matches your skills</span>` : ""}</div>
     </div>
     <div class="ev-side">
-      <span class="spots-text">${left > 0 ? `${left} of ${e.slots} spots open` : `Full${line ? ` · ${line} waiting` : ""}`}</span>
+      <span class="spots-text">${left > 0 ? `${left} of ${esc(e.slots)} spots open` : `Full${line ? ` · ${line} waiting` : ""}`}</span>
       ${signupControl(e, u)}
     </div></article>`;
 }
@@ -53,19 +53,19 @@ function volunteerEventPopup(e, u){
     <p>${esc(e.desc)}</p>
     ${trustBox(e)}
     ${eventFacts(e)}
-    <div class="going"><div class="fillcell">${fillMeter(e)}<span class="small num">${going} of ${e.slots} volunteers going${left > 0 ? ` · ${left} ${left === 1 ? "spot" : "spots"} left` : ""}${waitlistFor(e.id).length ? ` · ${waitlistFor(e.id).length} on waitlist` : ""}</span></div></div>
+    <div class="going"><div class="fillcell">${fillMeter(e)}<span class="small num">${going} of ${esc(e.slots)} volunteers going${left > 0 ? ` · ${left} ${left === 1 ? "spot" : "spots"} left` : ""}${waitlistFor(e.id).length ? ` · ${waitlistFor(e.id).length} on waitlist` : ""}</span></div></div>
     <div class="popup-actions">
       <div class="row">${signupControl(e, u).replace(/style="[^"]*"/g, "")}</div>
-      <div class="row">${r && r.status === "registered" ? `<button class="btn secondary" data-act="ics" data-id="${e.id}">Add to my calendar</button>` : ""}<button class="linkbtn small" data-act="concern" data-id="${e.id}">Report a concern</button></div>
+      <div class="row">${r && r.status === "registered" ? `<button class="btn secondary" data-act="ics" data-id="${esc(e.id)}">Add to my calendar</button>` : ""}<button class="linkbtn small" data-act="concern" data-id="${esc(e.id)}">Report a concern</button></div>
     </div>`;
 }
 
 // Form to report a listing that looks wrong, unsafe, or like a scam.
 function concernForm(e){
   const reasons = ["Asks for money, bank details, or ID numbers", "Doesn't seem like a real organization", "Feels unsafe", "Wrong date, time, or place", "Something else"];
-  return `<form id="concernForm" class="stack" novalidate data-id="${e.id}">
-    <div class="spread"><h2>Report a concern</h2><button type="button" class="btn secondary sm" data-act="moreInfo" data-id="${e.id}">Back</button></div>
-    <p class="muted">About <b>${esc(e.title)}</b> on ${fmtDate(e.date)}. A coordinator will review it. Your report isn't shown to the organizer by name.</p>
+  return `<form id="concernForm" class="stack" novalidate data-id="${esc(e.id)}">
+    <div class="spread"><h2>Report a concern</h2><button type="button" class="btn secondary sm" data-act="moreInfo" data-id="${esc(e.id)}">Back</button></div>
+    <p class="muted">About <b>${esc(e.title)}</b> on ${fmtDate(e.date)}. Site admins review reports. Organizers without admin access cannot see them.</p>
     <div class="field"><span class="lbl">What's wrong?</span><div class="stack" role="radiogroup">${reasons.map((r, i) => `<label class="check" style="border-radius:10px"><input type="radio" name="reason" value="${esc(r)}" ${i === 0 ? "" : ""}> ${esc(r)}</label>`).join("")}</div><span class="ferr" id="e-reason"></span></div>
     <div class="field"><label for="cf-details">Details <span class="muted">(required for "Something else")</span></label><textarea id="cf-details" name="details" rows="3" maxlength="500"></textarea><span class="ferr" id="e-details"></span></div>
     <p class="small muted">If you're ever in danger, call 911 first.</p>
@@ -92,7 +92,7 @@ function vFind(u){
   };
   return `<div class="head"><div><h1>Opportunities</h1></div>${canShow ? listCalToggle(f.mode, "find") : ""}</div>
   <form id="findForm" class="filters search-form${saved ? " has-location" : ""}" role="search" novalidate>
-    <div class="field grow"><label for="f-q">Search opportunities</label><input id="f-q" name="q" value="${esc(f.q)}" placeholder="Event name, place, or cause" aria-describedby="e-q"><span class="ferr" id="e-q"></span></div>
+    <div class="field grow"><label for="f-q">Search opportunities</label><input id="f-q" name="q" maxlength="120" value="${esc(f.q)}" placeholder="Event name, place, or cause" aria-describedby="e-q"><span class="ferr" id="e-q"></span></div>
     <div class="field"><label for="f-cat">Cause</label><select id="f-cat" name="cat"><option value="all">All causes</option>${CATS.map(c => `<option ${f.cat === c ? "selected" : ""}>${c}</option>`).join("")}</select></div>
     ${saved ? `${cityField("f-location", placeName(origin || saved), "Search near")}<div class="field"><label for="f-radius">Distance from city center</label><select id="f-radius" name="radius">${[["5","Within about 5 miles"],["10","Within about 10 miles"],["25","Within about 25 miles"],["50","Within about 50 miles"],["any","Any distance"]].map(([v,l]) => `<option value="${v}" ${f.radius === v ? "selected" : ""}>${l}</option>`).join("")}</select></div>` : ""}
     <button class="btn" type="submit">Search</button>
@@ -109,7 +109,7 @@ function vFind(u){
 }
 
 function servicePreview(rows){
-  return `<ul class="service-preview">${rows.map(({r,e}) => `<li><time datetime="${e.date}">${fmtDate(e.date, {month:"short",day:"numeric"})}</time><span>${esc(e.title)}</span><strong class="num">${fmtH(r.hours)} <span class="muted small">hrs</span></strong></li>`).join("")}</ul>`;
+  return `<ul class="service-preview">${rows.map(({r,e}) => `<li><time datetime="${esc(e.date)}">${fmtDate(e.date, {month:"short",day:"numeric"})}</time><span>${esc(e.title)}</span><strong class="num">${fmtH(r.hours)} <span class="muted small">hrs</span></strong></li>`).join("")}</ul>`;
 }
 function vShifts(u){
   const mine = state.regs.filter(r => r.userId === u.id && r.status !== "cancelled").map(r => ({r,e:eventById(r.eventId)})).filter(x => x.e);
@@ -119,7 +119,7 @@ function vShifts(u){
   const recent = past.filter(x => x.r.status === "attended").slice(0,3);
   return `<div class="head"><div><h1>My schedule</h1></div></div>
   <section class="section"><h2>Upcoming</h2>
-    ${up.length ? up.map(({r,e}) => eventMini(e, `<div class="row"><button class="btn secondary sm" data-act="moreInfo" data-id="${e.id}">Details</button>${armBtn(`cancel:${r.id}`, "Cancel", "Confirm cancel")}</div>`)).join("") : `<div class="empty">No upcoming shifts. <button class="linkbtn" data-act="nav" data-v="find">Browse opportunities</button></div>`}
+    ${up.length ? up.map(({r,e}) => eventMini(e, `<div class="row"><button class="btn secondary sm" data-act="moreInfo" data-id="${esc(e.id)}">Details</button>${armBtn(`cancel:${r.id}`, "Cancel", "Confirm cancel")}</div>`)).join("") : `<div class="empty">No upcoming shifts. <button class="linkbtn" data-act="nav" data-v="find">Browse opportunities</button></div>`}
   </section>
   ${wait.length ? `<section class="section"><h2>Waitlist</h2><p class="muted small">If a spot opens, you'll get an update in your Inbox.</p>${wait.map(({r,e}) => eventMini(e, `<div class="row"><span class="pill mark">#${waitlistPosition(r)} in line</span>${armBtn(`leave:${r.id}`, "Leave", "Confirm leave", "secondary sm")}</div>`)).join("")}</section>` : ""}
   <section class="section"><div class="spread"><h2>History</h2><span class="muted small">Last ${recent.length} attended ${recent.length === 1 ? "event" : "events"}</span></div>
@@ -175,9 +175,9 @@ function vProfile(u){
   return `<div class="head"><div><h1>Profile</h1><p class="muted">Your skills help us suggest shifts. Share a city or town to find opportunities nearby.</p></div></div>
   <form id="profileForm" class="card stack" novalidate style="max-width:720px">
     <div class="grid2">
-      <div class="field"><label for="p-name">Full name</label><input id="p-name" name="name" value="${esc(u.name)}"><span class="ferr" id="e-name"></span></div>
+      <div class="field"><label for="p-name">Full name</label><input id="p-name" name="name" maxlength="80" value="${esc(u.name)}"><span class="ferr" id="e-name"></span></div>
       <div class="field"><label for="p-email">Email</label><input id="p-email" value="${esc(u.email)}" disabled><span class="muted small">Contact a coordinator to change your email.</span></div>
-      <div class="field"><label for="p-phone">Phone</label><input id="p-phone" name="phone" value="${esc(u.phone)}"><span class="ferr" id="e-phone"></span></div>
+      <div class="field"><label for="p-phone">Phone</label><input id="p-phone" name="phone" maxlength="30" value="${esc(u.phone)}"><span class="ferr" id="e-phone"></span></div>
       <div class="field"><label for="p-emergency">Emergency contact <span class="muted">(optional)</span></label><input id="p-emergency" name="emergency" maxlength="100" value="${esc(u.emergency || "")}" placeholder="Name and phone, e.g. Ana Chen 555-201-3344"><span class="muted small">Only verified coordinators can see this.</span><span class="ferr" id="e-emergency"></span></div>
       ${cityField("p-location", placeName(userLocation(u)))}
     </div>

@@ -36,3 +36,17 @@ The website checks also cover browser Back/Forward/refresh, new tabs, direct URL
 The public landing checks cover account links and history/new tabs, both demo roles and permissions, keyboard sign-in/error recovery, connection/reset behavior, responsive themes, enlarged text and missing-image recovery. See [the public landing guide](../docs/PUBLIC_LANDING.md).
 
 The loading checks simulate Firebase cache snapshots, slow startup, rate-limit errors, and unconfirmed or failed sign-up, attendance, and event writes.
+
+## Firestore rules
+
+Install the Firebase CLI and rules test dependencies outside the website. Java is required for the Firestore emulator. From the repository root:
+
+```sh
+npm --cache /tmp/volunteerhub-npm-cache install --prefix /tmp/volunteerhub-rules-tools --no-save \
+  firebase-tools@14 firebase@11 @firebase/rules-unit-testing@4
+NODE_PATH=/tmp/volunteerhub-rules-tools/node_modules \
+  /tmp/volunteerhub-rules-tools/node_modules/.bin/firebase emulators:exec --project demo-volunteerhub \
+  --only firestore 'node --test tests/firestore.rules.test.cjs'
+```
+
+The rules suite checks supported application operations and expected denials with fictional accounts and records.

@@ -15,10 +15,14 @@ function operationKey(button){
   if (button.type === "submit" && button.form){
     const {id, dataset} = button.form;
     if (["loginForm", "signupForm", "resetForm"].includes(id)) return "auth";
+    if (id === "joinForm") return "join-club";
+    if (id === "clubForm" && !dataset.id) return "create-club";
+    if (id === "deleteAccountForm") return "delete-account";
     if (id === "eventForm") return `event:${dataset.id || "new"}`;
     if (id === "walkinForm") return `attendance:${ui.ciEvent}`;
   }
   const {act, id, v} = button.dataset;
+  if (act === "checkVerification" || act === "resendVerification") return "verify-email";
   if (act === "mark" || act === "allPresent") return `attendance:${ui.ciEvent}`;
   if (act === "signup" || act === "waitlist") return `shift:${id}`;
   if ((act === "arm" || act === "confirm") && /^(cancel|leave):/.test(v)){

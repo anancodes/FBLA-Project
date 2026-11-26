@@ -134,10 +134,10 @@ function downloadFile(name, text, type){
 }
 // Saves an event as a calendar file (.ics) that Google Calendar, Outlook, and Apple Calendar can open.
 function downloadICS(e){
-  const icsText = s => String(s).replace(/\\/g, "\\\\").replace(/[,;]/g, m => "\\" + m).replace(/\n/g, "\\n");
+  const icsText = s => String(s).replace(/\\/g, "\\\\").replace(/[,;]/g, m => "\\" + m).replace(/\r\n?|\n/g, "\\n");
   const stamp = (d, t) => d.replace(/-/g, "") + "T" + t.replace(":", "") + "00";
   const ics = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//VolunteerHub//EN", "BEGIN:VEVENT",
-    `UID:volunteerhub-event-${e.id}`, `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, "").slice(0, 15)}Z`,
+    `UID:volunteerhub-event-${icsText(e.id)}`, `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, "").slice(0, 15)}Z`,
     `DTSTART:${stamp(e.date, e.start)}`, `DTEND:${stamp(e.date, e.end)}`,
     `SUMMARY:${icsText("Volunteer: " + e.title)}`, `LOCATION:${icsText(`${e.location}, ${addressOf(e)}`)}`,
     `DESCRIPTION:${icsText(`${e.desc} Bring: ${e.bring || "nothing special"}.`)}`, "END:VEVENT", "END:VCALENDAR"].join("\r\n");
@@ -224,7 +224,7 @@ function calendarView(events, chipFor, legend = ""){
 }
 function calChip(e, cls, label = ""){
   const name = `${e.title}, ${fmtDate(e.date)}, ${timeRange(e)}${label ? ` (${label})` : ""}`;
-  return `<button class="cal-chip ${cls}" data-act="calEvent" data-id="${e.id}" aria-label="${esc(name)}" title="${esc(name)}"><b>${fmtTime(e.start).replace(":00", "").replace(" ", "").toLowerCase()}</b> ${esc(e.title)}</button>`;
+  return `<button class="cal-chip ${cls}" data-act="calEvent" data-id="${esc(e.id)}" aria-label="${esc(name)}" title="${esc(name)}"><b>${fmtTime(e.start).replace(":00", "").replace(" ", "").toLowerCase()}</b> ${esc(e.title)}</button>`;
 }
 function listCalToggle(mode, key){
   return `<div class="tabs" role="tablist" aria-label="View as">

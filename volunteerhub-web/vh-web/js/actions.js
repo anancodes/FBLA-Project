@@ -13,6 +13,7 @@ function doLogin(form){
   const fd = new FormData(form), email = String(fd.get("email")).trim().toLowerCase(), pw = String(fd.get("password"));
   const err = $("#li-err");
   if (!email || !pw){ err.textContent = "Enter your email and password."; return; }
+  if (V.email(email) || pw.length > 4096){ err.textContent = "Enter a valid email and password."; return; }
   if (Cloud.enabled && !ui.demo){                                 // live mode: Firebase checks the password
     err.textContent = "";
     return runPending("auth", "Signing in…", form.querySelector('[type="submit"]'), () => Cloud.login(email, pw),
@@ -26,7 +27,7 @@ function doLogin(form){
 function doSignup(form){
   const fd = new FormData(form), d = Object.fromEntries(fd.entries());
   const isVol = d.role === "volunteer";
-  const errs = {name:V.name(d.name), email:V.email(d.email), phone:V.phone(d.phone), location:cityError(d.location), password:V.password(d.password),
+  const errs = {name:V.name(d.name), email:V.email(d.email), phone:V.phone(d.phone), location:cityError(d.location), password:V.password(d.password, Cloud.enabled && !ui.demo),
     confirm: d.password !== d.confirm ? "Passwords don't match." : "",
     waiver: isVol && !d.waiver ? "Please read and accept the volunteer waiver to continue." : ""};
   if (!errs.email && !Cloud.enabled && state.users.some(u => u.email === d.email.trim().toLowerCase())) errs.email = "An account with this email already exists. Try logging in.";
@@ -55,7 +56,7 @@ function doReset(form){
 function saveProfile(form){
   const fd = new FormData(form), u = currentUser(), location = fd.get("location").trim(), emergency = fd.get("emergency").trim();
   const errs = {name:V.name(fd.get("name")), phone:V.phone(fd.get("phone")), location:cityError(location),
-    emergency: emergency.length > 100 ? "Keep this under 100 characters." : ""};
+    emergency:V.text(emergency, "the emergency contact", 0, 100)};
   if (!showErrors(form, errs)) return;
   DB.update("users", u, {name:fd.get("name").trim(), phone:fd.get("phone").trim(), skills:fd.getAll("skills"), availability:fd.getAll("availability"), zip:"", location:resolveCity(location), emergency});
   ui.find.location = location ? placeName(resolveCity(location)) : null;
@@ -65,7 +66,7 @@ function saveProfile(form){
 function findOpportunities(form){
   const fd = new FormData(form), u = currentUser(), saved = userLocation(u), q = String(fd.get("q") || "").trim();
   const location = saved ? String(fd.get("location") || placeName(saved)).trim() : "";
-  const errs = {q:!saved && !q && fd.get("cat") === "all" ? "Enter an event or place, or choose a cause to search." : "", location:saved ? cityError(location) : ""};
+  const errs = {q:!saved && !q && fd.get("cat") === "all" ? "Enter an event or place, or choose a cause to search." : V.text(q, "the search", 0, 120), location:saved ? cityError(location) : ""};
   if (!showErrors(form, errs)) return;
   Object.assign(ui.find, {q, location:saved ? placeName(resolveCity(location)) : null, cat:fd.get("cat"), radius:fd.get("radius") || "any", verifiedOnly:fd.has("verifiedOnly"), match:fd.has("match"), hideFull:fd.has("hideFull")});
   render();
@@ -79,8 +80,8 @@ function signup(eid, trigger){
   const u = currentUser(), e = eventById(eid);
   if (e.date < TODAY) return toast("This event has already happened.", "bad");
   if (spotsLeft(e) <= 0) return toast("This event just filled up. You can join the waitlist instead.", "bad");
-  const existing = myReg(u.id, eid);
-  if (existing && existing.status !== "waitlist") return toast("You're already signed up for this event.", "bad");
+  const existing = myReg(u.id, eid) || (DB.live && state.regs.find(r => r.id === DB.registrationId(eid, u.id)));
+  if (existing && !["waitlist","cancelled"].includes(existing.status)) return toast("You're already signed up for this event.", "bad");
   const clash = findClash(u.id, e);
   if (clash) return toast(`This overlaps with ${clash.title} (${timeRange(clash)}) that day.`, "bad");
   const success = () => {
@@ -88,7 +89,7 @@ function signup(eid, trigger){
     if (registration?.status === "waitlist") toast(`You joined the waitlist for ${e.title}.`);
     else toast(`You're signed up for ${e.title} on ${fmtDate(e.date)}.`);
   };
-  const record = {id:DB.newId("regs"), userId:u.id, eventId:eid, status:"registered", hours:0};
+  const record = {id:DB.registrationId(eid, u.id), userId:u.id, eventId:eid, status:"registered", hours:0};
   if (DB.live) return saveLiveRecords(`shift:${eid}`, "Saving your sign-up…", trigger, "regs",
     [existing ? {id:existing.id, fields:{status:"registered"}} : {id:record.id, record}], success);
   if (existing) DB.update("regs", existing, {status:"registered"});
@@ -104,8 +105,9 @@ function joinWaitlist(eid, trigger){
   if (myReg(u.id, eid)) return toast("You're already on the list for this event.", "bad");
   const clash = findClash(u.id, e);
   if (clash) return toast(`This overlaps with ${clash.title} (${timeRange(clash)}) that day.`, "bad");
-  const r = {id:DB.newId("regs"), userId:u.id, eventId:eid, status:"waitlist", hours:0};
-  if (DB.live) return saveLiveRecords(`shift:${eid}`, "Joining waitlist…", trigger, "regs", [{id:r.id, record:r}],
+  const r = {id:DB.registrationId(eid, u.id), userId:u.id, eventId:eid, status:"waitlist", hours:0};
+  const previous = DB.live && state.regs.find(x => x.id === r.id);
+  if (DB.live) return saveLiveRecords(`shift:${eid}`, "Joining waitlist…", trigger, "regs", [previous ? {id:r.id, fields:{status:"waitlist"}} : {id:r.id, record:r}],
     () => toast(`You joined the waitlist for ${e.title}.`));
   DB.add("regs", r);
   save(); render(); toast(`You're #${waitlistPosition(r)} on the waitlist for ${e.title}.`);
@@ -132,8 +134,11 @@ function saveEventForm(form){
   const knownZip = known ? eventZipInfo({location:d.location}).zip : "";
   if (known && (!d.zip || d.zip === knownZip)) d.zip = "";
   const errs = {
-    title: !d.title ? "Give the event a name." : d.title.length < 3 ? "Use at least 3 characters." : d.title.length > 80 ? "Keep the name under 80 characters." : "",
-    location: !d.location ? "Enter where volunteers should go." : "",
+    title: V.text(d.title, "the event name", 3, 80),
+    location: V.text(d.location, "the location", 1, 160),
+    desc: V.text(d.desc, "the description", 0, 2000, true),
+    bring: V.text(d.bring, "what to bring", 0, 120),
+    wear: V.text(d.wear, "what to wear", 0, 120),
     zip: !d.zip && !known ? "Enter the ZIP code so volunteers nearby can find this shift." : d.zip ? zipError(d.zip) : "",
     minAge: age !== null && (!Number.isInteger(age) || age < 0 || age > 21) ? "Enter a whole number from 0 to 21, or leave it blank." : "",
     date: !/^\d{4}-\d{2}-\d{2}$/.test(d.date) ? "Choose a date." : (d.date < TODAY && (!old || old.date !== d.date)) ? "The date can't be in the past." : "",
@@ -185,11 +190,15 @@ function saveEventForm(form){
 function postAnnouncement(form){
   const fd = new FormData(form), title = fd.get("title").trim(), body = fd.get("body").trim();
   const errs = {
-    title: title.length < 3 ? "Write a headline of at least 3 characters." : "",
-    body: body.length < 10 ? "Write a message of at least 10 characters." : "",
+    title:V.text(title, "the headline", 3, 100),
+    body:V.text(body, "the message", 10, 3000, true),
   };
   if (!showErrors(form, errs)) return;
-  const a = DB.add("announcements", {id:DB.newId("announcements"), title, body, audience:fd.get("audience"), authorId:currentUser().id, at:new Date().toISOString()});
+  const audience = fd.get("audience"), event = eventById(asId(audience));
+  if (!event && audience !== "all") return toast("Choose who should receive this announcement.", "bad");
+  const recipientIds = event ? [...new Set([...activeRegs(event.id), ...waitlistFor(event.id)].map(r => r.userId))] : [];
+  if (recipientIds.length > 500) return toast("This group exceeds the 500-person limit for a targeted announcement.", "bad");
+  const a = DB.add("announcements", {id:DB.newId("announcements"), title, body, audience, recipientIds, authorId:currentUser().id, at:new Date().toISOString()});
   save(); render(); toast(`Posted. It reaches ${reach(a)} ${reach(a) === 1 ? "volunteer" : "volunteers"}.`);
 }
 
@@ -199,24 +208,24 @@ function submitConcern(form){
   const reason = fd.get("reason"), details = fd.get("details").trim();
   const errs = {
     reason: !reason ? "Choose what's wrong." : "",
-    details: reason === "Something else" && details.length < 5 ? "Tell us a little about the problem." : "",
+    details: V.text(details, "the details", reason === "Something else" ? 5 : 0, 500, true),
   };
   if (!showErrors(form, errs)) return;
   if (state.concerns.some(c => c.eventId === e.id && c.userId === u.id && c.status === "open")){
     closeModal(); return toast("You already reported this listing. A coordinator is reviewing it.");
   }
   DB.add("concerns", {id:DB.newId("concerns"), eventId:e.id, userId:u.id, reason, details, at:new Date().toISOString(), status:"open"});
-  save(); closeModal(); render(); toast("Thanks for reporting. A coordinator will review this listing.");
+  save(); closeModal(); render(); toast("Thanks for reporting. A site admin will review this listing.");
 }
 
 // Save the organization's name, home ZIP, description, and waiver from Settings.
 function saveOrgSettings(form){
   const fd = new FormData(form), name = fd.get("name").trim(), zip = fd.get("zip").trim(), about = fd.get("about").trim(), waiver = fd.get("waiver").trim();
   const errs = {
-    name: name.length < 2 ? "Enter your organization's name (at least 2 characters)." : !/[A-Za-z]/.test(name) ? "The name needs at least one letter." : "",
+    name:V.text(name, "the organization name", 2, 60),
     zip: zipError(zip),
-    about: about.length > 160 ? "Keep the description under 160 characters." : "",
-    waiver: waiver.length < 40 ? "The waiver needs at least a couple of sentences." : waiver.length > 3000 ? "Keep the waiver under 3,000 characters." : "",
+    about:V.text(about, "the description", 0, 160, true),
+    waiver:V.text(waiver, "the waiver", 40, 3000, true),
   };
   if (!showErrors(form, errs)) return;
   DB.setOrg({name, zip, about, waiver});
@@ -226,7 +235,7 @@ function saveOrgSettings(form){
 // Live mode: give a brand-new organization a few sample events to start from.
 function addSampleEvents(){
   const me = currentUser().id, sample = seed().events.filter(e => e.date > TODAY && e.postedBy === 1).slice(0, 6);
-  sample.forEach((e, k) => DB.add("events", {...e, id:DB.newId("events") + k, postedBy:me, postedAt:TODAY, updatedAt:TODAY}));
+  sample.forEach((e, k) => DB.add("events", {...e, id:DB.newId("events") + k, clubId:null, postedBy:me, postedAt:TODAY, updatedAt:TODAY}));
   save(); render(); toast(`Added ${sample.length} sample events. Edit or delete them anytime.`);
 }
 
@@ -256,8 +265,11 @@ function confirmAction(kind, id, trigger){
   if (kind === "ann"){ DB.remove("announcements", id); toast("Announcement deleted."); }
   if (kind === "verify" || kind === "unverify"){
     const u = userById(id);
-    DB.update("users", u, kind === "verify" ? {verified:true, verifiedAt:TODAY} : {verified:false, verifiedAt:""});
-    toast(kind === "verify" ? `${u.name} is now a verified organizer.` : `${u.name} is no longer verified.`);
+    const fields = kind === "verify" ? {verified:true, verifiedAt:TODAY} : {verified:false, verifiedAt:""};
+    const done = () => toast(fields.verified ? `${u.name} is now a verified organizer.` : `${u.name} is no longer verified.`);
+    if (DB.live) return Cloud.setOrganizerVerification(u, fields).then(done).catch(error => toast(Cloud.friendly(error), "bad"));
+    DB.update("users", u, fields);
+    done();
   }
   if (kind === "delacct") return deleteMyAccount();
   if (kind === "leaveclub" || kind === "removemember"){
@@ -266,7 +278,10 @@ function confirmAction(kind, id, trigger){
     toast(kind === "leaveclub" ? `You left ${c.name}.` : `${m.name} was removed from ${c.name}.`);
   }
   if (kind === "dellog"){ DB.remove("hourLogs", id); toast("Logged hours deleted."); }
-  if (kind === "newcode"){ const c = clubById(id); setClubCode(c, makeCode(c.short)); toast("New join code made. The old one no longer works."); }
+  if (kind === "newcode"){
+    const c = clubById(id);
+    Promise.resolve(setClubCode(c, makeCode(c.short))).then(() => toast("New join code created.")).catch(error => toast(Cloud.friendly(error), "bad"));
+  }
   if (kind === "reset"){
     const keep = {prefs:state.prefs, session:state.session, org:state.org};   // keep your organization settings
     state = Object.assign(seed(), keep);
@@ -277,12 +292,27 @@ function confirmAction(kind, id, trigger){
 // Privacy: a person can delete their own account. Upcoming sign-ups are cancelled first
 // so their spots open up for others.
 function deleteMyAccount(){
+  if (DB.live) return openModal(`<form id="deleteAccountForm" class="stack" novalidate>
+    <h2>Confirm account deletion</h2>
+    <p class="muted">Enter your password to delete your sign-in and profile. Service and attendance records may be retained by your organization.</p>
+    <div class="field"><label for="delete-account-password">Password</label><input id="delete-account-password" name="password" type="password" autocomplete="current-password" maxlength="4096"></div>
+    <p class="formerr" role="alert"></p>
+    <div class="row"><button class="btn danger" type="submit">Delete my account</button><button class="btn secondary" type="button" data-act="close">Cancel</button></div></form>`);
   const u = currentUser();
   state.regs.filter(r => r.userId === u.id && (r.status === "registered" || r.status === "waitlist") && eventById(r.eventId).date >= TODAY)
     .forEach(r => DB.update("regs", r, {status:"cancelled"}));
-  if (DB.live) return Cloud.deleteAccount().then(() => toast("Your account was deleted.")).catch(e => toast(Cloud.friendly(e), "bad"));
+
   DB.remove("users", u.id);
   state.session.userId = null; ui.view = "dashboard"; save(); render(); toast("Your account was deleted.");
+}
+
+function confirmAccountDeletion(form){
+  const password = new FormData(form).get("password"), error = form.querySelector(".formerr");
+  if (!password || password.length > 4096){ error.textContent = "Enter your password."; return; }
+  const user = currentUser();
+  const shifts = state.regs.filter(r => r.userId === user.id && ["registered","waitlist"].includes(r.status) && eventById(r.eventId)?.date >= TODAY);
+  return runPending("delete-account", "Deleting account…", form.querySelector('[type="submit"]'),
+    () => Cloud.deleteAccount(password, shifts), null, err => { error.textContent = Cloud.friendly(err); });
 }
 
 /* ----- Pop-ups ----- */
@@ -304,6 +334,7 @@ const handlers = {
   display: () => { ui.displayOpen = !ui.displayOpen; render(); },
   // Navigation and account
   nav: (v) => {
+    if (DB.live && Cloud.loadPhase === "workspace") return;
     const u = currentUser();
     if (u.role === "volunteer" && v === "manage") v = "clubs";
     if (v === "news" && u.role === "volunteer" && !Cloud.loadPhase){            // remember what was new, then mark it all read
@@ -319,6 +350,10 @@ const handlers = {
     const m = $("#page-title") || $("#main"); if (m) m.focus({preventScroll:true}); window.scrollTo(0, 0);
   },
   authmode: (v) => navigatePublic(v),
+  checkVerification: (_, __, ev) => runPending("verify-email", "Checking verification…", ev.target.closest("button"),
+    () => Cloud.checkVerification(), null, err => toast(Cloud.friendly(err), "bad")),
+  resendVerification: (_, __, ev) => runPending("verify-email", "Sending verification email…", ev.target.closest("button"),
+    () => Cloud.sendVerification(), () => toast("Check your email for the verification link."), err => toast(Cloud.friendly(err), "bad")),
   retryLoad: () => Cloud.retryLoad(),
   cloudSignOut: () => Cloud.logout().catch(error => toast(Cloud.friendly(error), "bad")),
   demo: (v) => {
@@ -414,7 +449,7 @@ const handlers = {
   approveLog: (_, id) => reviewLog(asId(id), "approved"),
   rejectLog: (_, id) => {
     const note = (document.getElementById(`note-${id}`) || {}).value || "";
-    if (note.trim().length < 5){ toast("Add a short reason so the member knows what to fix.", "bad"); const el = document.getElementById(`note-${id}`); if (el) el.focus(); return; }
+    if (V.text(note.trim(), "the reason", 5, 240, true)){ toast("Enter a reason between 5 and 240 characters.", "bad"); const el = document.getElementById(`note-${id}`); if (el) el.focus(); return; }
     reviewLog(asId(id), "rejected", note.trim());
   },
   toggleOfficer: (_, id) => {

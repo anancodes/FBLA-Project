@@ -2,6 +2,7 @@
 "use strict";
 
 function reach(a){
+  if (Array.isArray(a.recipientIds) && a.audience !== "all") return a.recipientIds.length;
   if (a.audience === "all") return state.users.filter(u => u.role === "volunteer").length;
   return new Set([...activeRegs(+a.audience),...waitlistFor(+a.audience)].map(r => r.userId)).size;
 }
@@ -17,7 +18,7 @@ function inboxMessage(m){
     <div class="message-content"><p class="message-body">${esc(m.body)}</p>${m.audience ? `<p class="muted small">To ${esc(m.audience)}</p>` : ""}${m.actions || ""}</div>
   </details>`;
 }
-function newsView(u){ return u.role === "coordinator" ? cNews(u) : vNews(u); }
+function newsView(u){ return u.role === "coordinator" && (!DB.live || DB.isVerifiedCoordinator(u)) ? cNews(u) : vNews(u); }
 function vNews(u){
   const seen = ui.newsSeen || readSet(u.id);
   const messages = announcementsFor(u).map(a => ({key:`announcement-${a.id}`,title:a.title,body:a.body,at:a.at,sender:userById(a.authorId).name,audience:audienceLabel(a),unread:!seen.has(a.id)}))
@@ -31,9 +32,9 @@ function cNews(u){
   return `<div class="head"><div><h1>Inbox</h1><p class="muted">Share updates with your volunteers.</p></div></div>
   <details class="compose disclosure" id="inbox-compose"><summary>New announcement</summary>
     <form id="annForm" class="stack" novalidate>
-      <div class="field"><label for="an-title">Headline</label><input id="an-title" name="title" maxlength="80" placeholder="e.g. Parking change for Saturday"><span class="ferr" id="e-title"></span></div>
-      <div class="field"><label for="an-body">Message</label><textarea id="an-body" name="body" rows="4" maxlength="600" placeholder="What do volunteers need to know?"></textarea><span class="ferr" id="e-body"></span></div>
-      <div class="field"><label for="an-aud">Send to</label><select id="an-aud" name="audience"><option value="all">All volunteers</option>${upcoming.map(e => `<option value="${e.id}">Volunteers for ${esc(e.title)} (${fmtDate(e.date)})</option>`).join("")}</select></div>
+      <div class="field"><label for="an-title">Headline</label><input id="an-title" name="title" maxlength="100" placeholder="e.g. Parking change for Saturday"><span class="ferr" id="e-title"></span></div>
+      <div class="field"><label for="an-body">Message</label><textarea id="an-body" name="body" rows="4" maxlength="3000" placeholder="What do volunteers need to know?"></textarea><span class="ferr" id="e-body"></span></div>
+      <div class="field"><label for="an-aud">Send to</label><select id="an-aud" name="audience"><option value="all">All volunteers</option>${upcoming.map(e => `<option value="${esc(e.id)}">Volunteers for ${esc(e.title)} (${fmtDate(e.date)})</option>`).join("")}</select></div>
       <div><button class="btn" type="submit">Post announcement</button></div>
     </form>
   </details>

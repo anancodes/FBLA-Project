@@ -15,6 +15,8 @@
 <!-- The app draws itself into #app. #modal holds pop-up forms; #toast shows short messages. -->
 <div id="app"></div>
 <div id="modal"></div>
+<div id="connection-status" class="sr-only" role="status"></div>
+<div id="operation-status" class="sr-only" role="status"></div>
 <div id="toast" aria-live="polite" role="status"></div>
 
 <!-- Load order matters: helpers and data first, screens next, app.js last. -->
@@ -29,6 +31,7 @@
 <script src="js/clubs.js"></script>
 <script src="js/validation.js"></script>
 <script src="js/components.js"></script>
+<script src="js/loading.js"></script>
 <script src="js/views/landing.js"></script>
 <script src="js/views/auth.js"></script>
 <script src="js/views/volunteer.js"></script>

@@ -60,7 +60,7 @@ test('live signup receives the optional city without changing role or verificati
   await p.locator('#su-name').fill('Casey Student'); await p.locator('#su-email').fill('casey.student@example.org');
   await p.locator('#su-pass').fill('demo1234'); await p.locator('#su-pass2').fill('demo1234'); await p.locator('#su-waiver').check();
   await p.locator('#su-location').fill('Washington, DC');
-  await p.evaluate(() => { Cloud.enabled = true; Cloud.signup = async profile => { window.capturedSignup = profile; }; });
+  await p.evaluate(() => { Cloud.enabled = Cloud.ready = true; Cloud.signup = async profile => { window.capturedSignup = profile; }; });
   await p.locator('#signupForm [type="submit"]').click();
   const result = await p.evaluate(() => window.capturedSignup);
   assert.equal(result.location.city,'Washington'); assert.equal(result.location.st,'DC');

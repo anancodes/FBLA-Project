@@ -97,6 +97,7 @@ function openModal(html){
   if (title){ title.id = "modal-title"; dialog.setAttribute("aria-labelledby",title.id); }
   else dialog.setAttribute("aria-label","VolunteerHub dialog");
   $("#app").inert = true;
+  syncPendingControls();
   (modalControls()[0] || dialog).focus();
 }
 function closeModal(restore = true){

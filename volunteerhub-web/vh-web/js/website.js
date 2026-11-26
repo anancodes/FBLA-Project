@@ -19,6 +19,9 @@ function followPageURL(){
 
 function websiteShell(u){
   const section = sectionOf(u,ui.view), tabs = section ? tabsFor(u,section) : [];
+  const loading = !!(DB.live && Cloud.loadPhase);
+  const syncFailed = Cloud.loadStatus === "retry";
+  const labels = [...menuFor(u), ...tabs, ["profile","Profile"], ["help","Help"]];
   const pending = managedClubs(u).reduce((n,c) => n + state.hourLogs.filter(l => l.clubId === c.id && l.status === "pending" && l.userId !== u.id).length,0);
   const pendingOrgs = u.admin ? state.users.filter(x => x.role === "coordinator" && !x.verified).length : 0;
   const counts = {shifts:u.role === "volunteer" ? userStats(u.id).upcoming.length : 0,hours:pending,news:unreadCount(u),volunteers:pending+pendingOrgs};
@@ -30,7 +33,7 @@ function websiteShell(u){
     <div class="frame pv-frame">
       <aside class="pv-sidebar">
         <div class="pv-brand"><a href="#dashboard" data-act="nav" data-v="dashboard">VolunteerHub</a>${state.org.name !== "Your Organization" ? `<span>${esc(state.org.name)}</span>` : ""}${!DB.live ? `<span>Demo data</span>` : ""}</div>
-        <nav class="rail" aria-label="Main">${menuFor(u).map(([view,label]) => `<a href="#${view}" data-act="nav" data-v="${view}" ${section === view ? 'aria-current="page"' : ""} class="${ui.tour && section === view ? "tour-hl" : ""}">${icon(NAV_ICON[view])}<span>${label}</span>${counts[view] ? `<span class="count" aria-label="${counts[view]} ${countLabel[view]}">${counts[view]}</span>` : ""}</a>`).join("")}</nav>
+        <nav class="rail" aria-label="Main">${menuFor(u).map(([view,label]) => `<a href="#${view}" data-act="nav" data-v="${view}" ${section === view ? 'aria-current="page"' : ""} class="${ui.tour && section === view ? "tour-hl" : ""}">${icon(NAV_ICON[view])}<span>${label}</span>${!loading && counts[view] ? `<span class="count" aria-label="${counts[view]} ${countLabel[view]}">${counts[view]}</span>` : ""}</a>`).join("")}</nav>
         <div class="pv-sidebar-bottom">
           <div class="pv-account"><div><strong>${esc(u.name)}</strong><small>${role}</small></div>${u.role === "volunteer" ? `<a class="pv-profile" href="#profile" data-act="nav" data-v="profile">Profile</a>` : ""}</div>
           <a class="pv-utility" href="#help" data-act="nav" data-v="help">${icon("help")}<span>Help</span></a>
@@ -39,8 +42,8 @@ function websiteShell(u){
         </div>
       </aside>
       <div class="pv-workspace">
-        <main id="main" tabindex="-1"><div class="page pv-page">${!home ? tourCard(u) : ""}${tabs.length ? `<nav class="subtabs" aria-label="${esc(menuFor(u).find(n => n[0] === section)[1])}">${tabs.map(([view,label]) => `<a href="#${view}" data-act="nav" data-v="${view}" ${ui.view === view ? 'aria-current="page"' : ""}>${label}${view === "organizers" && pendingOrgs ? ` <span class="count">${pendingOrgs}</span>` : ""}</a>`).join("")}</nav>` : ""}${VIEWS[u.role][ui.view](u)}</div></main>
-        <footer class="foot pv-footer"><div class="pv-footer-data">${DB.live ? `<span>Signed in as ${esc(u.email)}</span><span class="pill ${Cloud.online ? "good" : "warn"}" id="sync-status">${Cloud.online ? "Connected" : "Offline: changes will sync when you reconnect"}</span>` : `<span>Sample data, saved in this browser.</span>${armBtn("reset","Reset demo data","Confirm reset","secondary sm")}`}</div><div class="pv-utility-links"><button data-act="tour">Take the tour</button><button data-act="logout">${DB.live ? "Sign out" : "Exit demo"}</button></div></footer>
+        <main id="main" tabindex="-1"><div class="page pv-page">${!loading && !home ? tourCard(u) : ""}${tabs.length ? `<nav class="subtabs" aria-label="${esc(menuFor(u).find(n => n[0] === section)[1])}">${tabs.map(([view,label]) => `<a href="#${view}" data-act="nav" data-v="${view}" ${ui.view === view ? 'aria-current="page"' : ""}>${label}${view === "organizers" && !loading && pendingOrgs ? ` <span class="count">${pendingOrgs}</span>` : ""}</a>`).join("")}</nav>` : ""}${loading ? workspaceLoading(u, labels.find(([view]) => view === ui.view)?.[1]) : VIEWS[u.role][ui.view](u)}</div></main>
+        <footer class="foot pv-footer"><div class="pv-footer-data">${DB.live ? `<span>Signed in as ${esc(u.email)}</span><span class="pill ${Cloud.online && !syncFailed && !loading ? "good" : "warn"}" id="sync-status">${syncFailed ? "Couldn’t sync records" : loading ? "Syncing your records" : Cloud.online ? "Connected" : "Offline: changes will sync when you reconnect"}</span>` : `<span>Sample data, saved in this browser.</span>${armBtn("reset","Reset demo data","Confirm reset","secondary sm")}`}</div><div class="pv-utility-links">${!loading ? '<button data-act="tour">Take the tour</button>' : ""}<button data-act="logout">${DB.live ? "Sign out" : "Exit demo"}</button></div></footer>
       </div>
     </div>
   </div>`;

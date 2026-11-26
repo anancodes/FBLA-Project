@@ -18,6 +18,8 @@ const Cloud = {
   ready:false,       // we know whether someone is signed in
   online:typeof navigator !== "undefined" ? navigator.onLine : true,
   auth:null, fs:null,
+  loadPhase:"", loadStatus:"", loadTimers:[], retryAt:0,
+  initialReads:null, pendingWrites:new Map(),
   meSub:null, subs:[], roleKey:"", me:null,
   data:{users:[], events:[], regs:[], announcements:[], notices:[], concerns:[], clubs:[], memberships:[], hourLogs:[], clubCodes:{}},
   parts:{coords:[], all:null},
@@ -35,24 +37,62 @@ const Cloud = {
     const cfg = window.FIREBASE_CONFIG;
     if (!cfg || !cfg.apiKey) return;                        // no settings: demo-only site
     this.enabled = true; ui.liveShell = true;
-    state = this.emptyState(); render();
+    state = this.emptyState();
+    this.startLoad("session");
     const files = ["firebase-app-compat.js", "firebase-auth-compat.js", "firebase-firestore-compat.js"];
     let i = 0;
     const next = () => {
-      if (i === files.length) return this.init(cfg);
+      if (i === files.length){
+        try { this.init(cfg); } catch (err) { this.loadFailed(err); }
+        return;
+      }
       const s = document.createElement("script");
       s.src = (window.FIREBASE_SDK_BASE || FIREBASE_SDK) + files[i++];
-      s.onload = next; s.onerror = () => this.unavailable();
+      s.onload = next; s.onerror = () => this.loadFailed();
       document.head.appendChild(s);
     };
     next();
     window.addEventListener("online", () => { this.online = true; this.showSync(); });
-    window.addEventListener("offline", () => { this.online = false; this.showSync(); if (DB.live) toast("You're offline. Changes will save when you reconnect."); });
+    window.addEventListener("offline", () => {
+      this.online = false; this.showSync();
+      if (DB.live && !this.loadPhase) toast("You're offline. Changes will sync when you reconnect.");
+    });
   },
-  // Couldn't download Firebase (for example, no internet): fall back to the demo.
-  unavailable(){
-    this.enabled = false; ui.liveShell = false; state = demoState(); render();
-    toast("Couldn't reach the live database, so you're seeing the demo. Check your internet connection.", "bad");
+  startLoad(phase){
+    this.clearLoad();
+    this.loadPhase = phase;
+    this.loadDenied = false;
+    this.loadStatus = "starting";
+    this.loadTimers = [
+      setTimeout(() => { this.loadStatus = "loading"; this.renderLoad(); }, LOADING_DELAY),
+      setTimeout(() => { this.loadStatus = "slow"; this.renderLoad(); }, SLOW_LOADING_DELAY),
+      setTimeout(() => this.loadFailed(), LOAD_RECOVERY_DELAY),
+    ];
+    this.renderLoad();
+  },
+  clearLoad(){
+    this.loadTimers.forEach(clearTimeout);
+    this.loadTimers = [];
+    this.loadPhase = this.loadStatus = "";
+  },
+  renderLoad(){
+    if (!ui.demo && (!$("#app").firstElementChild || currentUser() || ui.authMode !== "landing")) render();
+  },
+  loadFailed(err){
+    this.loadTimers.forEach(clearTimeout);
+    this.loadStatus = "retry";
+    this.loadDenied = err?.code === "permission-denied";
+    if (this.loadDenied) console.warn("VolunteerHub could not load", this.loadPhase, err);
+    this.renderLoad();
+  },
+  retryLoad(){
+    if (this.loadStatus !== "retry" || Date.now() < this.retryAt) return;
+    this.retryAt = Date.now() + 3000;
+    if (this.loadPhase === "session") return location.reload();
+    if (this.loadPhase === "workspace" && this.me) this.attach(this.me);
+    else this.onAuth(this.auth.currentUser);
+    document.getElementById("page-title")?.focus({preventScroll:true});
+    setTimeout(() => { if (this.loadStatus === "retry") this.renderLoad(); }, 3000);
   },
   init(cfg){
     try { firebase.initializeApp(cfg); } catch(e){ /* already started */ }
@@ -63,37 +103,66 @@ const Cloud = {
     this.fs.doc("settings/org").onSnapshot(d => {
       if (d.exists){ this.org = d.data(); if (!ui.demo) state.org = Object.assign(this.emptyState().org, this.org); this.later(); }
     }, () => {});
-    this.auth.onAuthStateChanged(user => this.onAuth(user));
+    this.auth.onAuthStateChanged(user => this.onAuth(user), err => this.loadFailed(err));
   },
 
   /* ----- Signed in / signed out ----- */
   onAuth(user){
     this.ready = true;
-    this.detach(); if (this.meSub){ this.meSub(); this.meSub = null; }
+    this.detach();
+    if (this.meSub){ this.meSub(); this.meSub = null; }
     this.me = null; this.roleKey = ""; DB.live = false;
+    this.pendingWrites = new Map();
+    this.clearLoad();
+    this.data = {users:[], events:[], regs:[], announcements:[], notices:[], concerns:[], clubs:[], memberships:[], hourLogs:[], clubCodes:{}};
+    this.parts = {coords:[], all:null};
+    if (!ui.demo){
+      closeModal(false);
+      state = this.emptyState();
+    }
     if (!user){
-      this.data = {users:[], events:[], regs:[], announcements:[], notices:[], concerns:[], clubs:[], memberships:[], hourLogs:[], clubCodes:{}};
-      this.stopClubSubs();
-      if (!ui.demo){ state = this.emptyState(); render(); }
+      if (!ui.demo) render();
       return;
     }
-    // Watch your own profile. A brand-new account's profile may take a moment to appear.
-    this.meSub = this.fs.collection("users").doc(user.uid).onSnapshot(d => {
-      if (!d.exists) return;
+    this.startLoad("profile");
+    // Account creation and the first saved profile may arrive in different snapshots.
+    this.meSub = this.fs.collection("users").doc(user.uid).onSnapshot({includeMetadataChanges:true}, d => {
+      if (!d.exists || (this.loadPhase === "profile" && d.metadata.fromCache && this.online)) return;
       const me = d.data(), key = `${me.role}|${!!me.verified}|${!!me.admin}`;
       this.me = me;
-      if (key !== this.roleKey){ this.roleKey = key; this.attach(me); }   // permissions changed: re-subscribe
+      if (key !== this.roleKey){ this.roleKey = key; this.attach(me); }
       this.mergeUsers();
-    }, err => this.loadError("your profile", err));
+    }, err => {
+      if (this.loadPhase === "profile") this.loadFailed(err);
+      else this.loadError("your profile", err);
+    });
   },
 
   // Subscribe to what this person is allowed to see (matches firestore.rules).
   attach(me){
     this.detach();
     const fs = this.fs, coordLike = me.role === "coordinator" && (me.verified || me.admin);
-    const watch = (coll, query, onDocs) => this.subs.push(query.onSnapshot(
-      s => { const docs = s.docs.map(d => d.data()); if (onDocs) onDocs(docs); else this.data[coll] = docs; this.apply(); },
-      err => this.loadError(coll, err)));
+    this.initialReads = new Set();
+    this.startLoad("workspace");
+    const watch = (coll, query, onDocs) => {
+      this.initialReads.add(coll);
+      this.subs.push(query.onSnapshot({includeMetadataChanges:true}, snapshot => {
+        if (this.initialReads?.has(coll) && snapshot.metadata.fromCache && this.online) return;
+        const pending = this.pendingWrites.get(coll);
+        const previous = new Map(pending ? this.data[coll].map(record => [String(record.id), record]) : []);
+        const docs = snapshot.docs.map(doc => pending?.has(doc.id) && doc.metadata.hasPendingWrites
+          ? previous.get(doc.id) : doc.data()).filter(Boolean);
+        this.initialReads?.delete(coll);
+        const loaded = this.initialReads?.size === 0;
+        if (loaded){ this.initialReads = null; this.clearLoad(); }
+        if (onDocs) onDocs(docs);
+        else { this.data[coll] = docs; this.apply(); }
+        if (loaded && !ui.demo) setTimeout(() => { if (!this.loadPhase) maybeStartTour(); }, 50);
+      }, err => {
+        if (this.initialReads?.has(coll)) this.loadFailed(err);
+        else this.loadError(coll, err);
+      }));
+    };
     watch("events", fs.collection("events"));
     watch("regs", fs.collection("regs"));
     watch("announcements", fs.collection("announcements"));
@@ -113,7 +182,7 @@ const Cloud = {
     if (coordLike) watch("users", fs.collection("users"), docs => { this.parts.all = docs; this.mergeUsers(); });
     else { this.parts.all = null; watch("users", fs.collection("users").where("role", "==", "coordinator"), docs => { this.parts.coords = docs; this.mergeUsers(); }); }
   },
-  detach(){ this.subs.forEach(stop => stop()); this.subs = []; this.stopClubSubs(); },
+  detach(){ this.subs.forEach(stop => stop()); this.subs = []; this.initialReads = null; this.stopClubSubs(); },
 
   // Combine your own club records with those of clubs you manage (no duplicates).
   mergeClubs(){
@@ -148,10 +217,8 @@ const Cloud = {
     Object.assign(state, {users:d.users, events:d.events, announcements:d.announcements, notices:d.notices, concerns:d.concerns,
       clubs:d.clubs, memberships:d.memberships, hourLogs:d.hourLogs, clubCodes:Object.assign({}, d.clubCodes, state.clubCodes),
       regs:d.regs.filter(r => eventIds.has(r.eventId))});       // ignore sign-ups for deleted events
-    const wasLive = DB.live;
     DB.live = !!this.me; state.session.userId = this.me ? this.me.id : null;
-    if (DB.live && !wasLive){ ui.view = ui.view || "dashboard"; setTimeout(() => maybeStartTour(), 50); }
-    if (DB.live) this.syncClubSubs();
+    if (DB.live && !this.loadPhase) this.syncClubSubs();
     this.later();
   },
   later(){
@@ -164,7 +231,7 @@ const Cloud = {
   //  2. If a spot opened while someone was offline, fill it from the waitlist.
   // Volunteers can only change their own sign-ups; managers can change any for their events.
   autoPromote(){
-    if (!DB.live || this.promoting || !currentUser()) return;
+    if (!DB.live || !this.online || this.loadPhase || this.pendingWrites.size || this.promoting || !currentUser()) return;
     this.promoting = true;
     try {
       const upcoming = state.events.filter(e => e.date >= TODAY);
@@ -175,6 +242,22 @@ const Cloud = {
   },
 
   /* ----- Writing ----- */
+  commit(coll, changes){
+    const batch = this.fs.batch();
+    for (const {id, fields, record} of changes){
+      const ref = this.fs.collection(coll).doc(String(id));
+      if (record) batch.set(ref, clean(record));
+      else batch.update(ref, clean(fields));
+    }
+    const writes = this.pendingWrites;
+    const pending = writes.get(coll) || new Set();
+    for (const {id} of changes) pending.add(String(id));
+    writes.set(coll, pending);
+    return batch.commit().finally(() => {
+      for (const {id} of changes) pending.delete(String(id));
+      if (!pending.size) writes.delete(coll);
+    });
+  },
   write(promise){ promise.catch(err => toast(`That change didn't save: ${this.friendly(err)}`, "bad")); },
   set(coll, obj){ this.write(this.fs.collection(coll).doc(String(obj.id)).set(clean(obj))); },
   update(coll, id, fields){ this.write(this.fs.collection(coll).doc(String(id)).update(clean(fields))); },
@@ -230,10 +313,11 @@ const Cloud = {
       "auth/user-not-found":"That email and password don't match.", "auth/invalid-email":"Enter a valid email, like name@example.org.",
       "auth/email-already-in-use":"An account with this email already exists. Try logging in.",
       "auth/weak-password":"Choose a stronger password: at least 8 characters with a letter and a number.",
-      "auth/too-many-requests":"Too many tries. Wait a few minutes and try again.",
+      "auth/too-many-requests":"Too many tries. Wait at least 30 seconds before trying again.",
       "auth/network-request-failed":"You're offline. Check your internet connection and try again.",
       "auth/requires-recent-login":"For your security, log out, log back in, and then try again.",
       "permission-denied":"you don't have permission to do that.", "unavailable":"the database can't be reached right now.",
+      "resource-exhausted":"VolunteerHub is busy. Try again in a moment.",
     };
     return map[code] || (err && err.message) || "Something went wrong. Please try again.";
   },
@@ -243,6 +327,6 @@ const Cloud = {
   },
   showSync(){
     const el = document.getElementById("sync-status");
-    if (el){ el.textContent = this.online ? "Connected" : "Offline: changes will sync when you reconnect"; el.className = `pill ${this.online ? "good" : "warn"}`; }
+    if (el && !this.loadPhase){ el.textContent = this.online ? "Connected" : "Offline: changes will sync when you reconnect"; el.className = `pill ${this.online ? "good" : "warn"}`; }
   },
 };

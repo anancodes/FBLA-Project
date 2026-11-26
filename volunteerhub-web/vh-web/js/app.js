@@ -21,7 +21,10 @@ function render(){
   const focusDisclosureId = focusDisclosure && focusDisclosure.id;
   let sel = null; try { sel = a && typeof a.selectionStart === "number" ? [a.selectionStart, a.selectionEnd] : null; } catch(e){}
   const u = currentUser();
-  if (u && ui.requestedRoute){ ui.view = ui.requestedRoute; ui.requestedRoute = null; }
+  if (u && ui.requestedRoute){
+    ui.view = ui.requestedRoute;
+    if (!Cloud.loadPhase) ui.requestedRoute = null;
+  }
   if (ui.renderKey) document.querySelectorAll("#app details[id]").forEach(el => {
     const key = `${ui.renderKey}:${el.id}`;
     if (el.open) ui.disclosures.add(key); else ui.disclosures.delete(key);
@@ -33,9 +36,10 @@ function render(){
   $("#app").innerHTML = u ? shell(u) : loginView();
   document.body.classList.add("open-agenda");
   document.body.classList.toggle("public-view",!u);
-  if (u && !ui.tour) setPageURL(ui.view,true);
+  if (u && !ui.tour && !Cloud.loadPhase) setPageURL(ui.view,true);
   const pageTitle = $("#main h1"); if (pageTitle){ pageTitle.id = "page-title"; pageTitle.tabIndex = -1; }
   document.title = pageTitle ? `${pageTitle.textContent} | VolunteerHub` : "VolunteerHub";
+  const openingWorkspace = DB.live && ui.renderKey?.startsWith("auth:") && ui.authMode !== "landing";
   ui.renderKey = `${u ? u.id : "auth"}:${u ? ui.view : ui.authMode}`;
   document.querySelectorAll("#app details[id]").forEach(el => { if (ui.disclosures.has(`${ui.renderKey}:${el.id}`)) el.open = true; });
   ui.expandClub = null;
@@ -48,7 +52,11 @@ function render(){
     const title = m.querySelector("h2"); if (title) title.id = "modal-title";
     if (hadFocus) (replacementControl(a,m) || modalControls()[0] || m).focus();
   }
-  if (fid){ const el = document.getElementById(fid); if (el){ el.focus(); try { if (sel) el.setSelectionRange(sel[0], sel[1]); } catch(e){} } }
+  syncPendingControls();
+  const connection = $(".load-status:not([hidden])")?.textContent || "";
+  if ($("#connection-status").textContent !== connection) $("#connection-status").textContent = connection;
+  if (openingWorkspace && pageTitle) pageTitle.focus({preventScroll:true});
+  else if (fid){ const el = document.getElementById(fid); if (el){ el.focus(); try { if (sel) el.setSelectionRange(sel[0], sel[1]); } catch(e){} } }
   else if (hadAppFocus){
     const disclosure = focusDisclosureId && document.getElementById(focusDisclosureId);
     const target = replacementControl(a,$("#app")) || (disclosure && disclosure.querySelector("summary"));
@@ -92,6 +100,7 @@ function shell(u){
 document.addEventListener("click", ev => {
   const el = ev.target.closest("[data-act]");
   if (!el || el.disabled) return;
+  if (actionBlocked(el)){ ev.preventDefault(); return; }
   if (el.tagName === "A" && (ev.ctrlKey || ev.metaKey || ev.shiftKey || ev.altKey || ev.button !== 0)) return;
   const act = el.dataset.act;
   if (ui.armed && act !== "confirm" && act !== "arm") ui.armed = null;
@@ -125,6 +134,7 @@ document.addEventListener("change", ev => {
 
 document.addEventListener("submit", ev => {
   const form = ev.target; ev.preventDefault();
+  if (actionBlocked(form.querySelector('button[type="submit"]'))) return;
   ui.justSubmitted = form.id;                      // a saved form starts fresh instead of keeping old text
   try { handleSubmit(form); } finally { ui.justSubmitted = null; }
 });
@@ -146,9 +156,14 @@ function handleSubmit(form){
     if (!uid) return toast("Choose a volunteer first.", "bad");
     if (spotsLeft(e) <= 0) return toast("This event is full. Raise the number of volunteers needed in Events first.", "bad");
     const ex = state.regs.find(r => r.userId === uid && r.eventId === e.id);
-    if (ex) DB.update("regs", ex, {status:"attended", hours:duration(e)});
-    else DB.add("regs", {id:DB.newId("regs"), userId:uid, eventId:e.id, status:"attended", hours:duration(e)});
-    save(); render(); toast(`${userById(uid).name} was added and marked present.`);
+    const fields = {status:"attended", hours:duration(e)};
+    const record = {id:DB.newId("regs"), userId:uid, eventId:e.id, ...fields};
+    const success = () => toast(`${userById(uid).name} was added and marked present.`);
+    if (DB.live) return saveLiveRecords(`attendance:${e.id}`, "Adding walk-in…", form.querySelector('[type="submit"]'), "regs",
+      [ex ? {id:ex.id, fields} : {id:record.id, record}], success);
+    if (ex) DB.update("regs", ex, fields);
+    else DB.add("regs", record);
+    save(); render(); success();
   }
 }
 
@@ -167,5 +182,5 @@ ui.authMode = publicModeFromURL(initialRoute);
 ui.requestedRoute = isPublicRoute(initialRoute) ? null : initialRoute;
 window.addEventListener("popstate",followPageURL);
 window.addEventListener("hashchange",followPageURL);
-render();
-Cloud.boot();     // turns on live mode if Firebase settings are filled in (see firebase-config.js)
+if (window.FIREBASE_CONFIG?.apiKey) Cloud.boot();
+else render();     // turns on live mode if Firebase settings are filled in (see firebase-config.js)

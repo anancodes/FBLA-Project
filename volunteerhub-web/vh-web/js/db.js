@@ -40,6 +40,21 @@ const DB = {
     if (this.live) Cloud.setOrg(org);
   },
 
+  // Wait for the server on actions that require a confirmed outcome. Firestore batches
+  // recurring events and bulk attendance as a single atomic commit.
+  async commit(coll, changes){
+    const target = state;
+    const previous = new Map(state[coll].map(item => [item.id, item]));
+    await Cloud.commit(coll, changes);
+    if (target !== state) return;
+    for (const {id, record, fields} of changes){
+      const existing = state[coll].find(item => item.id === id);
+      // A listener may have already delivered a newer version while the write was pending.
+      if (existing && existing === previous.get(id)) Object.assign(existing, record || fields);
+      else if (!existing && !previous.has(id) && record) state[coll].push(record);
+    }
+  },
+
   /* Permission checks that mirror the database's security rules (firestore.rules),
      so the app doesn't try something the database will refuse. */
   isVerifiedCoordinator(u = currentUser()){ return !!u && u.role === "coordinator" && (u.verified || u.admin); },

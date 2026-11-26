@@ -539,3 +539,20 @@ main.login{padding:0}
 .cal-chip.staffed{border-left-color:var(--good)}
 .sw.staffed{background:var(--good)}
 @media(max-width:640px){.cal-chip.staffed{background:var(--good-soft);outline:1px solid var(--good)}}
+
+/* Feedback uses the same surfaces as the records and controls it replaces. */
+.load-status{color:var(--muted);font-size:.9375rem;margin-block:8px 16px}
+.load-account:empty,.load-account:has(.load-status[hidden]){display:none}
+.workspace-load{max-width:44rem}
+.load-skeleton{margin-top:24px}
+.load-skeleton-row{display:grid;grid-template-columns:2.75rem minmax(0,1fr);align-items:center;gap:1.5rem;min-height:5.5rem;border-top:1px solid var(--line)}
+.load-skeleton-row:last-child{border-bottom:1px solid var(--line)}
+.load-skeleton-row span{display:block;background:var(--line-strong);border-radius:var(--radius);opacity:.55;animation:load-pulse 1.8s ease-in-out 3}
+.load-skeleton-row>span{height:2rem}
+.load-skeleton-row>div>span{height:.75rem;width:min(14rem,85%)}
+.load-skeleton-row>div>span+span{margin-top:.625rem;width:min(10rem,60%)}
+button[aria-disabled="true"]{cursor:default}
+.btn[aria-disabled="true"]:not(.action-pending){opacity:.65}
+.action-pending::before{content:"";inline-size:.8em;block-size:.8em;flex:none;border:1px solid currentColor;border-radius:50%;background:currentColor;animation:load-pulse 1.8s ease-in-out 3}
+@keyframes load-pulse{50%{opacity:.27}}
+@media (max-width:480px){.load-skeleton-row{gap:1rem;min-height:4.5rem}}

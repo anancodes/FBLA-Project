@@ -88,7 +88,7 @@ function eventForm(e){
   e = e || {title:"", category:CATS[0], date:addDays(7), start:"09:00", end:"12:00", location:"", zip:"", slots:8, skills:[], desc:"", bring:"", wear:"", minAge:""};
   return `<form id="eventForm" class="stack" novalidate data-id="${isNew ? "" : e.id}">
     <div class="spread"><h2>${isCopy ? `Copy of ${esc(e.title)}` : isNew ? "New event" : "Edit event"}</h2><button type="button" class="btn secondary sm" data-act="close">Close</button></div>
-    <p class="formerr" id="ef-err"></p>
+    <p class="formerr" id="ef-err" role="alert"></p>
     <div class="field"><label for="ef-title">Event name</label><input id="ef-title" name="title" value="${esc(e.title)}" placeholder="e.g. Saturday Food Sort"><span class="ferr" id="e-title"></span></div>
     <div class="grid2">
       <div class="field"><label for="ef-club">Who can sign up</label><select id="ef-club" name="club">${currentUser().role === "coordinator" ? `<option value="">Everyone</option>` : ""}${managedClubs().map(c => `<option value="${c.id}" ${e.clubId === c.id ? "selected" : ""}>${esc(c.short)} members only</option>`).join("")}</select></div>

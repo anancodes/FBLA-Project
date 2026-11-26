@@ -14,8 +14,9 @@ function doLogin(form){
   const err = $("#li-err");
   if (!email || !pw){ err.textContent = "Enter your email and password."; return; }
   if (Cloud.enabled && !ui.demo){                                 // live mode: Firebase checks the password
-    err.textContent = ""; Cloud.login(email, pw).catch(e => err.textContent = Cloud.friendly(e));
-    return;
+    err.textContent = "";
+    return runPending("auth", "Signing in…", form.querySelector('[type="submit"]'), () => Cloud.login(email, pw),
+      null, error => authFormError(form.id, null, error));
   }
   const u = state.users.find(x => x.email === email);
   if (!u || !checkPassword(pw, u)){ err.textContent = "That email and password don't match. Try a demo account below."; return; }
@@ -33,8 +34,8 @@ function doSignup(form){
   const profile = {name:d.name.trim(), email:d.email.trim().toLowerCase(), phone:d.phone.trim(), role:d.role, skills:[], availability:[], zip:"", location:resolveCity(d.location), emergency:"",
     org:isVol ? "" : "Independent organizer", verified:false, reads:[], toured:false, waiverAt:isVol ? new Date().toISOString() : ""};
   if (Cloud.enabled && !ui.demo){
-    Cloud.signup(profile, d.password).catch(e => showErrors(form, {email:Cloud.friendly(e)}));
-    return;
+    return runPending("auth", "Creating your account…", form.querySelector('[type="submit"]'), () => Cloud.signup(profile, d.password),
+      null, error => authFormError(form.id, "email", error));
   }
   const h = hashPassword(d.password);
   const u = DB.add("users", {id:DB.newId("users"), ...profile, passSalt:h.salt, passHash:h.hash});
@@ -46,9 +47,9 @@ function doSignup(form){
 function doReset(form){
   const email = String(new FormData(form).get("email")).trim();
   if (V.email(email)) return showErrors(form, {email:V.email(email)});
-  Cloud.resetPassword(email)
-    .then(() => { navigatePublic("login"); toast("Check your email for a link to reset your password."); })
-    .catch(e => showErrors(form, {email:Cloud.friendly(e)}));
+  return runPending("auth", "Sending reset link…", form.querySelector('[type="submit"]'), () => Cloud.resetPassword(email),
+    () => { if (ui.authMode === "reset") navigatePublic("login"); toast("Check your email for a link to reset your password."); },
+    error => authFormError(form.id, "email", error));
 }
 
 function saveProfile(form){
@@ -74,7 +75,7 @@ function findOpportunities(form){
 /* ----- Volunteer sign-ups ----- */
 
 // Sign the current volunteer up for an event, after checking it's allowed.
-function signup(eid){
+function signup(eid, trigger){
   const u = currentUser(), e = eventById(eid);
   if (e.date < TODAY) return toast("This event has already happened.", "bad");
   if (spotsLeft(e) <= 0) return toast("This event just filled up. You can join the waitlist instead.", "bad");
@@ -82,21 +83,40 @@ function signup(eid){
   if (existing && existing.status !== "waitlist") return toast("You're already signed up for this event.", "bad");
   const clash = findClash(u.id, e);
   if (clash) return toast(`This overlaps with ${clash.title} (${timeRange(clash)}) that day.`, "bad");
+  const success = () => {
+    const registration = myReg(u.id, eid);
+    if (registration?.status === "waitlist") toast(`You joined the waitlist for ${e.title}.`);
+    else toast(`You're signed up for ${e.title} on ${fmtDate(e.date)}.`);
+  };
+  const record = {id:DB.newId("regs"), userId:u.id, eventId:eid, status:"registered", hours:0};
+  if (DB.live) return saveLiveRecords(`shift:${eid}`, "Saving your sign-up…", trigger, "regs",
+    [existing ? {id:existing.id, fields:{status:"registered"}} : {id:record.id, record}], success);
   if (existing) DB.update("regs", existing, {status:"registered"});
-  else DB.add("regs", {id:DB.newId("regs"), userId:u.id, eventId:eid, status:"registered", hours:0});
-  save(); render(); toast(`You're signed up for ${e.title} on ${fmtDate(e.date)}.`);
+  else DB.add("regs", record);
+  save(); render(); success();
 }
 
 // Add the current volunteer to the end of a full event's waitlist.
-function joinWaitlist(eid){
+function joinWaitlist(eid, trigger){
   const u = currentUser(), e = eventById(eid);
   if (e.date < TODAY) return toast("This event has already happened.", "bad");
-  if (spotsLeft(e) > 0) return signup(eid);                       // a spot is open, so just sign up
+  if (spotsLeft(e) > 0) return signup(eid, trigger);                       // a spot is open, so just sign up
   if (myReg(u.id, eid)) return toast("You're already on the list for this event.", "bad");
   const clash = findClash(u.id, e);
   if (clash) return toast(`This overlaps with ${clash.title} (${timeRange(clash)}) that day.`, "bad");
-  const r = DB.add("regs", {id:DB.newId("regs"), userId:u.id, eventId:eid, status:"waitlist", hours:0});
+  const r = {id:DB.newId("regs"), userId:u.id, eventId:eid, status:"waitlist", hours:0};
+  if (DB.live) return saveLiveRecords(`shift:${eid}`, "Joining waitlist…", trigger, "regs", [{id:r.id, record:r}],
+    () => toast(`You joined the waitlist for ${e.title}.`));
+  DB.add("regs", r);
   save(); render(); toast(`You're #${waitlistPosition(r)} on the waitlist for ${e.title}.`);
+}
+
+// Confirm the primary save before showing success. Errors leave the original control
+// and any form inputs available so the user can correct the problem or try again.
+function saveLiveRecords(key, label, trigger, coll, changes, success, failure){
+  return runPending(key, label, trigger, () => DB.commit(coll, changes),
+    () => { success(); render(); },
+    failure || (error => toast(`Couldn't complete that change. ${Cloud.friendly(error)}`, "bad")));
 }
 
 /* ----- Events ----- */
@@ -125,25 +145,41 @@ function saveEventForm(form){
   if (!showErrors(form, errs)) { $("#ef-err").textContent = "Fix the highlighted fields to continue."; return; }
   if (clubId && !isClubManager(clubId)) return toast("You can only post events for clubs you manage.", "bad");
   const ev = {...d, slots:n, minAge:age, clubId, updatedAt:TODAY};
-  let msg;
-  if (old){
-    // Tell everyone signed up if the when or where changed
-    const changed = [old.date !== ev.date && "date", (old.start !== ev.start || old.end !== ev.end) && "time", (old.location !== ev.location || (old.zip || "") !== ev.zip) && "location"].filter(Boolean);
-    DB.update("events", old, ev);
+  const changed = old && [old.date !== ev.date && "date", (old.start !== ev.start || old.end !== ev.end) && "time",
+    (old.location !== ev.location || (old.zip || "") !== ev.zip) && "location"].filter(Boolean);
+  const finishUpdate = () => {
+    const event = eventById(id);
     if (changed.length){
-      [...activeRegs(old.id), ...waitlistFor(old.id)].filter(r => r.status !== "attended" && r.status !== "no-show")
-        .forEach(r => notify(r.userId, `${old.title} changed ${changed.join(" and ")}: now ${fmtDate(old.date)}, ${timeRange(old)}, at ${old.location}.`, null, old.clubId));
+      [...activeRegs(id), ...waitlistFor(id)].filter(r => r.status !== "attended" && r.status !== "no-show")
+        .forEach(r => notify(r.userId, `${event.title} changed ${changed.join(" and ")}: now ${fmtDate(event.date)}, ${timeRange(event)}, at ${event.location}.`, null, event.clubId));
     }
-    const moved = fillFromWaitlist(old);                            // more spots? move people off the waitlist
-    msg = `Event updated.${changed.length ? " Volunteers were told about the change." : ""}${moved.length ? ` ${moved.length} moved off the waitlist.` : ""}`;
-  } else {
-    const me = currentUser().id;
-    for (let k = 0; k <= repeat; k++){
-      DB.add("events", {id:DB.newId("events") + k, ...ev, date:k ? iso(new Date(parseDate(ev.date).getTime() + k * 7 * 86400000)) : ev.date, postedBy:me, postedAt:TODAY});
-    }
-    msg = repeat ? `${ev.title} was created for ${repeat + 1} weeks in a row.` : `${ev.title} was created.`;
+    const moved = fillFromWaitlist(event);
+    return DB.live ? "Event updated."
+      : `Event updated.${changed.length ? " Volunteers were told about the change." : ""}${moved.length ? ` ${moved.length} moved off the waitlist.` : ""}`;
+  };
+  const newMessage = repeat ? `${ev.title} was created for ${repeat + 1} weeks in a row.` : `${ev.title} was created.`;
+  const seriesId = DB.live && !old ? DB.newId("events") : null;
+  const makeEvent = k => ({id:(seriesId || DB.newId("events")) + k, ...ev,
+    date:k ? iso(new Date(parseDate(ev.date).getTime() + k * 7 * 86400000)) : ev.date, postedBy:currentUser().id, postedAt:TODAY});
+  if (DB.live){
+    const changes = old ? [{id, fields:ev}] : Array.from({length:repeat + 1}, (_, k) => {
+      const record = makeEvent(k);
+      return {id:record.id, record};
+    });
+    return saveLiveRecords(`event:${id || "new"}`, old ? "Saving event changes…" : "Creating event…", form.querySelector('[type="submit"]'),
+      "events", changes, () => {
+        if (form.isConnected) closeModal();
+        toast(old ? finishUpdate() : newMessage);
+      }, err => {
+        const message = `Couldn't save the event. ${Cloud.friendly(err)}`;
+        if (form.isConnected) form.querySelector("#ef-err").textContent = message;
+        else toast(message, "bad");
+      });
   }
-  save(); closeModal(); render(); toast(msg);
+  if (old) DB.update("events", old, ev);
+  else for (let k = 0; k <= repeat; k++) DB.add("events", makeEvent(k));
+  const message = old ? finishUpdate() : newMessage;
+  save(); closeModal(); render(); toast(message);
 }
 
 function postAnnouncement(form){
@@ -196,9 +232,14 @@ function addSampleEvents(){
 
 /* ----- Two-step confirm actions (the button says "Confirm ..." after the first click) ----- */
 
-function confirmAction(kind, id){
+function confirmAction(kind, id, trigger){
   if (kind === "cancel" || kind === "leave"){
     const r = state.regs.find(x => x.id === id), e = eventById(r.eventId), wasWaiting = r.status === "waitlist";
+    if (DB.live) return saveLiveRecords(`shift:${e.id}`, wasWaiting ? "Leaving waitlist…" : "Cancelling shift…", trigger,
+      "regs", [{id, fields:{status:"cancelled"}}], () => {
+        if (!wasWaiting) fillFromWaitlist(e);
+        toast(wasWaiting ? `You left the waitlist for ${e.title}.` : "Your shift was cancelled.");
+      });
     DB.update("regs", r, {status:"cancelled"});
     if (wasWaiting) return toast(`You left the waitlist for ${e.title}.`);
     const moved = fillFromWaitlist(e);
@@ -265,12 +306,12 @@ const handlers = {
   nav: (v) => {
     const u = currentUser();
     if (u.role === "volunteer" && v === "manage") v = "clubs";
-    if (v === "news" && u.role === "volunteer"){            // remember what was new, then mark it all read
+    if (v === "news" && u.role === "volunteer" && !Cloud.loadPhase){            // remember what was new, then mark it all read
       ui.newsSeen = readSet(u.id);
       ui.newNotices = new Set(noticesFor(u.id).filter(n => !n.read).map(n => n.id));
       markAllRead(u); save();
     }
-    ui.view = v; ui.armed = null; closeModal(false);
+    ui.view = v; ui.requestedRoute = null; ui.armed = null; closeModal(false);
     if (ui.tour){ const i = tourSteps(u).findIndex(step => step.view === v); if (i >= 0) ui.tour.i = i; }
     if (!ui.fromHistory && !ui.tour) setPageURL(v);
     render();
@@ -278,6 +319,8 @@ const handlers = {
     const m = $("#page-title") || $("#main"); if (m) m.focus({preventScroll:true}); window.scrollTo(0, 0);
   },
   authmode: (v) => navigatePublic(v),
+  retryLoad: () => Cloud.retryLoad(),
+  cloudSignOut: () => Cloud.logout().catch(error => toast(Cloud.friendly(error), "bad")),
   demo: (v) => {
     if (Cloud.enabled && !ui.demo) Cloud.enterDemo();       // explore sample data without touching live data
     Object.assign(ui.find, {q:"", location:null}); ui.disclosures.clear();
@@ -299,13 +342,13 @@ const handlers = {
   waiver: () => openModal(`<div class="spread"><h2>Volunteer waiver</h2><button class="btn secondary sm" data-act="close">Close</button></div><div class="waiver-text">${esc(state.org.waiver || DEFAULT_WAIVER).replace(/\n/g, "<br>")}</div>`),
 
   // Volunteer sign-ups
-  signup: (_, id) => signup(asId(id)),
-  waitlist: (_, id) => joinWaitlist(asId(id)),
+  signup: (_, id, ev) => signup(asId(id), ev.target.closest("button")),
+  waitlist: (_, id, ev) => joinWaitlist(asId(id), ev.target.closest("button")),
   dismiss: (_, id) => { const n = state.notices.find(x => x.id === asId(id)); if (n) DB.update("notices", n, {read:true}); save(); render(); },
 
   // Two-step confirm buttons
   arm: (v) => { ui.armed = v; render(); },
-  confirm: (v) => { const i = v.indexOf(":"), kind = v.slice(0, i), id = asId(v.slice(i + 1)); ui.armed = null; confirmAction(kind, id); save(); render(); },
+  confirm: (v, _, ev) => { const i = v.indexOf(":"), kind = v.slice(0, i), id = asId(v.slice(i + 1)); ui.armed = null; confirmAction(kind, id, ev.target.closest("button")); save(); render(); },
 
   // Events and check-in
   newEvent: () => openModal(eventForm(null)),
@@ -316,11 +359,22 @@ const handlers = {
   },
   evtab: (v) => { ui.ev.tab = v; render(); },
   goCheckin: (_, id) => { ui.ciEvent = asId(id); handlers.nav("checkin"); },
-  mark: (v, id) => { const r = state.regs.find(x => x.id === asId(id)), e = eventById(r.eventId); DB.update("regs", r, {status:v, hours:v === "attended" ? duration(e) : 0}); save(); render(); },
-  allPresent: (_, id) => {
-    const e = eventById(asId(id)); let k = 0;
-    activeRegs(e.id).forEach(r => { if (r.status === "registered"){ DB.update("regs", r, {status:"attended", hours:duration(e)}); k++; } });
-    save(); render(); toast(`Marked ${k} ${k === 1 ? "volunteer" : "volunteers"} present.`);
+  mark: (v, id, ev) => {
+    const r = state.regs.find(x => x.id === asId(id)), e = eventById(r.eventId);
+    const fields = {status:v, hours:v === "attended" ? duration(e) : 0};
+    if (DB.live) return saveLiveRecords(`attendance:${e.id}`, "Saving attendance…", ev.target.closest("button"), "regs",
+      [{id:r.id, fields}], () => toast(`Attendance saved for ${userById(r.userId).name}.`));
+    DB.update("regs", r, fields); save(); render();
+  },
+  allPresent: (_, id, ev) => {
+    const e = eventById(asId(id)), regs = activeRegs(e.id).filter(r => r.status === "registered");
+    if (!regs.length) return;
+    const fields = {status:"attended", hours:duration(e)};
+    const success = () => toast(`Marked ${regs.length} ${regs.length === 1 ? "volunteer" : "volunteers"} present.`);
+    if (DB.live) return saveLiveRecords(`attendance:${e.id}`, "Saving attendance…", ev.target.closest("button"), "regs",
+      regs.map(r => ({id:r.id, fields})), success);
+    regs.forEach(r => DB.update("regs", r, fields));
+    save(); render(); success();
   },
   copyEmails: (_, id) => {
     const list = activeRegs(asId(id)).map(r => userById(r.userId).email).filter(Boolean);

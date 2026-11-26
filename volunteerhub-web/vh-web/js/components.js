@@ -89,10 +89,10 @@ function replacementControl(element, root){
 function modalControls(){
   return [...document.querySelectorAll('#modal button, #modal input, #modal select, #modal textarea, #modal a[href], #modal [tabindex]')].filter(el => !el.disabled && el.tabIndex >= 0 && el.getClientRects().length);
 }
-function openModal(html){
+function openModal(html, {dismissOnBackdrop = true} = {}){
   if (!$("#modal").firstElementChild) modalOpener = document.activeElement;
   ui.modalEvent = null;
-  $("#modal").innerHTML = `<div class="overlay" data-act="overlay"><div class="modal" role="dialog" aria-modal="true" tabindex="-1">${html}</div></div>`;
+  $("#modal").innerHTML = `<div class="overlay" ${dismissOnBackdrop ? 'data-act="overlay"' : ''}><div class="modal" role="dialog" aria-modal="true" tabindex="-1">${html}</div></div>`;
   const dialog = $("#modal .modal"), title = dialog.querySelector("h2");
   if (title){ title.id = "modal-title"; dialog.setAttribute("aria-labelledby",title.id); }
   else dialog.setAttribute("aria-label","VolunteerHub dialog");

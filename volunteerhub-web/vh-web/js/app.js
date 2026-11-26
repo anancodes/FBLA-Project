@@ -12,6 +12,7 @@ function applyPrefs(){
   root.style.fontSize = state.prefs.font + "px";
   document.body.classList.toggle("hc", !!state.prefs.hc);
   if (t === "auto") root.removeAttribute("data-theme"); else root.setAttribute("data-theme", t);
+  positionDisplaySettings();
 }
 
 function render(){
@@ -25,6 +26,8 @@ function render(){
     ui.view = ui.requestedRoute;
     if (!Cloud.loadPhase) ui.requestedRoute = null;
   }
+  const previousViewKey = ui.renderKey;
+  const displayWasOpen = Boolean(activeDisplaySettings());
   if (ui.renderKey) document.querySelectorAll("#app details[id]").forEach(el => {
     const key = `${ui.renderKey}:${el.id}`;
     if (el.open) ui.disclosures.add(key); else ui.disclosures.delete(key);
@@ -41,6 +44,7 @@ function render(){
   document.title = pageTitle ? `${pageTitle.textContent} | VolunteerHub` : "VolunteerHub";
   const openingWorkspace = DB.live && ui.renderKey?.startsWith("auth:") && ui.authMode !== "landing";
   ui.renderKey = `${u ? u.id : "auth"}:${u ? ui.view : ui.authMode}`;
+  const keepDisplayOpen = displayWasOpen && previousViewKey === ui.renderKey && !(DB.live && Cloud.loadPhase === "workspace");
   document.querySelectorAll("#app details[id]").forEach(el => { if (ui.disclosures.has(`${ui.renderKey}:${el.id}`)) el.open = true; });
   ui.expandClub = null;
   typed.forEach(([id, v]) => { const el = document.getElementById(id); if (!el) return; if (typeof v === "boolean") el.checked = v; else el.value = v; });
@@ -52,10 +56,11 @@ function render(){
     const title = m.querySelector("h2"); if (title) title.id = "modal-title";
     if (hadFocus) (replacementControl(a,m) || modalControls()[0] || m).focus();
   }
+  if (keepDisplayOpen) openDisplaySettings();
   syncPendingControls();
   const connection = $(".load-status:not([hidden])")?.textContent || "";
   if ($("#connection-status").textContent !== connection) $("#connection-status").textContent = connection;
-  if (openingWorkspace && pageTitle) pageTitle.focus({preventScroll:true});
+  if (openingWorkspace && pageTitle && !keepDisplayOpen) pageTitle.focus({preventScroll:true});
   else if (fid){ const el = document.getElementById(fid); if (el){ el.focus(); try { if (sel) el.setSelectionRange(sel[0], sel[1]); } catch(e){} } }
   else if (hadAppFocus){
     const disclosure = focusDisclosureId && document.getElementById(focusDisclosureId);
@@ -98,6 +103,8 @@ function shell(u){
 }
 
 document.addEventListener("click", ev => {
+  const panel = activeDisplaySettings();
+  if (panel && !panel.hasAttribute("popover") && !ev.target.closest("#display-trigger, #display-settings-panel")) closeDisplaySettings(false);
   const el = ev.target.closest("[data-act]");
   if (!el || el.disabled) return;
   if (Cloud.loadPhase === "workspace" && DB.live && !["retryLoad","logout"].includes(el.dataset.act)){ ev.preventDefault(); return; }
@@ -180,11 +187,20 @@ document.addEventListener("keydown", ev => {
   if (ev.key === "Tab") return trapModalTab(ev);
   if (ev.key !== "Escape") return;
   if ($("#modal").innerHTML) return closeModal();
-  if (ui.displayOpen){ ui.displayOpen = false; render(); $("#display-trigger").focus(); return; }
+  if (activeDisplaySettings()){
+    ev.preventDefault();
+    return closeDisplaySettings();
+  }
   const disclosure = $("#app details.overflow-menu[open]") || document.activeElement.closest("#app details[open]");
   if (disclosure){ disclosure.open = false; disclosure.querySelector("summary").focus(); return; }
   if (ui.tour) endTour();
 });
+
+document.addEventListener("beforetoggle", ev => {
+  if (ev.target.id === "display-settings-panel") $("#display-trigger")?.setAttribute("aria-expanded", String(ev.newState === "open"));
+}, true);
+window.addEventListener("resize", positionDisplaySettings);
+window.addEventListener("scroll", positionDisplaySettings, {capture:true, passive:true});
 
 const initialRoute = pageFromURL();
 ui.authMode = publicModeFromURL(initialRoute);

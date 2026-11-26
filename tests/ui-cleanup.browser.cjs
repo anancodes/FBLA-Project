@@ -156,7 +156,22 @@ test('Inbox combines shift updates with announcements and expands messages witho
 test('coordinator composition posts exactly one announcement and preserves delete confirmation',async t => {
   const p = await helper.page(t); await helper.signIn(p,1); await p.locator('.rail [data-v="news"]').click();
   const before = await p.evaluate(() => state.announcements.length);
-  await p.locator('#inbox-compose > summary').click(); await p.locator('#an-title').fill('Library service update'); await p.locator('#an-body').fill('Please arrive at the side entrance.\nBring a water bottle.'); await p.locator('#annForm [type="submit"]').click();
+  const compose=p.getByRole('button',{name:'New announcement'}), dialog=p.getByRole('dialog',{name:'New announcement'});
+  await compose.focus(); await p.keyboard.press('Enter'); await dialog.waitFor();
+  assert.equal(await p.evaluate(() => document.querySelector('#app').inert),true);
+  await p.keyboard.press('Escape'); assert.equal(await dialog.count(),0);
+  assert.equal(await p.evaluate(() => document.activeElement.id),'inbox-compose');
+  await compose.click(); await dialog.getByRole('button',{name:'Post announcement'}).click();
+  assert.equal(await p.locator('#an-title').getAttribute('aria-invalid'),'true');
+  await p.locator('#an-title').fill('Library service update');
+  await p.locator('#an-body').fill('Please arrive at the side entrance.\nBring a water bottle.');
+  await p.mouse.click(5,5);
+  assert.equal(await dialog.isVisible(),true);
+  await p.evaluate(() => render());
+  assert.equal(await p.locator('#an-title').inputValue(),'Library service update');
+  await dialog.getByRole('button',{name:'Post announcement'}).click();
+  assert.equal(await dialog.count(),0);
+  assert.equal(await p.evaluate(() => document.activeElement.id),'inbox-compose');
   assert.equal(await p.evaluate(() => state.announcements.length),before+1);
   const id = await p.evaluate(() => state.announcements[state.announcements.length-1].id), message = p.locator(`#message-announcement-${id}`);
   await message.locator('summary').click(); await message.locator('[data-act="arm"]').click();
@@ -202,6 +217,11 @@ test('axe finds no accessibility violations across role screens and account form
       for (const view of views){
         await p.evaluate(({view,id}) => { if (id) handlers.nav(view); else { ui.authMode = view === 'signup' ? 'signup' : 'login'; render(); } },{view,id});
         await scan(`${width}px ${theme} user ${id}: ${view}`);
+        if (id === 1 && view === 'news'){
+          await p.locator('#inbox-compose').click();
+          await scan(`${width}px ${theme} announcement composer`);
+          await p.keyboard.press('Escape');
+        }
       }
     }
   }

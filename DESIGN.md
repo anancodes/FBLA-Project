@@ -30,14 +30,14 @@ typography:
   public-field: {fontFamily: 'Bitter, Georgia, serif', fontSize: "1rem", fontWeight: 400, lineHeight: 1.65}
   public-meta: {fontFamily: 'Bitter, Georgia, serif', fontSize: "0.875rem", fontWeight: 400, lineHeight: 1.65}
 rounded: {control: "4px", dialog: "12px"}
-spacing: {fine: "4px", small: "8px", compact: "12px", normal: "16px", group: "24px", section: "32px", desktop: "56px", public-gutter: "clamp(1.25rem, 4vw, 4rem)", public-section: "3.5rem", public-columns: "4rem"}
+spacing: {fine: "4px", small: "8px", compact: "12px", normal: "16px", group: "24px", section: "32px", desktop: "36px", public-gutter: "clamp(1.25rem, 4vw, 4rem)", public-section: "3.5rem", public-columns: "4rem"}
 components:
   button-primary: {backgroundColor: "{colors.action}", textColor: "{colors.field}", typography: "{typography.label}", rounded: "{rounded.control}", padding: "10px 18px"}
   button-secondary: {backgroundColor: "{colors.field}", textColor: "{colors.ink}", typography: "{typography.label}", rounded: "{rounded.control}", padding: "10px 18px"}
   input: {backgroundColor: "{colors.field}", textColor: "{colors.ink}", rounded: "{rounded.control}", padding: "7px 10px"}
   nav-link: {backgroundColor: "{colors.sidebar}", textColor: "#f0f5f8", rounded: "{rounded.control}", padding: "10px 12px"}
   progress: {backgroundColor: "{colors.divider}", rounded: "0", height: "6px"}
-  inline-settings: {backgroundColor: "{colors.sidebar}", padding: "12px 0 20px"}
+  display-popover: {backgroundColor: "{colors.field}", textColor: "{colors.ink}", rounded: "{rounded.dialog}", padding: "12px 16px"}
   public-button-primary: {backgroundColor: "{colors.action}", textColor: "{colors.field}", typography: "{typography.public-label}", rounded: "{rounded.control}", padding: "10px 20px"}
   public-button-secondary: {backgroundColor: "{colors.field}", textColor: "{colors.ink}", typography: "{typography.public-label}", rounded: "{rounded.control}", padding: "10px 20px"}
   public-input: {backgroundColor: "{colors.field}", textColor: "{colors.ink}", typography: "{typography.public-field}", rounded: "{rounded.control}", padding: "7px 10px"}
@@ -102,15 +102,15 @@ The runtime preference starts at (16px), preserves saved preferences, and adjust
 
 ## Layout
 
-Desktop uses a navigation column (256px) and a flexible reading column; the rail becomes (224px) at widths up to (1200px). Main content has padding (56px 56px 48px), a centered maximum width (1280px) and a page gap (28px). The document scrolls normally; above (900px), the sidebar is sticky and independently scrolls only when needed.
+Desktop uses a navigation column (256px) and a flexible reading column. The rail becomes (224px) at widths up to (1200px). Main content has vertical padding (36px), fluid side gutters (24–44px), a centered maximum width (1280px) and a page gap (20px). The document scrolls normally. Above (900px), the sidebar is sticky and scrolls independently as needed.
 
-At widths up to (900px), signed-in navigation becomes a header with wrapped links and no navigation icons; main padding becomes (32px 24px 36px). At (620px), horizontal padding is (20px) and Home becomes one column. Tables retain local overflow.
+At widths up to (900px), signed-in navigation becomes a header with wrapped text links and main padding becomes (24px 24px 32px). At (620px), horizontal padding is (20px) and Home becomes one column. Tables retain local overflow.
 
 Home shows equal-weight dated shifts beside a quieter hours column (224px; 192px at the intermediate size), then recommendations across the full width. Groups use whitespace and hairline dividers. Footer actions remain in the normal document flow. Print hides navigation and footer and restores a single reading column.
 
 Public pages use fluid gutters from the frontmatter. The horizontal masthead has minimum height (76px); the broad hero has minimum height (32rem), increasing to (36rem) at widths from (1600px), with a left white introduction inset (30rem wide, 2rem padding). Sections center within (82rem); process and sample record, audiences and demo choices use equal columns. At widths up to (900px), the photograph stacks above the full-width introduction, with image height clamped from (12rem) to (23rem); column gaps reduce to (2rem). At (700px), section columns stack, section padding becomes (2.5rem), navigation fills a wrapped row and the footer stacks. At (360px), sample-record labels and values stack.
 
-Sign-in, signup and live password reset share the public masthead/footer and a single centered account column (31rem maximum) with padding (3.5rem 1.5rem 4rem), reducing top padding to (2rem) at (700px). Sign-in places the two role demos below a divider; signup and reset keep their form focus.
+Sign-in, signup and live password reset share the public masthead, footer and a centered account column. Signup and reset use a maximum width of (31rem). Sign-in uses (40rem) to give the volunteer and coordinator demo panels equal columns below the form. The demo panels wrap to one column if the available width is too small for the selected text size.
 
 ## Elevation & Depth
 
@@ -128,7 +128,7 @@ Regular controls and the desktop public introduction use the small frontmatter r
 
 **Buttons.** Primary actions use slate blue and white; hover deepens background and border. Secondary actions use a white field, dark ink and a stronger divider, with a quiet-field hover. Standard controls have minimum height (42px); small controls use (34px), while Home row actions use (40px) and padding (8px 15px). Disabled controls reduce opacity to (0.45).
 
-**Public actions and fields.** Scoped buttons use the public label tokens and minimum height (46px); the masthead sign-in reduces to (44px) at (700px). Footer segmented preference buttons use height (36px); its high-contrast button retains the public minimum. Account text/select fields use the public field tokens and minimum height (44px), retaining visible labels, error text and focus treatment. Live forms disable submission while connecting; password reset appears in live mode and returns to sign-in after requesting the link.
+**Public actions and fields.** Scoped buttons use the public label tokens and minimum height (46px). The masthead sign-in reduces to (44px) at (700px). Account text and select fields use the public field tokens and minimum height (44px), retaining visible labels, error text and focus treatment. Live forms disable submission while connecting. Password reset appears in live mode and returns to sign-in after requesting the link.
 
 **Inputs.** Labels sit above fields with a small gap (5px). Fields use a stronger control boundary, minimum height (36px) and font size (0.92rem). Focus adds the action-colored boundary and accent-soft ring; invalid fields use the red boundary, ring and error text. Textareas can resize vertically.
 
@@ -136,9 +136,11 @@ Regular controls and the desktop public introduction use the small frontmatter r
 
 **Progress and records.** Home uses a slim meter with numeric hours, goal and percentage. Other progress surfaces retain their existing compact boundaries and status text. Signed up, waitlisted, attended, pending and approved remain separate states.
 
-**Inline settings.** Display settings expand inside navigation with a labeled text-size pair, theme segments and an `aria-pressed` high-contrast control. Help and Profile are ordinary links; tour, sign-out and demo reset remain explicit actions in the footer.
+**Display settings.** Help and Display settings are grouped immediately after the signed-in navigation. The public footer uses the same settings popover. The popover anchors to its trigger and fits within the current viewport. It groups text size, theme and high contrast, and dismisses on an outside click, Escape or Close. Escape and Close return focus to the trigger.
 
-**Public navigation and content.** The masthead links to process and school/nonprofit sections and keeps sign-in primary. The hero's adjacent demo link leads to both existing volunteer and coordinator demo handlers. Ordinary fragment links, browser history, a skip link, route-heading focus and focusable section targets support keyboard navigation. The lower page pairs an ordered three-step process with a labeled sample record, gives schools and nonprofits equal standing, offers both fictional role demos and ends with footer demo access and expandable saved display settings. Dark/high-contrast colors and root text-size preferences remain shared; the sample record gains an ink outline in high contrast.
+**Inbox and announcements.** Message rows group the subject, sender and preview, with the delivery time and disclosure control on the right. Unread items pair a dot with a spoken label. Coordinators open an announcement dialog with audience, headline and message fields. The post and cancel actions sit together below the message.
+
+**Public navigation and content.** The masthead links to process and school/nonprofit sections and keeps sign-in primary. The hero's adjacent demo link leads to both existing volunteer and coordinator demo handlers. Ordinary fragment links, browser history, a skip link, route-heading focus and focusable section targets support keyboard navigation. The lower page pairs an ordered three-step process with a labeled sample record, gives schools and nonprofits equal standing, offers both fictional role demos and ends with footer access to the demo and display settings. Dark and high-contrast colors and root text-size preferences remain shared. The sample record gains an ink outline in high contrast.
 
 **Public photograph.** One generated garden photograph is a temporary owner-accepted filler, replaceable with the owner's own image; it is disclosed as illustrative and does not depict verified VolunteerHub volunteers. Keep the broad crop with subjects toward the right for the desktop inset and review its tighter phone crop. Replace its alt text, visible caption and provenance with accurate information when replacing the image. On image failure, hide the image/caption and retain the introduction and actions in a shorter usable hero. The one-photo limit belongs to this public variant, not a global ban on imagery.
 

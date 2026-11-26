@@ -51,14 +51,10 @@ function demoChoices(){
   </div>`;
 }
 function publicFooter(){
-  const theme = state.prefs.theme || "auto";
   return `<footer class="public-footer"><a class="public-brand" href="#home" data-act="authmode" data-v="landing">VolunteerHub</a>
     <div class="public-footer-links"><a href="#demo">Explore the demo</a>
-    <details id="public-display-settings" class="public-prefs"><summary>Display settings</summary><div class="public-prefs-controls">
-      <div><span>Text size</span><span class="seg"><button data-act="font" data-v="-2" aria-label="Smaller text">A−</button><button data-act="font" data-v="2" aria-label="Larger text">A+</button></span></div>
-      <div><span>Theme</span><span class="seg">${["auto","light","dark"].map(t => `<button data-act="setTheme" data-v="${t}" aria-pressed="${theme === t}">${THEME_LABEL[t]}</button>`).join("")}</span></div>
-      <div><span>High contrast</span><button class="btn secondary sm" data-act="contrast" aria-pressed="${!!state.prefs.hc}">${state.prefs.hc ? "On" : "Off"}</button></div>
-    </div></details></div></footer>`;
+    ${displaySettingsTrigger("linkbtn public-prefs-trigger")}
+    ${displaySettingsPanel()}</div></footer>`;
 }
 function landingView(){
   const orgName = state.org.name && state.org.name !== "Your Organization" ? state.org.name : "";

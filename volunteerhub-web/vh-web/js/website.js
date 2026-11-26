@@ -34,11 +34,13 @@ function websiteShell(u){
       <aside class="pv-sidebar" ${loading ? "inert" : ""}>
         <div class="pv-brand"><a href="#dashboard" data-act="nav" data-v="dashboard">VolunteerHub</a>${state.org.name !== "Your Organization" ? `<span>${esc(state.org.name)}</span>` : ""}${!DB.live ? `<span>Demo data</span>` : ""}</div>
         <nav class="rail" aria-label="Main">${menuFor(u).map(([view,label]) => `<a href="#${view}" data-act="nav" data-v="${view}" ${section === view ? 'aria-current="page"' : ""} class="${ui.tour && section === view ? "tour-hl" : ""}">${icon(NAV_ICON[view])}<span>${label}</span>${!loading && counts[view] ? `<span class="count" aria-label="${counts[view]} ${countLabel[view]}">${counts[view]}</span>` : ""}</a>`).join("")}</nav>
+        <div class="pv-tools">
+          <a class="pv-utility" href="#help" data-act="nav" data-v="help">${icon("help")}<span>Help</span></a>
+          ${displaySettingsTrigger("pv-utility", icon("sliders"))}
+          ${displaySettingsPanel()}
+        </div>
         <div class="pv-sidebar-bottom">
           <div class="pv-account"><div><strong>${esc(u.name)}</strong><small>${role}</small></div>${u.role === "volunteer" ? `<a class="pv-profile" href="#profile" data-act="nav" data-v="profile">Profile</a>` : ""}</div>
-          <a class="pv-utility" href="#help" data-act="nav" data-v="help">${icon("help")}<span>Help</span></a>
-          <button class="pv-utility" id="display-trigger" data-act="display" aria-expanded="${!!ui.displayOpen}" aria-controls="display-settings-panel">${icon("sliders")}<span>Display settings</span></button>
-          ${displaySettingsPanel()}
         </div>
       </aside>
       <div class="pv-workspace">
@@ -49,13 +51,56 @@ function websiteShell(u){
   </div>`;
 }
 
+function displaySettingsTrigger(className, glyph = ""){
+  return `<button class="${className}" type="button" id="display-trigger" popovertarget="display-settings-panel" aria-expanded="false" data-act="toggleDisplaySettings">${glyph}<span>Display settings</span></button>`;
+}
+
 function displaySettingsPanel(){
   const theme = state.prefs.theme || "auto";
-  return `<section class="pv-display" id="display-settings-panel" aria-label="Display settings" ${ui.displayOpen ? "" : "hidden"}>
-    <div><span>Text size</span><span class="seg"><button data-act="font" data-v="-2" aria-label="A−, smaller text">A−</button><button data-act="font" data-v="2" aria-label="A+, larger text">A+</button></span></div>
-    <div><span>Theme</span><span class="seg">${["auto","light","dark"].map(t => `<button data-act="setTheme" data-v="${t}" aria-pressed="${theme === t}">${THEME_LABEL[t]}</button>`).join("")}</span></div>
-    <div><span>High contrast</span><button class="btn secondary sm" data-act="contrast" aria-pressed="${!!state.prefs.hc}">${state.prefs.hc ? "On" : "Off"}</button></div>
+  const visibility = typeof HTMLElement.prototype.showPopover === "function" ? "popover" : "hidden";
+  return `<section class="pv-display" id="display-settings-panel" ${visibility} aria-labelledby="display-settings-title">
+    <header class="pv-display-head">
+      <h2 id="display-settings-title">Display settings</h2>
+      <button class="linkbtn" type="button" data-act="closeDisplaySettings">Close</button>
+    </header>
+    <div class="pv-display-row"><span>Text size</span><span class="seg" role="group" aria-label="Text size"><button data-act="font" data-v="-2" aria-label="A−, smaller text">A−</button><button data-act="font" data-v="2" aria-label="A+, larger text">A+</button></span></div>
+    <div class="pv-display-row"><span>Theme</span><span class="seg" role="group" aria-label="Theme">${["auto","light","dark"].map(t => `<button data-act="setTheme" data-v="${t}" aria-pressed="${theme === t}">${THEME_LABEL[t]}</button>`).join("")}</span></div>
+    <button class="pv-display-row pv-display-contrast" type="button" data-act="contrast" aria-pressed="${!!state.prefs.hc}"><span>High contrast</span><span class="pv-display-state" aria-hidden="true">${state.prefs.hc ? "On" : "Off"}</span></button>
   </section>`;
+}
+
+function activeDisplaySettings(){
+  return $("#display-trigger[aria-expanded='true']") ? $("#display-settings-panel") : null;
+}
+
+function openDisplaySettings(){
+  const panel = $("#display-settings-panel"), trigger = $("#display-trigger");
+  if (panel.hasAttribute("popover")) panel.showPopover({source:trigger});
+  else { panel.hidden = false; trigger.setAttribute("aria-expanded", "true"); }
+  positionDisplaySettings();
+}
+
+function positionDisplaySettings(){
+  const panel = activeDisplaySettings();
+  if (!panel) return;
+  const anchor = $("#display-trigger").getBoundingClientRect();
+  const {clientWidth, clientHeight} = document.documentElement;
+  if (anchor.bottom < 0 || anchor.top > clientHeight) return closeDisplaySettings(false);
+  const {offsetWidth, offsetHeight} = panel;
+  const edge = 12, gap = 8;
+  const fitsBeside = anchor.right + gap + offsetWidth <= clientWidth - edge;
+  const above = anchor.bottom + gap + offsetHeight > clientHeight - edge;
+  const left = fitsBeside ? anchor.right + gap : anchor.right - offsetWidth;
+  const top = fitsBeside ? anchor.top : above ? anchor.top - offsetHeight - gap : anchor.bottom + gap;
+  panel.style.left = Math.max(edge, Math.min(left, clientWidth - offsetWidth - edge)) + "px";
+  panel.style.top = Math.max(edge, Math.min(top, clientHeight - offsetHeight - edge)) + "px";
+}
+
+function closeDisplaySettings(restoreFocus = true){
+  const panel = $("#display-settings-panel"), trigger = $("#display-trigger");
+  if (panel.hasAttribute("popover")) panel.hidePopover();
+  else { panel.hidden = true; trigger.setAttribute("aria-expanded", "false"); }
+  if (restoreFocus) trigger.focus();
 }
 
 function agendaDate(date){

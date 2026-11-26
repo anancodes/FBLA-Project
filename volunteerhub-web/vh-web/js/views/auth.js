@@ -55,7 +55,7 @@ function loginView(){
   </div>`;
 
   const panel = ui.authMode === "signup" ? signup : ui.authMode === "reset" && live ? reset : login;
-  return `<div class="public-site public-auth">${publicHeader()}<main id="main" tabindex="-1">${panel}
+  return `<div class="public-site public-auth${panel === login ? ' public-signin' : ""}">${publicHeader()}<main id="main" tabindex="-1">${panel}
     ${panel === login ? `<section class="auth-demo" aria-labelledby="auth-demo-title"><h2 id="auth-demo-title">Explore the demo</h2><p>Fictional sample data. No account needed.</p>${demoChoices()}</section>` : ""}
     </main>${publicFooter()}</div>`;
 }

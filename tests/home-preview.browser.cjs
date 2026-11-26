@@ -48,15 +48,33 @@ test('event distance names the saved city and is omitted without a location',asy
  assert.equal(await p.getByRole('dialog').getByText('Distance',{exact:true}).count(),0);
 });
 
-test('inline display preferences work by keyboard and survive redraws without a dropdown',async t=>{
+test('display preferences open in a popover, survive redraws, and dismiss from outside',async t=>{
  const p=await helper.page(t);await helper.signIn(p);
- const trigger=p.locator('#display-trigger');await trigger.focus();await p.keyboard.press('Enter');
+ const trigger=p.locator('#display-trigger'), panel=p.locator('#display-settings-panel');
+ const heading=p.locator('#page-title');
+ const originalTop=await heading.evaluate(el=>el.getBoundingClientRect().top);
+ await trigger.focus();await p.keyboard.press('Enter');
  assert.equal(await trigger.getAttribute('aria-expanded'),'true');assert.equal(await p.locator('#display-settings-panel').isVisible(),true);
+ assert.ok((await panel.boundingBox()).x > (await trigger.boundingBox()).x + (await trigger.boundingBox()).width,'The panel opens beside the desktop trigger');
  await p.locator('#display-settings-panel [data-act="setTheme"][data-v="dark"]').click();
  assert.equal(await p.locator('html').getAttribute('data-theme'),'dark');assert.equal(await trigger.getAttribute('aria-expanded'),'true');
  await p.locator('#display-settings-panel [data-act="contrast"]').click();assert.equal(await p.locator('body').evaluate(e=>e.classList.contains('hc')),true);
  const before=await p.evaluate(()=>state.prefs.font);await p.locator('#display-settings-panel [data-act="font"][data-v="2"]').click();assert.equal(await p.evaluate(()=>state.prefs.font),before+2);
- await p.keyboard.press('Escape');assert.equal(await p.locator('#display-settings-panel').isVisible(),false);assert.equal(await p.evaluate(()=>document.activeElement.id),'display-trigger');
+ await p.keyboard.press('Escape');assert.equal(await panel.isVisible(),false);assert.equal(await p.evaluate(()=>document.activeElement.id),'display-trigger');
+ await p.evaluate(()=>{state.prefs.font-=2;applyPrefs()});
+ await trigger.click();
+ assert.equal(await heading.evaluate(el=>el.getBoundingClientRect().top),originalTop);
+ await heading.click();
+ assert.equal(await panel.isVisible(),false);
+ await trigger.click();await panel.getByRole('button',{name:'Close'}).click();
+ assert.equal(await panel.isVisible(),false);assert.equal(await p.evaluate(()=>document.activeElement.id),'display-trigger');
+ await p.setViewportSize({width:390,height:720});
+ await trigger.click();
+ await panel.waitFor({state:'visible'});
+ assert.equal(await panel.evaluate(el=>{const r=el.getBoundingClientRect();return r.left>=0 && r.right<=innerWidth && r.top>=0 && r.bottom<=innerHeight}),true);
+ await p.locator('.rail [data-v="news"]').click();
+ assert.equal(await panel.isVisible(),false);
+ assert.equal(await p.locator('h1').textContent(),'Inbox');
 });
 
 test('Open agenda stays consistent across profile, help and coordinator routes',async t=>{
@@ -77,11 +95,11 @@ test('empty Home states provide direct actions and preserve accurate zero-hour p
  await p.evaluate(()=>handlers.nav('dashboard'));assert.equal(await p.getByRole('progressbar').getAttribute('aria-valuenow'),'0');
 });
 
-test('Home, inline settings and event dialogs fit small screens, large text and both themes',async t=>{
+test('Home, display settings and event dialogs fit small screens, large text and both themes',async t=>{
  const p=await helper.page(t);await helper.signIn(p);
  for(const[width,font,theme,hc]of[[1440,15,'light',false],[1415,15,'light',false],[1024,15,'light',false],[768,15,'light',false],[390,15,'dark',false],[320,21,'light',true]]){
   await p.setViewportSize({width,height:900});
-  await p.evaluate(({font,theme,hc})=>{state.prefs={font,theme,hc};ui.view='dashboard';ui.displayOpen=false;render()},{font,theme,hc});
+  await p.evaluate(({font,theme,hc})=>{state.prefs={font,theme,hc};ui.view='dashboard';render()},{font,theme,hc});
   for(const expanded of[false,true]){
    if(expanded)await p.locator('#display-trigger').click();
    assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),`${width}px preferences ${expanded}`);
@@ -101,7 +119,7 @@ test('expanded Home states pass accessibility checks in light and dark themes',{
  const p=await helper.page(t);await helper.signIn(p);await helper.loadAxe(p,axePath);
  const scan=async label=>assert.deepEqual(await p.evaluate(async()=>(await axe.run()).violations.map(v=>({id:v.id,targets:v.nodes.map(n=>n.target)}))),[],label);
  for(const width of[1440,390,320])for(const theme of['light','dark']){
-  await p.setViewportSize({width,height:1000});await p.evaluate(theme=>{state.prefs={font:15,theme,hc:false};ui.displayOpen=false;render()},theme);
+  await p.setViewportSize({width,height:1000});await p.evaluate(theme=>{state.prefs={font:15,theme,hc:false};render()},theme);
   await scan(`${width}px ${theme} Home`);await p.locator('#display-trigger').click();await scan(`${width}px ${theme} preferences`);await p.keyboard.press('Escape');
   await p.locator('.pv-shift [data-act="moreInfo"]').first().click();await scan(`${width}px ${theme} event dialog`);await p.keyboard.press('Escape');
  }

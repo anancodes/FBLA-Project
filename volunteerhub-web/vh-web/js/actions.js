@@ -199,7 +199,7 @@ function postAnnouncement(form){
   const recipientIds = event ? [...new Set([...activeRegs(event.id), ...waitlistFor(event.id)].map(r => r.userId))] : [];
   if (recipientIds.length > 500) return toast("This group exceeds the 500-person limit for a targeted announcement.", "bad");
   const a = DB.add("announcements", {id:DB.newId("announcements"), title, body, audience, recipientIds, authorId:currentUser().id, at:new Date().toISOString()});
-  save(); render(); toast(`Posted. It reaches ${reach(a)} ${reach(a) === 1 ? "volunteer" : "volunteers"}.`);
+  save(); closeModal(); render(); toast(`Posted. It reaches ${reach(a)} ${reach(a) === 1 ? "volunteer" : "volunteers"}.`);
 }
 
 // A volunteer flags a listing that looks wrong, unsafe, or like a scam.
@@ -331,7 +331,10 @@ function copyText(text, what){
 /* ----- Button handlers ----- */
 
 const handlers = {
-  display: () => { ui.displayOpen = !ui.displayOpen; render(); },
+  composeAnnouncement: () => {
+    const user = currentUser();
+    if (user?.role === "coordinator" && (!DB.live || DB.isVerifiedCoordinator(user))) openModal(announcementForm(), {dismissOnBackdrop:false});
+  },
   // Navigation and account
   nav: (v) => {
     if (DB.live && Cloud.loadPhase === "workspace") return;
@@ -363,7 +366,7 @@ const handlers = {
     toast(`Signed in as ${userById(asId(v)).name}.`); maybeStartTour();
   },
   logout: () => {
-    clearPageURL(); setPageURL("login",true); ui.displayOpen = false;
+    clearPageURL(); setPageURL("login",true);
     ui.authMode = "login"; ui.armed = null; ui.tour = null; ui.cal = TODAY.slice(0, 7); ui.find.mode = ui.ev.mode = "list"; ui.find.location = null; ui.find.q = ""; ui.disclosures.clear(); ui.view = "dashboard";
     if (DB.live) return Cloud.logout();
     state.session.userId = null; save();
@@ -469,6 +472,11 @@ const handlers = {
   printCert: () => printView("modal"),
 
   // Pop-ups
+  toggleDisplaySettings: () => {
+    if (activeDisplaySettings()) closeDisplaySettings();
+    else openDisplaySettings();
+  },
+  closeDisplaySettings: () => closeDisplaySettings(),
   close: () => closeModal(),
   overlay: (_, __, ev) => { if (ev.target.classList.contains("overlay")) closeModal(); },
 

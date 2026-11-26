@@ -90,3 +90,31 @@ test('public pages remain readable across sizes, themes and a missing hero image
   assert.equal(await p.locator('.landing-actions a[href="#login"]').isVisible(),true);
   await p.locator('.landing-actions a[href="#login"]').click();assert.equal(await p.locator('#li-email').isVisible(),true);
 });
+
+
+test('sign-in places the volunteer and coordinator demos side by side',async t=>{
+  const p=await helper.page(t);
+  await p.locator('.landing-actions a[href="#login"]').click();
+  for (const width of [320,390,768,1440]){
+    await p.setViewportSize({width,height:900});
+    const volunteer=p.getByRole('button',{name:'Try volunteer demo'});
+    const coordinator=p.getByRole('button',{name:'Try coordinator demo'});
+    const [a,b]=await Promise.all([volunteer.boundingBox(),coordinator.boundingBox()]);
+    assert.ok(a && b && a.x + a.width < b.x && Math.abs(a.y - b.y)<2,`Demo choices align at ${width}px`);
+  }
+});
+
+test('public display settings dismiss outside and keep saved preferences',async t=>{
+  const p=await helper.page(t,{viewport:{width:390,height:844}});
+  await p.locator('.landing-actions a[href="#login"]').click();
+  const trigger=p.getByRole('button',{name:'Display settings',exact:true});
+  const panel=p.locator('#display-settings-panel');
+  await trigger.click();
+  await panel.getByRole('button',{name:'Dark',exact:true}).click();
+  assert.equal(await p.locator('html').getAttribute('data-theme'),'dark');
+  assert.equal(await trigger.getAttribute('aria-expanded'),'true');
+  await p.mouse.click(4,4);
+  assert.equal(await panel.isVisible(),false);
+  await p.reload();
+  assert.equal(await p.locator('html').getAttribute('data-theme'),'dark');
+});

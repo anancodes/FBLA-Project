@@ -32,6 +32,7 @@ test('recommendation signup retains booking behavior and updates the Home count'
  const p=await helper.page(t);await helper.signIn(p);
  const before=await p.evaluate(()=>userStats(currentUser().id).upcoming.length);
  const action=p.locator('.pv-recommendation [data-act="signup"]').first();const id=await action.getAttribute('data-id');await action.click();
+ await p.getByRole('button',{name:'Confirm sign-up'}).click();
  assert.equal(await p.evaluate(id=>myReg(currentUser().id,asId(id)).status,id),'registered');
  assert.equal(await p.evaluate(()=>userStats(currentUser().id).upcoming.length),before+1);
  assert.equal(await p.locator(`.pv-recommendation [data-act="signup"][data-id="${id}"]`).count(),0);

@@ -110,7 +110,7 @@ function eventForm(e){
       </div>
     </details>
     ${isNew ? "" : '<p class="muted small">Changing the date, time, or location sends an update to signed-up volunteers.</p>'}
-    <div class="event-form-actions"><button type="button" class="btn secondary" data-act="close">Cancel</button><button class="btn" type="submit">${isNew ? "Create event" : "Save changes"}</button></div>
+    <div class="event-form-actions"><button type="button" class="btn secondary" data-act="close">Cancel</button><button class="btn" type="submit" ${isNew ? 'aria-haspopup="dialog"' : ""}>${isNew ? "Create event" : "Save changes"}</button></div>
   </form>`;
 }
 
@@ -140,7 +140,7 @@ function cCheckin(u){
     <p class="report-recap"><strong>${roster.length} of ${esc(e.slots)} signed up</strong><span>${present} present</span><span>${absent} missed</span><span>${roster.length - present - absent} to check in</span></p>
     ${locked ? `<p class="formerr" style="background:var(--warn-soft);color:var(--warn)">Check-in opens on the day of the event (${fmtDate(e.date)}). You can still view the roster.</p>` : ""}
   </div>
-  <div class="spread"><h2>Roster</h2><div class="row">${!locked && roster.some(x => x.r.status === "registered") ? `<button class="btn secondary sm" data-act="allPresent" data-id="${esc(e.id)}">Mark everyone else present</button>` : ""}${exportBar(e.id)}</div></div>
+  <div class="spread"><h2>Roster</h2><div class="row">${!locked && roster.some(x => x.r.status === "registered") ? `<button class="btn secondary sm" data-act="allPresent" aria-haspopup="dialog" data-id="${esc(e.id)}">Mark everyone else present</button>` : ""}${exportBar(e.id)}</div></div>
   <div class="tablewrap"><table><thead><tr><th>Volunteer</th><th>Status</th><th class="num">Hours</th><th class="num">Actions</th></tr></thead><tbody>
   ${roster.length ? roster.map(({r, u}) => `<tr><td><b>${esc(u.name)}</b><span class="sub">${esc(u.phone || u.email)}</span>${u.emergency ? `<span class="sub">Emergency: ${esc(u.emergency)}</span>` : ""}</td>
     <td>${statusPill(r.status)}</td>
@@ -152,7 +152,7 @@ function cCheckin(u){
   ${wait.length ? `<section class="card"><h2>Waitlist (${wait.length})</h2><p class="muted small">If someone cancels, the first person in line gets the spot automatically. You can also add more spots by editing the event.</p>
     ${wait.map(({r, u}, i) => `<div class="mini"><span class="datechip" style="padding:8px 0"><strong>${i + 1}</strong></span><div><h3>${esc(u.name)}</h3><p>${esc(u.phone || u.email)}</p></div><div></div></div>`).join("")}</section>` : ""}
   ${locked ? "" : `<section class="card no-print"><h2>Add a walk-in</h2><p class="muted small">Someone showed up without signing up? Add them here and they'll be marked present.</p>
-    <form id="walkinForm" class="row" style="margin-top:12px" novalidate><select id="wi-user" name="user" aria-label="Volunteer to add as a walk-in" style="flex:1;min-width:200px"><option value="">Choose a volunteer…</option>${others.map(u => `<option value="${esc(u.id)}">${esc(u.name)}</option>`).join("")}</select><button class="btn" type="submit">Add walk-in</button></form></section>`}`;
+    <form id="walkinForm" class="row" style="margin-top:12px" novalidate><select id="wi-user" name="user" aria-label="Volunteer to add as a walk-in" style="flex:1;min-width:200px"><option value="">Choose a volunteer…</option>${others.map(u => `<option value="${esc(u.id)}">${esc(u.name)}</option>`).join("")}</select><button class="btn" type="submit" aria-haspopup="dialog">Add walk-in</button></form></section>`}`;
 }
 
 function cVolunteers(){
@@ -231,6 +231,6 @@ function eventDetail(e){
     <details class="disclosure event-details"><summary>Event options</summary>
       ${!isVerified(e) ? trustBox(e) : ""}
       ${eventFacts(e)}
-      <div class="row"><button class="btn secondary sm" data-act="dupEvent" data-id="${esc(e.id)}">Copy event</button>${armBtn(`delete:${e.id}`,"Delete event","Confirm delete")}</div>
+      <div class="row"><button class="btn secondary sm" data-act="dupEvent" data-id="${esc(e.id)}">Copy event</button><button class="btn danger sm" type="button" data-act="deleteEvent" data-id="${esc(e.id)}" aria-haspopup="dialog">Delete event</button></div>
     </details>`;
 }

@@ -26,6 +26,7 @@ function render(){
     ui.view = ui.requestedRoute;
     if (!Cloud.loadPhase) ui.requestedRoute = null;
   }
+  if (confirmation && (confirmation.userId !== u?.id || confirmation.view !== ui.view || (DB.live && Cloud.loadPhase === "workspace"))) closeConfirmation(false);
   const previousViewKey = ui.renderKey;
   const displayWasOpen = Boolean(activeDisplaySettings());
   if (ui.renderKey) document.querySelectorAll("#app details[id]").forEach(el => {
@@ -110,6 +111,7 @@ document.addEventListener("click", ev => {
   if (panel && !panel.hasAttribute("popover") && !ev.target.closest("#display-trigger, #display-settings-panel")) closeDisplaySettings(false);
   const el = ev.target.closest("[data-act]");
   if (!el || el.disabled) return;
+  if ($("#action-confirmation").open && !el.closest("#action-confirmation")){ ev.preventDefault(); return; }
   if (Cloud.loadPhase === "workspace" && DB.live && !["retryLoad","logout"].includes(el.dataset.act)){ ev.preventDefault(); return; }
   if (actionBlocked(el)){ ev.preventDefault(); return; }
   if (el.tagName === "A" && (ev.ctrlKey || ev.metaKey || ev.shiftKey || ev.altKey || ev.button !== 0)) return;
@@ -151,6 +153,7 @@ document.addEventListener("change", ev => {
 
 document.addEventListener("submit", ev => {
   const form = ev.target; ev.preventDefault();
+  if ($("#action-confirmation").open) return;
   if (Cloud.loadPhase === "workspace" && DB.live) return;
   if (actionBlocked(form.querySelector('button[type="submit"]'))) return;
   ui.justSubmitted = form.id;                      // a saved form starts fresh instead of keeping old text
@@ -170,23 +173,11 @@ function handleSubmit(form){
   if (form.id === "joinForm") joinClub(form);
   if (form.id === "logForm") saveHourLog(form);
   if (form.id === "clubForm") saveClub(form);
-  if (form.id === "walkinForm"){
-    const uid = asId(new FormData(form).get("user")), e = eventById(ui.ciEvent);
-    if (!uid) return toast("Choose a volunteer first.", "bad");
-    if (spotsLeft(e) <= 0) return toast("This event is full. Raise the number of volunteers needed in Events first.", "bad");
-    const ex = state.regs.find(r => r.userId === uid && r.eventId === e.id);
-    const fields = {status:"attended", hours:duration(e)};
-    const record = {id:DB.registrationId(e.id, uid), userId:uid, eventId:e.id, ...fields};
-    const success = () => toast(`${userById(uid).name} was added and marked present.`);
-    if (DB.live) return saveLiveRecords(`attendance:${e.id}`, "Adding walk-in…", form.querySelector('[type="submit"]'), "regs",
-      [ex ? {id:ex.id, fields} : {id:record.id, record}], success);
-    if (ex) DB.update("regs", ex, fields);
-    else DB.add("regs", record);
-    save(); render(); success();
-  }
+  if (form.id === "walkinForm") confirmWalkIn(form);
 }
 
 document.addEventListener("keydown", ev => {
+  if ($("#action-confirmation").open) return;       // native dialog handles focus and Escape
   if (ev.key === "Tab") return trapModalTab(ev);
   if (ev.key !== "Escape") return;
   if ($("#modal").innerHTML) return closeModal();
@@ -198,6 +189,7 @@ document.addEventListener("keydown", ev => {
   if (disclosure){ disclosure.open = false; disclosure.querySelector("summary").focus(); return; }
   if (ui.tour) endTour();
 });
+$("#action-confirmation").addEventListener("cancel", ev => { ev.preventDefault(); dismissConfirmation(); });
 
 document.addEventListener("beforetoggle", ev => {
   if (ev.target.id === "display-settings-panel") $("#display-trigger")?.setAttribute("aria-expanded", String(ev.newState === "open"));

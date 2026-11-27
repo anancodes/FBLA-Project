@@ -111,7 +111,7 @@ function agendaShift(e){
   return `<li class="pv-shift">${agendaDate(e.date)}<div class="pv-event-copy"><h3>${esc(e.title)}</h3><p class="pv-event-time">${timeRange(e)}</p><p class="pv-event-place">${esc(e.location)}</p></div><button class="btn secondary" data-act="moreInfo" data-id="${esc(e.id)}" aria-label="View shift: ${esc(e.title)}">View shift</button></li>`;
 }
 function agendaRecommendation(e){
-  return `<li class="pv-recommendation">${agendaDate(e.date)}<div class="pv-event-copy"><h3><button class="pv-title-action" data-act="moreInfo" data-id="${esc(e.id)}">${esc(e.title)}</button></h3><p class="pv-event-place">${esc(e.location)}</p></div><p class="pv-event-time">${timeRange(e)}</p><button class="btn secondary" data-act="signup" data-id="${esc(e.id)}" aria-label="Sign up for ${esc(e.title)}">Sign up</button></li>`;
+  return `<li class="pv-recommendation">${agendaDate(e.date)}<div class="pv-event-copy"><h3><button class="pv-title-action" data-act="moreInfo" data-id="${esc(e.id)}">${esc(e.title)}</button></h3><p class="pv-event-place">${esc(e.location)}</p></div><p class="pv-event-time">${timeRange(e)}</p><button class="btn secondary" data-act="signup" aria-haspopup="dialog" data-id="${esc(e.id)}" aria-label="Sign up for ${esc(e.title)}">Sign up</button></li>`;
 }
 function volunteerHome(u){
   const s = userStats(u.id), up = s.upcoming.map(r => eventById(r.eventId)).filter(Boolean).sort(byDate);

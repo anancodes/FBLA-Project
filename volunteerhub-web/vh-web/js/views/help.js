@@ -32,7 +32,7 @@ function helpView(u){
     ["Do club event hours count automatically?","Yes. When a coordinator checks you in at a club event, those hours count toward that club's requirement right away."],
     ["Can I find shifts near me?","Yes. Add an optional city or town to your Profile. Opportunities then offers a city and distance filter, with approximate city-center distances. If you skip location, search for an event, place, or cause."],
     ["When do my hours show up?","Once a coordinator marks you present at the event."],
-    ["How do I cancel?","Go to My schedule, choose Cancel sign-up, then Confirm cancel. Your spot opens up for someone else."],
+    ["How do I cancel?","Go to My schedule, choose Cancel sign-up, then review the shift and confirm in the dialog. Your spot opens up for someone else."],
     ["Who can see my information?","Your phone number, city or town, and emergency contact are shown only to you and verified coordinators. You can delete your account anytime from Profile."],
     ["Can I export my hours?","In Hours & clubs, open My hours and choose Download CSV to get a spreadsheet file."],
   ];

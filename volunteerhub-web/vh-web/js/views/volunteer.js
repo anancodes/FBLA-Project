@@ -10,13 +10,18 @@ function eventMini(e, right = ""){
   return `<div class="mini">${dateChip(e.date)}<div style="min-width:0"><h3>${esc(e.title)}</h3><p>${timeRange(e)} · ${esc(e.location)}</p></div><div>${right}</div></div>`;
 }
 
+function shiftCancellationButton(reg, cls = "secondary sm"){
+  const label = reg.status === "waitlist" ? "Leave waitlist" : "Cancel sign-up";
+  return `<button class="btn ${cls}" type="button" data-act="cancelShift" data-id="${esc(reg.id)}" aria-haspopup="dialog">${label}</button>`;
+}
+
 // The sign-up button area for one event, based on the user's status for it.
 function signupControl(e, u){
   const r = myReg(u.id, e.id), left = spotsLeft(e);
   if (r && r.status === "registered") return `<span class="pill good">You're signed up</span>`;
-  if (r && r.status === "waitlist") return `<span class="pill mark">Waitlist #${waitlistPosition(r)}</span>${armBtn(`leave:${r.id}`, "Leave waitlist", "Confirm leave", "secondary sm")}`;
-  if (left > 0) return `<button class="btn" data-act="signup" data-id="${esc(e.id)}" aria-label="Sign up for ${esc(e.title)}">Sign up</button>`;
-  return `<button class="btn secondary" data-act="waitlist" data-id="${esc(e.id)}">Join waitlist</button>`;
+  if (r && r.status === "waitlist") return `<span class="pill mark">Waitlist #${waitlistPosition(r)}</span>${shiftCancellationButton(r)}`;
+  if (left > 0) return `<button class="btn" data-act="signup" aria-haspopup="dialog" data-id="${esc(e.id)}" aria-label="Sign up for ${esc(e.title)}">Sign up</button>`;
+  return `<button class="btn secondary" data-act="waitlist" aria-haspopup="dialog" data-id="${esc(e.id)}">Join waitlist</button>`;
 }
 
 // One reading order for public shifts and a volunteer's commitments.
@@ -35,7 +40,7 @@ function shiftRow(e, action = "", meta = ""){
 function volunteerEventPopup(e, u){
   const r = myReg(u.id, e.id), upcoming = !eventHasEnded(e) && !["attended","no-show"].includes(r?.status);
   const registered = upcoming && r?.status === "registered";
-  const action = registered ? armBtn(`cancel:${r.id}`, "Cancel sign-up", "Confirm cancel") : upcoming ? signupControl(e, u) : "";
+  const action = registered ? shiftCancellationButton(r,"secondary") : upcoming ? signupControl(e, u) : "";
   const place = venueOf(e), address = eventHasLocation(e) ? addressOf(e) : "", organizer = posterOf(e);
   const origin = searchOrigin();
   return `<div class="spread"><h2>${esc(e.title)}</h2><button class="btn secondary sm" data-act="close">Close</button></div>
@@ -109,9 +114,9 @@ function vShifts(u){
     <div class="spread"><h2 id="upcoming-shifts-title">Upcoming shifts</h2>${up.length ? listCalToggle(ui.shifts.mode, "shifts") : ""}</div>
     ${!up.length ? `<p class="empty">No upcoming shifts. <a href="#find" data-act="nav" data-v="find">Find opportunities</a></p>`
       : ui.shifts.mode === "calendar" ? calendarView(up.map(x => x.e), e => calChip(e,"mine","Signed up"))
-      : `<ol id="upcoming-shifts" class="shift-list">${up.map(({r,e}) => shiftRow(e,armBtn(`cancel:${r.id}`, "Cancel sign-up", "Confirm cancel", "secondary sm"))).join("")}</ol>`}
+      : `<ol id="upcoming-shifts" class="shift-list">${up.map(({r,e}) => shiftRow(e,shiftCancellationButton(r))).join("")}</ol>`}
   </section>
-  ${wait.length ? `<section class="section"><h2>Waitlist</h2><ul class="shift-list">${wait.map(({r,e}) => shiftRow(e,armBtn(`leave:${r.id}`, "Leave waitlist", "Confirm leave", "secondary sm"),`<span class="small muted">#${waitlistPosition(r)} in line</span>`)).join("")}</ul></section>` : ""}
+  ${wait.length ? `<section class="section"><h2>Waitlist</h2><ul class="shift-list">${wait.map(({r,e}) => shiftRow(e,shiftCancellationButton(r),`<span class="small muted">#${waitlistPosition(r)} in line</span>`)).join("")}</ul></section>` : ""}
   <section class="section" aria-labelledby="past-shifts-title"><h2 id="past-shifts-title">Past shifts</h2>
     ${past.length ? `<details class="disclosure history-disclosure" id="schedule-history"><summary>View all ${past.length} past ${past.length === 1 ? "shift" : "shifts"}</summary>
       <ol class="shift-list">${past.map(({r,e}) => shiftRow(e,"",`<span class="small muted">${status[r.status] || ""}</span>`)).join("")}</ol></details>`

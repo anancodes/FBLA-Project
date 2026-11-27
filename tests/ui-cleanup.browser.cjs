@@ -84,6 +84,9 @@ test('Opportunities lists only eligible shifts and moves a new registration to M
   assert.equal(await rows.first().locator('.shift-place').textContent(),snapshots[0].place);
   const action = p.locator(`#open-shifts [data-act="signup"][data-id="${ids[0]}"]`);
   await action.focus(); await p.keyboard.press('Enter');
+  const dialog = p.getByRole('dialog',{name:'Sign up for this shift?'});
+  assert.ok((await dialog.textContent()).includes(snapshots[0].place));
+  await dialog.getByRole('button',{name:'Confirm sign-up'}).click();
   assert.equal(await action.count(),0);
   assert.equal(await p.evaluate(() => document.activeElement.id),'search-results');
   await p.locator('.rail [data-v="shifts"]').click();
@@ -106,6 +109,26 @@ test('schedule shows the full past record behind one keyboard disclosure',async 
   assert.equal(await p.locator('#schedule-history').evaluate(el => el.open),true,'Live redraw preserves disclosure state');
   await p.keyboard.press('Escape'); assert.equal(await p.locator('#schedule-history').evaluate(el => el.open),false);
   assert.equal(await p.evaluate(() => document.activeElement.tagName),'SUMMARY');
+});
+
+test('compact cancellation can be dismissed without changing a volunteer’s sign-up',async t => {
+  const p = await helper.page(t,{viewport:{width:390,height:844}}); await helper.signIn(p);
+  await p.locator('.rail [data-v="shifts"]').click();
+  const opener = p.locator('#upcoming-shifts [data-act="cancelShift"]').first();
+  const id = await opener.getAttribute('data-id');
+  const status = () => p.evaluate(id=>state.regs.find(r=>String(r.id)===id).status,id);
+  await opener.click();
+  const prompt = p.getByRole('dialog',{name:'Cancel your sign-up?'});
+  assert.equal(await prompt.evaluate(el=>el.classList.contains('confirm-compact')),true);
+  assert.equal(await status(),'registered');
+  await prompt.getByRole('button',{name:'Go back'}).click();
+  assert.equal(await prompt.isVisible(),false);
+  assert.equal(await p.locator(`[data-act="cancelShift"][data-id="${id}"]`).evaluate(el=>el===document.activeElement),true);
+  assert.equal(await status(),'registered');
+  await opener.click();
+  await prompt.getByRole('button',{name:'Cancel sign-up',exact:true}).click();
+  assert.equal(await prompt.isVisible(),false);
+  assert.equal(await status(),'cancelled');
 });
 
 test('hours displays recent service, older records, and a direct CSV for all service',async t => {
@@ -297,6 +320,7 @@ test('club event creation retains protected membership and modal keyboard focus'
   const venue = await p.evaluate(() => VENUES[0].name); await p.locator('#ef-loc').fill(venue);
   await p.locator('#ef-desc').fill('Help children select books and practice reading.');
   await p.locator('#eventForm [type="submit"]').click();
+  await p.getByRole('button',{name:'Confirm create event'}).click();
   assert.equal(await p.locator('#eventForm').count(),0);
   assert.equal(await p.evaluate(() => state.events[state.events.length-1].clubId),2);
   assert.equal(await p.evaluate(() => document.activeElement.dataset.act),'newClubEvent');
@@ -332,6 +356,7 @@ test('coordinator creates a custom-location event with the essentials and finds 
   await p.locator('#ef-desc').fill('Pick up litter along the river path.');
   await p.locator('#ef-slots').fill('12');
   await p.locator('#eventForm [type="submit"]').click();
+  await p.getByRole('button',{name:'Confirm create event'}).click();
   assert.equal(await p.locator('#eventForm').count(),0);
   const e = await p.evaluate(() => state.events.find(e => e.title === 'River cleanup'));
   assert.deepEqual([e.category,e.zip,e.slots,e.clubId],['Other','',12,null]);
@@ -339,4 +364,26 @@ test('coordinator creates a custom-location event with the essentials and finds 
   assert.equal(await roster.isVisible(),true);
   assert.ok(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
   await roster.click(); assert.equal(await p.locator('#ci-ev').inputValue(),String(e.id));
+});
+
+test('coordinator deletion waits for explicit confirmation and preserves the event details on escape',async t => {
+  const p = await helper.page(t); await helper.signIn(p,1);
+  await p.locator('.rail [data-v="events"]').click();
+  const event = p.locator('.shift-row [data-act="moreInfo"]').first();
+  const id = await event.getAttribute('data-id');
+  await event.click();
+  await p.locator('#modal summary').click();
+  const del = p.locator('#modal [data-act="deleteEvent"]');
+  await del.click();
+  const prompt = p.getByRole('dialog',{name:'Delete this event?'});
+  assert.equal(await prompt.evaluate(el=>el.classList.contains('confirm-compact')),true);
+  await p.keyboard.press('Escape');
+  assert.equal(await del.isVisible(),true);
+  assert.equal(await del.evaluate(el=>el===document.activeElement),true);
+  assert.equal(await p.evaluate(id=>!!eventById(asId(id)),id),true);
+  await del.click();
+  await prompt.getByRole('button',{name:'Delete event',exact:true}).click();
+  assert.equal(await prompt.isVisible(),false);
+  assert.equal(await p.locator('#modal [role="dialog"]').count(),0);
+  assert.equal(await p.evaluate(id=>!!eventById(asId(id)),id),false);
 });

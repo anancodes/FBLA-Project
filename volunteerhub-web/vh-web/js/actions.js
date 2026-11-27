@@ -75,15 +75,33 @@ function findOpportunities(form){
 
 /* ----- Volunteer sign-ups ----- */
 
+function confirmShiftSignup(eid, waitlist, opener){
+  const event = eventById(eid);
+  if (eventHasEnded(event)) return toast("This event has already ended.", "bad");
+  const fields = ["title","date","start","end","location"];
+  const shown = fields.map(field => event[field]);
+  openConfirmation({
+    title:waitlist ? "Join the waitlist?" : "Sign up for this shift?",
+    event, key:`shift:${eid}`, opener,
+    detail:waitlist ? "You’ll be signed up automatically if a spot opens and the shift fits your schedule." : "This adds the shift to My schedule.",
+    label:waitlist ? "Join waitlist" : "Confirm sign-up",
+  }, trigger => {
+    const latest = eventById(eid);
+    if (latest && fields.some((field, i) => latest[field] !== shown[i])) return confirmationError(trigger, "This shift’s details changed. Go back to review them.");
+    return waitlist ? joinWaitlist(eid, trigger) : signup(eid, trigger);
+  });
+}
+
 // Sign the current volunteer up for an event, after checking it's allowed.
 function signup(eid, trigger){
   const u = currentUser(), e = eventById(eid);
-  if (eventHasEnded(e)) return toast("This event has already ended.", "bad");
-  if (spotsLeft(e) <= 0) return toast("This event just filled up. You can join the waitlist instead.", "bad");
+  if (eventHasEnded(e)) return confirmationError(trigger, "This event has already ended.");
+  if (u?.role !== "volunteer" || !canSeeEvent(e,u)) return confirmationError(trigger, "This shift is no longer available to you.");
+  if (spotsLeft(e) <= 0) return confirmationError(trigger, "This shift filled up. Go back to review available shifts.");
   const existing = myReg(u.id, eid) || (DB.live && state.regs.find(r => r.id === DB.registrationId(eid, u.id)));
-  if (existing && !["waitlist","cancelled"].includes(existing.status)) return toast("You're already signed up for this event.", "bad");
+  if (existing && !["waitlist","cancelled"].includes(existing.status)) return confirmationError(trigger, "You're already signed up for this event.");
   const clash = findClash(u.id, e);
-  if (clash) return toast(`This overlaps with ${clash.title} (${timeRange(clash)}) that day.`, "bad");
+  if (clash) return confirmationError(trigger, `This overlaps with ${clash.title} (${timeRange(clash)}) that day.`);
   const success = () => {
     const registration = myReg(u.id, eid);
     if (registration?.status === "waitlist") toast(`You joined the waitlist for ${e.title}.`);
@@ -100,11 +118,12 @@ function signup(eid, trigger){
 // Add the current volunteer to the end of a full event's waitlist.
 function joinWaitlist(eid, trigger){
   const u = currentUser(), e = eventById(eid);
-  if (eventHasEnded(e)) return toast("This event has already ended.", "bad");
+  if (eventHasEnded(e)) return confirmationError(trigger, "This event has already ended.");
+  if (u?.role !== "volunteer" || !canSeeEvent(e,u)) return confirmationError(trigger, "This shift is no longer available to you.");
+  if (myReg(u.id, eid)) return confirmationError(trigger, "You're already on the list for this event.");
   if (spotsLeft(e) > 0) return signup(eid, trigger);                       // a spot is open, so just sign up
-  if (myReg(u.id, eid)) return toast("You're already on the list for this event.", "bad");
   const clash = findClash(u.id, e);
-  if (clash) return toast(`This overlaps with ${clash.title} (${timeRange(clash)}) that day.`, "bad");
+  if (clash) return confirmationError(trigger, `This overlaps with ${clash.title} (${timeRange(clash)}) that day.`);
   const r = {id:DB.registrationId(eid, u.id), userId:u.id, eventId:eid, status:"waitlist", hours:0};
   const previous = DB.live && state.regs.find(x => x.id === r.id);
   if (DB.live) return saveLiveRecords(`shift:${eid}`, "Joining waitlist…", trigger, "regs", [previous ? {id:r.id, fields:{status:"waitlist"}} : {id:r.id, record:r}],
@@ -113,18 +132,52 @@ function joinWaitlist(eid, trigger){
   save(); render(); toast(`You're #${waitlistPosition(r)} on the waitlist for ${e.title}.`);
 }
 
+function confirmShiftCancellation(id, opener){
+  const reg = state.regs.find(r => r.id === id), event = reg && eventById(reg.eventId);
+  if (reg?.userId !== currentUser()?.id || eventHasEnded(event) || !["registered","waitlist"].includes(reg.status)) return;
+  const wasWaiting = reg.status === "waitlist", confirmedStatus = reg.status;
+  openConfirmation({
+    title:wasWaiting ? "Leave this waitlist?" : "Cancel your sign-up?",
+    event, key:`shift:${event.id}`, compact:true, opener,
+    detail:wasWaiting ? "You’ll lose your place in line." : "Your spot will open up for another volunteer.",
+    label:wasWaiting ? "Leave waitlist" : "Cancel sign-up",
+  }, trigger => {
+    const latest = state.regs.find(r => r.id === id), shift = eventById(event.id);
+    if (latest?.userId !== currentUser()?.id || latest?.status !== confirmedStatus || eventHasEnded(shift)){
+      return confirmationError(trigger, "Your shift status changed. Go back to review it.");
+    }
+    const done = () => {
+      const moved = wasWaiting ? [] : fillFromWaitlist(shift);
+      if (ui.modalEvent === shift.id) closeModal();
+      toast(wasWaiting ? `You left the waitlist for ${shift.title}.`
+        : moved.length ? "Your shift was cancelled. The next person on the waitlist got your spot." : "Your shift was cancelled.");
+    };
+    const fields = {status:"cancelled"};
+    if (DB.live) return saveLiveRecords(`shift:${shift.id}`, wasWaiting ? "Leaving waitlist…" : "Cancelling shift…", trigger,
+      "regs", [{id, fields}], done);
+    DB.update("regs", latest, fields);
+    done(); save(); render();
+  });
+}
+
 // Confirm the primary save before showing success. Errors leave the original control
 // and any form inputs available so the user can correct the problem or try again.
 function saveLiveRecords(key, label, trigger, coll, changes, success, failure){
   return runPending(key, label, trigger, () => DB.commit(coll, changes),
     () => { success(); render(); },
-    failure || (error => toast(`Couldn't complete that change. ${Cloud.friendly(error)}`, "bad")));
+    failure || (error => confirmationError(trigger, `Couldn't complete that change. ${Cloud.friendly(error)}`)));
 }
 
 /* ----- Events ----- */
 
-function saveEventForm(form){
+function canManageEvent(e){
+  const user = currentUser();
+  return !!user && ((user.role === "coordinator" && (!DB.live || DB.isVerifiedCoordinator(user))) || (!!e.clubId && isClubManager(e.clubId,user)));
+}
+
+function saveEventForm(form, confirmButton){
   const fd = new FormData(form), id = form.dataset.id ? asId(form.dataset.id) : null, old = id ? eventById(id) : null;
+  if (id && !old) return confirmationError(confirmButton, "This event is no longer available.");
   const d = {title:fd.get("title").trim(), category:fd.get("category"), location:fd.get("location").trim(), zip:fd.get("zip").trim(), date:fd.get("date"), start:fd.get("start"), end:fd.get("end"), slots:fd.get("slots"), skills:fd.getAll("skills"), desc:fd.get("desc").trim(),
              bring:fd.get("bring").trim(), wear:fd.get("wear").trim(), minAge:fd.get("minAge").trim()};
   const repeat = Number(fd.get("repeat") || 0), clubId = fd.get("club") ? asId(fd.get("club")) : null;
@@ -149,11 +202,27 @@ function saveEventForm(form){
     repeat: !Number.isInteger(repeat) || repeat < 0 || repeat > 12 ? "Choose from 0 to 12 weeks." : "",
   };
   if (["bring","wear","zip","minAge","repeat"].some(key => errs[key])) form.querySelector("details").open = true;
-  if (!showErrors(form, errs)) { $("#ef-err").textContent = "Fix the highlighted fields to continue."; return; }
-  if (clubId && !isClubManager(clubId)) return toast("You can only post events for clubs you manage.", "bad");
+  if (!showErrors(form, errs)){
+    $("#ef-err").textContent = "Fix the highlighted fields to continue.";
+    if (confirmButton) return confirmationError(confirmButton, "Go back to review the highlighted fields.");
+    return;
+  }
+  if (clubId && !isClubManager(clubId)) return confirmationError(confirmButton, "You can only post events for clubs you manage.");
+  const user = currentUser();
+  if ((!clubId && !canManageEvent({clubId:null})) || (old && !canManageEvent(old))) return confirmationError(confirmButton, "You no longer have permission to save this event.");
   const ev = {...d, slots:n, minAge:age, clubId, updatedAt:TODAY};
   const changed = old && [old.date !== ev.date && "date", (old.start !== ev.start || old.end !== ev.end) && "time",
     (old.location !== ev.location || (old.zip || "") !== ev.zip) && "location"].filter(Boolean);
+  const key = `event:${id || "new"}`;
+  const opener = form.querySelector('[type="submit"]');
+  if (!confirmButton && (!old || changed.length || ev.clubId !== (old.clubId || null) || ev.slots !== old.slots)){
+    const audience = clubId ? `${clubById(clubId).short} members` : "all volunteers";
+    const capacity = `Open to ${audience}, with a maximum of ${n} ${n === 1 ? "volunteer" : "volunteers"}.`;
+    const effect = old ? (changed.length ? "Volunteers signed up or on the waitlist will receive an update." : capacity)
+      : repeat ? `Creates ${repeat + 1} weekly events starting on this date. ${capacity}` : capacity;
+    return openConfirmation({title:old ? "Save event changes?" : "Create this event?", event:ev, detail:effect,
+      label:old ? "Confirm changes" : "Confirm create event", key, opener}, trigger => saveEventForm(form,trigger));
+  }
   const finishUpdate = () => {
     const event = eventById(id);
     if (changed.length){
@@ -167,19 +236,20 @@ function saveEventForm(form){
   const newMessage = repeat ? `${ev.title} was created for ${repeat + 1} weeks in a row.` : `${ev.title} was created.`;
   const seriesId = DB.live && !old ? DB.newId("events") : null;
   const makeEvent = k => ({id:(seriesId || DB.newId("events")) + k, ...ev,
-    date:k ? iso(new Date(parseDate(ev.date).getTime() + k * 7 * 86400000)) : ev.date, postedBy:currentUser().id, postedAt:TODAY});
+    date:k ? iso(new Date(parseDate(ev.date).getTime() + k * 7 * 86400000)) : ev.date, postedBy:user.id, postedAt:TODAY});
   if (DB.live){
     const changes = old ? [{id, fields:ev}] : Array.from({length:repeat + 1}, (_, k) => {
       const record = makeEvent(k);
       return {id:record.id, record};
     });
-    return saveLiveRecords(`event:${id || "new"}`, old ? "Saving event changes…" : "Creating event…", form.querySelector('[type="submit"]'),
+    return saveLiveRecords(key, old ? "Saving event changes…" : "Creating event…", confirmButton || opener,
       "events", changes, () => {
         if (form.isConnected) closeModal();
         toast(old ? finishUpdate() : newMessage);
       }, err => {
         const message = `Couldn't save the event. ${Cloud.friendly(err)}`;
-        if (form.isConnected) form.querySelector("#ef-err").textContent = message;
+        if (confirmButton) confirmationError(confirmButton,message);
+        else if (form.isConnected) form.querySelector("#ef-err").textContent = message;
         else toast(message, "bad");
       });
   }
@@ -187,6 +257,56 @@ function saveEventForm(form){
   else for (let k = 0; k <= repeat; k++) DB.add("events", makeEvent(k));
   const message = old ? finishUpdate() : newMessage;
   save(); closeModal(); render(); toast(message);
+}
+
+function confirmEventDeletion(id, opener){
+  const event = eventById(id);
+  if (!event || !canManageEvent(event)) return;
+  const upcoming = event.date >= TODAY;
+  openConfirmation({
+    title:"Delete this event?", event, key:`event:${id}`, compact:true, opener,
+    detail:upcoming ? "This removes the event and its sign-ups. Volunteers signed up or waiting for a spot will receive an update."
+      : "This removes the event and its attendance records.",
+    label:"Delete event",
+  }, trigger => {
+    const latest = eventById(id);
+    if (!latest || !canManageEvent(latest)) return confirmationError(trigger, "This event is no longer available to delete.");
+    if (latest.date >= TODAY) activeRegs(id).concat(waitlistFor(id)).forEach(r => notify(r.userId, `${latest.title} on ${fmtDate(latest.date)} was cancelled by the organizer.`, null, latest.clubId));
+    state.regs.filter(r => r.eventId === id).forEach(r => DB.remove("regs",r.id));
+    state.announcements.filter(a => a.audience === String(id)).forEach(a => DB.remove("announcements",a.id));
+    DB.remove("events",id);
+    if (ui.modalEvent === id) closeModal();
+    save(); render(); toast(`${latest.title} was deleted.`);
+  });
+}
+
+function confirmWalkIn(form){
+  const uid = asId(new FormData(form).get("user")), event = eventById(ui.ciEvent);
+  if (!uid) return toast("Choose a volunteer first.", "bad");
+  if (!event || !canManageEvent(event) || event.date > TODAY) return toast("Check-in is unavailable for this event.", "bad");
+  if (spotsLeft(event) <= 0) return toast("This event is full. Raise the number of volunteers needed in Events first.", "bad");
+  const name = userById(uid).name, hours = duration(event), key = `attendance:${event.id}`;
+  openConfirmation({
+    title:"Add this walk-in?", event, key, opener:form.querySelector('[type="submit"]'),
+    detail:`${name} will be marked present and credited with ${fmtH(hours)} service hours.`,
+    label:"Confirm walk-in",
+  }, trigger => {
+    const latest = eventById(event.id);
+    if (!latest || !canManageEvent(latest) || latest.date > TODAY) return confirmationError(trigger, "Check-in is unavailable for this event.");
+    if (spotsLeft(latest) <= 0) return confirmationError(trigger, "This event is full. Raise the maximum in Events first.");
+    if (latest.clubId && !membershipOf(latest.clubId,uid)) return confirmationError(trigger, "This volunteer is no longer a member of the club.");
+    if (duration(latest) !== hours) return confirmationError(trigger, "This event’s duration changed. Go back to review the roster.");
+    const existing = state.regs.find(r => r.userId === uid && r.eventId === latest.id);
+    if (existing && HOLDS_SPOT.includes(existing.status)) return confirmationError(trigger, "This volunteer is already on the roster.");
+    const fields = {status:"attended", hours};
+    const record = {id:DB.registrationId(latest.id,uid), userId:uid, eventId:latest.id, ...fields};
+    const done = () => toast(`${name} was added and marked present.`);
+    if (DB.live) return saveLiveRecords(key, "Adding walk-in…", trigger, "regs",
+      [existing ? {id:existing.id, fields} : {id:record.id, record}], done);
+    if (existing) DB.update("regs",existing,fields);
+    else DB.add("regs",record);
+    save(); render(); done();
+  });
 }
 
 function postAnnouncement(form){
@@ -244,30 +364,6 @@ function addSampleEvents(){
 /* ----- Two-step confirm actions (the button says "Confirm ..." after the first click) ----- */
 
 function confirmAction(kind, id, trigger){
-  if (kind === "cancel" || kind === "leave"){
-    const r = state.regs.find(x => x.id === id), e = eventById(r.eventId), wasWaiting = r.status === "waitlist";
-    const closeEvent = () => { if (ui.modalEvent === e.id) closeModal(); };
-    if (DB.live) return saveLiveRecords(`shift:${e.id}`, wasWaiting ? "Leaving waitlist…" : "Cancelling shift…", trigger,
-      "regs", [{id, fields:{status:"cancelled"}}], () => {
-        if (!wasWaiting) fillFromWaitlist(e);
-        closeEvent();
-        toast(wasWaiting ? `You left the waitlist for ${e.title}.` : "Your shift was cancelled.");
-      });
-    DB.update("regs", r, {status:"cancelled"});
-    closeEvent();
-    if (wasWaiting) return toast(`You left the waitlist for ${e.title}.`);
-    const moved = fillFromWaitlist(e);
-    toast(moved.length ? "Your shift was cancelled. The next person on the waitlist got your spot." : "Your shift was cancelled.");
-  }
-  if (kind === "delete"){
-    const e = eventById(id);
-    if (e.date >= TODAY) activeRegs(id).concat(waitlistFor(id)).forEach(r => notify(r.userId, `${e.title} on ${fmtDate(e.date)} was cancelled by the organizer. Sorry for the change.`, null, e.clubId));
-    state.regs.filter(r => r.eventId === id).forEach(r => DB.remove("regs", r.id));
-    state.announcements.filter(a => a.audience === String(id)).forEach(a => DB.remove("announcements", a.id));
-    DB.remove("events", id);
-    if (ui.modalEvent === id) closeModal();
-    toast(`${e.title} was deleted. Anyone signed up was told.`);
-  }
   if (kind === "ann"){ DB.remove("announcements", id); toast("Announcement deleted."); }
   if (kind === "verify" || kind === "unverify"){
     const u = userById(id);
@@ -386,8 +482,9 @@ const handlers = {
   waiver: () => openModal(`<div class="spread"><h2>Volunteer waiver</h2><button class="btn secondary sm" data-act="close">Close</button></div><div class="waiver-text">${esc(state.org.waiver || DEFAULT_WAIVER).replace(/\n/g, "<br>")}</div>`),
 
   // Volunteer sign-ups
-  signup: (_, id, ev) => signup(asId(id), ev.target.closest("button")),
-  waitlist: (_, id, ev) => joinWaitlist(asId(id), ev.target.closest("button")),
+  signup: (_, id, ev) => confirmShiftSignup(asId(id), false, ev.target.closest("button")),
+  waitlist: (_, id, ev) => confirmShiftSignup(asId(id), true, ev.target.closest("button")),
+  cancelShift: (_, id, ev) => confirmShiftCancellation(asId(id), ev.target.closest("button")),
   dismiss: (_, id) => { const n = state.notices.find(x => x.id === asId(id)); if (n) DB.update("notices", n, {read:true}); save(); render(); },
 
   // Two-step confirm buttons
@@ -401,6 +498,7 @@ const handlers = {
     const e = eventById(asId(id)), next = e.date < TODAY ? addDays(7) : iso(new Date(parseDate(e.date).getTime() + 7 * 86400000));
     openModal(eventForm({...e, id:null, date:next}), {dismissOnBackdrop:false});
   },
+  deleteEvent: (_, id, ev) => confirmEventDeletion(asId(id), ev.target.closest("button")),
   evtab: (v) => { ui.ev.tab = v; render(); },
   goCheckin: (_, id) => { ui.ciEvent = asId(id); handlers.nav("checkin"); },
   mark: (v, id, ev) => {
@@ -411,14 +509,29 @@ const handlers = {
     DB.update("regs", r, fields); save(); render();
   },
   allPresent: (_, id, ev) => {
-    const e = eventById(asId(id)), regs = activeRegs(e.id).filter(r => r.status === "registered");
-    if (!regs.length) return;
-    const fields = {status:"attended", hours:duration(e)};
-    const success = () => toast(`Marked ${regs.length} ${regs.length === 1 ? "volunteer" : "volunteers"} present.`);
-    if (DB.live) return saveLiveRecords(`attendance:${e.id}`, "Saving attendance…", ev.target.closest("button"), "regs",
-      regs.map(r => ({id:r.id, fields})), success);
-    regs.forEach(r => DB.update("regs", r, fields));
-    save(); render(); success();
+    const event = eventById(asId(id));
+    if (!event || !canManageEvent(event) || event.date > TODAY) return;
+    const ids = activeRegs(event.id).filter(r => r.status === "registered").map(r => r.id);
+    if (!ids.length) return;
+    const hours = duration(event), key = `attendance:${event.id}`;
+    const people = `${ids.length} ${ids.length === 1 ? "volunteer" : "volunteers"}`;
+    openConfirmation({
+      title:"Mark the remaining volunteers present?", event, key, opener:ev.target.closest("button"),
+      detail:`${people} will be marked present and each credited with ${fmtH(hours)} service hours.`,
+      label:"Confirm attendance",
+    }, trigger => {
+      const latest = eventById(event.id);
+      if (!latest || !canManageEvent(latest) || latest.date > TODAY) return confirmationError(trigger, "Check-in is unavailable for this event.");
+      const regs = activeRegs(latest.id).filter(r => r.status === "registered");
+      if (hours !== duration(latest) || regs.length !== ids.length || regs.some(r => !ids.includes(r.id))){
+        return confirmationError(trigger, "The roster changed. Go back to review who still needs check-in.");
+      }
+      const fields = {status:"attended", hours};
+      const done = () => toast(`Marked ${people} present.`);
+      if (DB.live) return saveLiveRecords(key, "Saving attendance…", trigger, "regs", regs.map(r => ({id:r.id, fields})), done);
+      regs.forEach(r => DB.update("regs", r, fields));
+      save(); render(); done();
+    });
   },
   copyEmails: (_, id) => {
     const list = activeRegs(asId(id)).map(r => userById(r.userId).email).filter(Boolean);
@@ -493,6 +606,8 @@ const handlers = {
   },
   closeDisplaySettings: () => closeDisplaySettings(),
   close: () => closeModal(),
+  dismissConfirmation,
+  acceptConfirmation: (_, __, ev) => acceptConfirmation(ev.target.closest("button")),
   overlay: (_, __, ev) => { if (ev.target.classList.contains("overlay")) closeModal(); },
 
   // Guided tour

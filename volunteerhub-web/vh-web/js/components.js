@@ -70,7 +70,7 @@ function replacementControl(element, root){
   }) || null;
 }
 function modalControls(){
-  return [...document.querySelectorAll('#modal button, #modal input, #modal select, #modal textarea, #modal a[href], #modal [tabindex]')].filter(el => !el.disabled && el.tabIndex >= 0 && el.getClientRects().length);
+  return [...document.querySelectorAll('#modal button, #modal input, #modal select, #modal textarea, #modal a[href], #modal summary, #modal [tabindex]')].filter(el => !el.disabled && el.tabIndex >= 0 && el.getClientRects().length);
 }
 function openModal(html, {dismissOnBackdrop = true} = {}){
   if (!$("#modal").firstElementChild) modalOpener = document.activeElement;
@@ -95,6 +95,66 @@ function trapModalTab(ev){
   if (!first){ ev.preventDefault(); dialog.focus(); return; }
   if (!controls.includes(document.activeElement) || (ev.shiftKey ? document.activeElement === first : document.activeElement === last)){
     ev.preventDefault(); (ev.shiftKey ? last : first).focus();
+  }
+}
+
+let confirmation = null;
+function openConfirmation({title, event, detail, label, key, compact = false, opener = document.activeElement}, accept){
+  const dialog = $("#action-confirmation");
+  if (dialog.open) return;
+  confirmation = {accept, opener, pageOpener:opener?.closest("#modal") ? modalOpener : opener, userId:state.session.userId, view:ui.view};
+  dialog.classList.toggle("confirm-compact", compact);
+  dialog.innerHTML = `<h2 id="confirmation-title">${esc(title)}</h2>
+    <div id="confirmation-event" class="confirmation-event">
+      <strong>${esc(event.title)}</strong>
+      <p><time datetime="${esc(event.date)}">${fmtDate(event.date, {weekday:"long", month:"long", day:"numeric", year:"numeric"})}</time><span>${timeRange(event)}</span></p>
+      ${compact ? "" : `<p>${esc(event.location)}</p>`}
+    </div>
+    <p id="confirmation-effect">${esc(detail)}</p>
+    <p id="confirmation-status" class="sr-only" role="status"></p>
+    <p id="confirmation-error" class="formerr" role="alert"></p>
+    <div class="confirmation-actions">
+      <button class="btn secondary" type="button" data-act="dismissConfirmation" data-operation="${esc(key)}" autofocus>Go back</button>
+      <button class="btn${compact ? " danger" : ""}" type="button" id="confirm-action" data-act="acceptConfirmation" data-operation="${esc(key)}">${esc(label)}</button>
+    </div>`;
+  dialog.showModal();
+}
+
+function closeConfirmation(restore = true){
+  if (!confirmation) return;
+  const {opener, pageOpener} = confirmation;
+  confirmation = null;
+  const dialog = $("#action-confirmation");
+  dialog.close();
+  dialog.replaceChildren();
+  if (restore) queueMicrotask(() => {
+    const modal = $("#modal .modal");
+    const target = modal ? replacementControl(opener,modal) || modalControls()[0] || modal
+      : replacementControl(pageOpener,$("#app")) || (pageOpener?.closest("#open-shifts") && $("#search-results")) || $("#page-title");
+    target?.focus();
+  });
+}
+
+function dismissConfirmation(){
+  if (!actionBlocked($("#confirm-action"))) closeConfirmation();
+}
+
+function confirmationError(trigger, message){
+  if (trigger?.id === "confirm-action"){
+    if (trigger.isConnected) $("#confirmation-error").textContent = message;
+  } else toast(message, "bad");
+  return false;
+}
+
+async function acceptConfirmation(trigger){
+  const intent = confirmation;
+  if (!intent) return;
+  $("#confirmation-error").textContent = "";
+  try {
+    const result = await intent.accept(trigger);
+    if (result !== false && confirmation === intent) closeConfirmation();
+  } catch(error){
+    confirmationError(trigger, `Couldn't complete that change. ${Cloud.friendly(error)}`);
   }
 }
 

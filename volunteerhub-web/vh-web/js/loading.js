@@ -12,6 +12,7 @@ let authRetryAt = 0;
 
 function operationKey(button){
   if (!button) return null;
+  if (button.dataset.operation) return button.dataset.operation;
   if (button.type === "submit" && button.form){
     const {id, dataset} = button.form;
     if (["loginForm", "signupForm", "resetForm"].includes(id)) return "auth";
@@ -21,12 +22,13 @@ function operationKey(button){
     if (id === "eventForm") return `event:${dataset.id || "new"}`;
     if (id === "walkinForm") return `attendance:${ui.ciEvent}`;
   }
-  const {act, id, v} = button.dataset;
+  const {act, id} = button.dataset;
   if (act === "checkVerification" || act === "resendVerification") return "verify-email";
   if (act === "mark" || act === "allPresent") return `attendance:${ui.ciEvent}`;
   if (act === "signup" || act === "waitlist") return `shift:${id}`;
-  if ((act === "arm" || act === "confirm") && /^(cancel|leave):/.test(v)){
-    const reg = state.regs.find(r => String(r.id) === v.split(":")[1]);
+  if (act === "deleteEvent") return `event:${id}`;
+  if (act === "cancelShift"){
+    const reg = state.regs.find(r => String(r.id) === id);
     if (reg) return `shift:${reg.eventId}`;
   }
   return null;
@@ -43,7 +45,7 @@ function actionBlocked(button){
 }
 
 function syncPendingControls(){
-  for (const button of document.querySelectorAll("#app button, #modal button")){
+  for (const button of document.querySelectorAll("#app button, #modal button, #action-confirmation button")){
     const key = operationKey(button);
     const original = originalButtons.get(button);
     if (!key && !original) continue;
@@ -74,20 +76,26 @@ function syncPendingControls(){
 
 async function runPending(key, label, trigger, request, succeeded, failed){
   const actionKey = sessionActionKey(key);
-  if (pendingActions.has(actionKey)) return;
+  if (pendingActions.has(actionKey)) return false;
   const session = state.session.userId;
   const stillHere = () => !ui.demo && (key === "auth" || session === state.session.userId);
   const pending = {label, trigger, visible:false};
+  const confirmationStatus = trigger?.id === "confirm-action" ? $("#confirmation-status") : null;
+  const status = confirmationStatus || $("#operation-status");
   pendingActions.set(actionKey, pending);
   syncPendingControls();
   const show = setTimeout(() => {
     pending.visible = true;
     if (!stillHere()) return;
     syncPendingControls();
-    $("#operation-status").textContent = label;
+    status.textContent = label;
   }, LOADING_DELAY);
   const slow = setTimeout(() => {
-    if (stillHere()) toast(`${label} Still waiting for confirmation.`);
+    if (!stillHere()) return;
+    if (confirmationStatus){
+      confirmationStatus.classList.remove("sr-only");
+      confirmationStatus.textContent = "Still waiting for the server.";
+    } else toast(`${label} Still waiting for confirmation.`);
   }, SLOW_LOADING_DELAY);
   try {
     await request();
@@ -97,15 +105,17 @@ async function runPending(key, label, trigger, request, succeeded, failed){
       setTimeout(syncPendingControls, AUTH_RETRY_DELAY);
     }
     if (stillHere()) failed(err);
-    return;
+    return false;
   } finally {
     clearTimeout(show);
     clearTimeout(slow);
     pendingActions.delete(actionKey);
     syncPendingControls();
-    if ($("#operation-status").textContent === label) $("#operation-status").textContent = "";
+    if (confirmationStatus || status.textContent === label) status.textContent = "";
+    confirmationStatus?.classList.add("sr-only");
   }
   if (stillHere()) succeeded?.();
+  return true;
 }
 
 function authFormError(id, field, err){

@@ -102,11 +102,11 @@ The runtime preference starts at (16px), preserves saved preferences, and adjust
 
 ## Layout
 
-Desktop uses a navigation column (256px) and a flexible reading column. The rail becomes (224px) at widths up to (1200px). Main content has vertical padding (36px), fluid side gutters (24–44px), a centered maximum width (1280px) and a page gap (20px). The document scrolls normally. Above (900px), the sidebar is sticky and scrolls independently as needed.
+Desktop uses a navigation column (256px) and a flexible reading column. The rail becomes (224px) at widths up to (1200px). Above (900px), the sidebar is sticky and scrolls independently as needed. The reading column is centered at up to (1280px), with side gutters that grow from (32px) to (56px) before centering. Vertical padding and section gaps grow modestly with screen height. The content determines where the reading surface ends, and footer actions follow directly on the quiet surface.
 
 At widths up to (900px), signed-in navigation becomes a header with wrapped text links and main padding becomes (24px 24px 32px). At (620px), horizontal padding is (20px) and Home becomes one column. Tables retain local overflow.
 
-Home shows equal-weight dated shifts beside a quieter hours column (224px; 192px at the intermediate size), then recommendations across the full width. Groups use whitespace and hairline dividers. Footer actions remain in the normal document flow. Print hides navigation and footer and restores a single reading column.
+Home shows equal-weight dated shifts beside a quieter hours column (224px or 192px at the intermediate size), then recommendations across the full width. Groups use whitespace and hairline dividers. At desktop widths of (1120px) and up, shift lists align date and time in a dedicated column beside place and description. Desktop Inbox separates sender from the two-line message preview. My hours shows up to five recent records before the older records disclosure. Print hides navigation and footer and restores a single reading column.
 
 Public pages use fluid gutters from the frontmatter. The horizontal masthead has minimum height (76px); the broad hero has minimum height (32rem), increasing to (36rem) at widths from (1600px), with a left white introduction inset (30rem wide, 2rem padding). Sections center within (82rem); process and sample record, audiences and demo choices use equal columns. At widths up to (900px), the photograph stacks above the full-width introduction, with image height clamped from (12rem) to (23rem); column gaps reduce to (2rem). At (700px), section columns stack, section padding becomes (2.5rem), navigation fills a wrapped row and the footer stacks. At (360px), sample-record labels and values stack.
 

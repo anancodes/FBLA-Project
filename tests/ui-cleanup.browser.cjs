@@ -110,7 +110,7 @@ test('schedule shows the full past record behind one keyboard disclosure',async 
 
 test('hours displays recent service, older records, and a direct CSV for all service',async t => {
   const p = await helper.page(t); await helper.signIn(p); await p.locator('.rail [data-v="hours"]').click();
-  assert.equal(await p.locator('.service-ledger li:visible').count(),3);
+  assert.equal(await p.locator('.service-ledger li:visible').count(),5);
   assert.equal(await p.locator('#hours-record').evaluate(el => el.open),false);
   assert.equal(await p.locator('[data-act="cert"],[data-act="print"],[data-act="csv"]').count(),0);
   const exportButton=p.getByRole('button',{name:'Download CSV'});

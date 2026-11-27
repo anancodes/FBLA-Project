@@ -152,7 +152,7 @@ function serviceLedger(rows){
 function vHours(u){
   const attended = state.regs.filter(r => r.userId === u.id && r.status === "attended").map(r => ({r,e:eventById(r.eventId)})).filter(x => x.e);
   const rs = attended.concat(outsideRows(u.id)).sort((a,b) => byDate(b.e,a.e)), total = sum(rs.map(x => x.r.hours));
-  const older = rs.slice(3);
+  const recent = rs.slice(0,5), older = rs.slice(recent.length);
   ui.csv = {name:`volunteer-hours-${u.name.toLowerCase().replace(/\s+/g,"-")}.csv`,build:() => toCSV([["Date","Event","Cause","Location","Hours"],...rs.map(({r,e}) => [e.date,e.title,e.category,e.location,r.hours]),["","","","Total",total]])};
   return `<header class="head"><h1>My hours</h1><button class="btn" data-act="csvDownload">${icon("download")}Download CSV</button></header>
   <section class="hours-overview" aria-labelledby="verified-hours-title">
@@ -163,7 +163,7 @@ function vHours(u){
       <p class="muted small">${total >= HOUR_GOAL ? "Goal reached" : `${fmtH(HOUR_GOAL - total)} hours to go`}</p></div>
   </section>
   <section class="section" aria-labelledby="service-history-title"><h2 id="service-history-title">Recent service</h2>
-    ${rs.length ? serviceLedger(rs.slice(0,3)) : `<p class="empty">Hours appear here after a coordinator records attendance or a club approves your service.</p>`}
+    ${recent.length ? serviceLedger(recent) : `<p class="empty">Hours appear here after a coordinator records attendance or a club approves your service.</p>`}
     ${older.length ? `<details class="disclosure history-disclosure" id="hours-record"><summary>View ${older.length} older ${older.length === 1 ? "record" : "records"}</summary>${serviceLedger(older)}</details>` : ""}
   </section>`;
 }

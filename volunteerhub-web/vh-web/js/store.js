@@ -42,7 +42,8 @@ const ui = {
   requestedRoute:null, fromHistory:false,
   demo:false,        // true while exploring sample data on a site that also has live mode
   liveShell:false,   // true while showing live-mode data (signed in or on the live login page)
-  find:{q:"", cat:"all", location:null, radius:"25", match:false, hideFull:false, verifiedOnly:true, mode:"list"},
+  find:{q:"", cat:"all", location:null, radius:"25"},
+  shifts:{mode:"list"},
   disclosures:new Set(), expandClub:null,
   ev:{tab:"upcoming", q:"", mode:"list"}, cal:TODAY.slice(0, 7),
   ciEvent:null, vq:"",
@@ -75,8 +76,11 @@ function findClash(uid, e){
   return state.regs
     .filter(r => r.userId === uid && r.status === "registered" && r.eventId !== e.id)
     .map(r => eventById(r.eventId))
-    .find(o => o.date === e.date && o.start < e.end && e.start < o.end);
+    .find(o => o?.date === e.date && o.start < e.end && e.start < o.end);
 }
+
+const canSignUpFor = (e, u) => !eventHasEnded(e) && canSeeEvent(e,u) && isVerified(e) &&
+  spotsLeft(e) > 0 && !myReg(u.id,e.id) && !findClash(u.id,e);
 
 // When spots open up, move people off the waitlist in order.
 // Skips anyone who now has a clashing shift. Stops at anyone this person isn't allowed
@@ -155,6 +159,7 @@ const posterOf = e => { const p = userById(e.postedBy) || {name:"Unknown organiz
 /* ----- Locations ----- */
 const homeZip = () => lookupZip(state.org.zip) || lookupZip(DEFAULT_HOME_ZIP);
 const orgPlace = () => placeName(homeZip());
+const eventHasLocation = e => !!lookupZip(e.zip) || venueOf(e).east !== undefined;
 // Where an event is: the ZIP a coordinator typed for it, or its saved place's position around the home ZIP.
 function eventPoint(e){
   if (e.zip && lookupZip(e.zip)) return lookupZip(e.zip);
@@ -191,13 +196,14 @@ function userStats(uid){
     eventHours: sum(att.map(r => r.hours)), outside: approvedOutsideHours(uid),
     hours: sum(att.map(r => r.hours)) + approvedOutsideHours(uid), attended: att.length,
     noShows: rs.filter(r => r.status === "no-show").length,
-    upcoming: rs.filter(r => r.status === "registered" && eventById(r.eventId).date >= TODAY),
-    waitlisted: rs.filter(r => r.status === "waitlist" && eventById(r.eventId).date >= TODAY),
+    upcoming: rs.filter(r => r.status === "registered" && !eventHasEnded(eventById(r.eventId))),
+    waitlisted: rs.filter(r => r.status === "waitlist" && !eventHasEnded(eventById(r.eventId))),
   };
 }
 
 // Hours from now until an event starts (negative if it already started).
-function hoursUntil(e){
-  const [y, m, d] = e.date.split("-").map(Number), [h, mi] = e.start.split(":").map(Number);
+function hoursUntil(e, time = e.start){
+  const [y, m, d] = e.date.split("-").map(Number), [h, mi] = time.split(":").map(Number);
   return (new Date(y, m - 1, d, h, mi) - new Date()) / 3600000;
 }
+const eventHasEnded = e => !e || hoursUntil(e,e.end) <= 0;

@@ -1,7 +1,7 @@
 /*
  * components.js
- * Reusable UI building blocks shared by many screens: logo, date chips, stat tiles,
- * status pills, progress meters, bar/column charts, toasts, two-step confirm buttons,
+ * Reusable UI building blocks shared by many screens: logo, date chips, status pills,
+ * progress meters, toasts, two-step confirm buttons,
  * the pop-up modal, CSV download/copy, printing, and the month calendar.
  */
 "use strict";
@@ -33,11 +33,11 @@ const ICONS = {
   compass:'<circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/>',
   logout:'<path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 16l4-4-4-4M14 12H4"/>',
   arrow:'<path d="M5 12h14M13 6l6 6-6 6"/>',
+  download:'<path d="M12 3v12m-5-5 5 5 5-5M4 16v4h16v-4"/>',
   hourglass:'<path d="M7 3h10M7 21h10M8 3v3a4 4 0 0 0 8 0V3M8 21v-3a4 4 0 0 1 8 0v3"/>',
 };
 const icon = (name, cls = "") => `<svg class="icon ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[name] || ""}</svg>`;
 function dateChip(d){ const x = parseDate(d); return `<div class="datechip" aria-hidden="true"><span>${x.toLocaleDateString("en-US",{month:"short"})}</span><strong>${x.getDate()}</strong><span>${x.toLocaleDateString("en-US",{weekday:"short"})}</span></div>`; }
-function tile(label, val, sub = "", unit = ""){ return `<div class="card tile"><span class="lab">${label}</span><span class="val">${val}${unit ? `<small>${unit}</small>` : ""}</span>${sub ? `<span class="sub">${sub}</span>` : ""}</div>`; }
 function statusPill(st){ const m = {attended:["good","Attended"], "no-show":["bad","No-show"], registered:["accent","Signed up"], waitlist:["mark","Waitlist"], cancelled:["","Cancelled"]}[st]; return `<span class="pill ${m[0]}">${m[1]}</span>`; }
 function progressPercent(value, max){ return Number.isFinite(value) && Number.isFinite(max) && max > 0 ? Math.max(0,Math.min(100,value / max * 100)) : 0; }
 function progressMeter(value, max, label, role = "meter", text = ""){
@@ -46,23 +46,6 @@ function progressMeter(value, max, label, role = "meter", text = ""){
   return `<div class="meter" role="${role}" aria-label="${esc(label)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}" aria-valuetext="${esc(text || `${fmtH(value)} of ${max}`)}" style="--progress-color:${color}"><span style="width:${pct}%"></span></div>`;
 }
 function fillMeter(e){ return progressMeter(activeRegs(e.id).length,e.slots,`Spots filled for ${e.title}`); }
-function hbars(rows, unit = ""){
-  if (!rows.length) return `<div class="empty">No data for these filters.</div>`;
-  const max = Math.max(...rows.map(r => r.value)) || 1;
-  return `<div class="hbars">${rows.map(r => `<div class="hb-row"><span class="hb-label" title="${esc(r.label)}">${esc(r.label)}</span><span class="hb-track"><span class="hb-bar" style="width:${(r.value/max*100).toFixed(1)}%"></span></span><span class="hb-val">${fmtH(r.value)}${unit}</span></div>`).join("")}</div>`;
-}
-function colChart(rows, unit = ""){
-  const max = Math.max(...rows.map(r => r.value), 1);
-  const n = rows.length;
-  return `<div class="colchart" role="img" aria-label="${esc(rows.map(r => `${r.label}: ${fmtH(r.value)}${unit}`).join(", "))}">
-    <div class="cc-plot" style="grid-template-columns:repeat(${n},1fr)">${rows.map(r => `<div class="cc-col"><span class="cc-val">${fmtH(r.value)}</span><span class="cc-bar" style="height:${(r.value / max * 82).toFixed(1)}%"></span></div>`).join("")}</div>
-    <div class="cc-labels" style="grid-template-columns:repeat(${n},1fr)">${rows.map(r => `<span>${esc(r.label)}</span>`).join("")}</div></div>`;
-}
-function hoursByMonth(regs, n = 6){
-  const keys = monthsBack(n), map = Object.fromEntries(keys.map(k => [k, 0]));
-  regs.filter(r => r.status === "attended").forEach(r => { const k = monthKey(eventById(r.eventId).date); if (k in map) map[k] += r.hours; });
-  return keys.map(k => ({label: monthLabel(k), value: map[k]}));
-}
 function toast(msg, kind = ""){
   const t = document.createElement("div"); t.className = `toast ${kind}`; t.textContent = msg;
   const box = $("#toast"); box.appendChild(t);
@@ -139,7 +122,7 @@ function downloadICS(e){
   const ics = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//VolunteerHub//EN", "BEGIN:VEVENT",
     `UID:volunteerhub-event-${icsText(e.id)}`, `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, "").slice(0, 15)}Z`,
     `DTSTART:${stamp(e.date, e.start)}`, `DTEND:${stamp(e.date, e.end)}`,
-    `SUMMARY:${icsText("Volunteer: " + e.title)}`, `LOCATION:${icsText(`${e.location}, ${addressOf(e)}`)}`,
+    `SUMMARY:${icsText("Volunteer: " + e.title)}`, `LOCATION:${icsText(eventHasLocation(e) ? `${e.location}, ${addressOf(e)}` : e.location)}`,
     `DESCRIPTION:${icsText(`${e.desc} Bring: ${e.bring || "nothing special"}.`)}`, "END:VEVENT", "END:VCALENDAR"].join("\r\n");
   if (downloadFile(`${e.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${e.date}.ics`, ics, "text/calendar")) toast("Calendar file downloaded. Open it to add the shift to your calendar.");
   else toast("Your browser blocked the download.", "bad");
@@ -147,7 +130,7 @@ function downloadICS(e){
 
 // Practical details block used in both event pop-ups: where, what to bring, ages, contact.
 function eventFacts(e){
-  const v = venueOf(e), p = posterOf(e), origin = searchOrigin();
+  const v = venueOf(e), p = posterOf(e), origin = searchOrigin(), located = eventHasLocation(e);
   const fact = (label, value) => value ? `<div class="fact"><span class="lbl">${label}</span><span>${value}</span></div>` : "";
   return `<div class="facts">
     <div class="stack">
@@ -161,8 +144,8 @@ function eventFacts(e){
     <div class="stack">
       <h3>Where</h3>
       ${fact("Place", esc(e.location))}
-      ${fact("Address", esc(addressOf(e)))}
-      ${origin ? fact("Distance", `${fmtMiles(milesTo(e, origin))} from ${esc(placeName(origin))}`) : ""}
+      ${located ? fact("Address", esc(addressOf(e))) : ""}
+      ${origin && located ? fact("Distance", `${fmtMiles(milesTo(e, origin))} from ${esc(placeName(origin))}`) : ""}
       ${fact("Parking", esc(v.parking))}
       ${fact("Accessibility", esc(v.access))}
       ${fact("Contact", `${esc(p.name)}${p.org ? `, ${esc(p.org)}` : ""}<br><span class="muted">${esc(p.phone || "")}${p.phone && p.email ? " · " : ""}${esc(p.email || "")}</span>`)}
@@ -196,8 +179,12 @@ function printView(mode){
   try { window.print(); } catch(e){ done(); }
 }
 // Download / Copy / Print buttons. Screens set ui.csv = {name, build} to supply the data.
-function exportBar(printable = true){
-  return `<div class="row no-print"><button class="btn secondary" data-act="csvDownload">Download CSV</button><button class="btn secondary" data-act="csv">Copy</button>${printable ? `<button class="btn secondary" data-act="print">Print</button>` : ""}</div>`;
+function exportBar(copyEmailsFor){
+  return `<div class="row no-print"><button class="btn" data-act="csvDownload">${icon("download")}Download CSV</button>
+    <details class="disclosure other-exports" id="record-exports"><summary>Other export options</summary>
+      <div class="row">${copyEmailsFor ? `<button class="btn secondary sm" data-act="copyEmails" data-id="${esc(copyEmailsFor)}">Copy emails</button>` : ""}
+        <button class="btn secondary sm" data-act="csv">Copy data</button><button class="btn secondary sm" data-act="print">Print</button></div>
+    </details></div>`;
 }
 
 /* ----- Month calendar ----- */
@@ -227,9 +214,9 @@ function calChip(e, cls, label = ""){
   return `<button class="cal-chip ${cls}" data-act="calEvent" data-id="${esc(e.id)}" aria-label="${esc(name)}" title="${esc(name)}"><b>${fmtTime(e.start).replace(":00", "").replace(" ", "").toLowerCase()}</b> ${esc(e.title)}</button>`;
 }
 function listCalToggle(mode, key){
-  return `<div class="tabs" role="tablist" aria-label="View as">
-    <button role="tab" aria-selected="${mode === "list"}" data-act="viewMode" data-v="${key}:list">List</button>
-    <button role="tab" aria-selected="${mode === "calendar"}" data-act="viewMode" data-v="${key}:calendar">Calendar</button></div>`;
+  return `<div class="tabs" role="group" aria-label="View as">
+    <button type="button" aria-pressed="${mode === "list"}" data-act="viewMode" data-v="${key}:list">List</button>
+    <button type="button" aria-pressed="${mode === "calendar"}" data-act="viewMode" data-v="${key}:calendar">Calendar</button></div>`;
 }
 
 /* ----- "Needs attention" list ----- */

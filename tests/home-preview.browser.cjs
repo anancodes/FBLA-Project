@@ -90,7 +90,7 @@ test('empty Home states provide direct actions and preserve accurate zero-hour p
  const p=await helper.page(t);await helper.signIn(p);
  await p.evaluate(()=>{const u=currentUser();u.skills=[];state.regs=state.regs.filter(r=>r.userId!==u.id);state.hourLogs=state.hourLogs.filter(l=>l.userId!==u.id);render()});
  assert.equal(await p.getByRole('heading',{name:'Your schedule is open'}).count(),1);
- assert.equal(await p.getByRole('link',{name:'Find your first shift'}).count(),1);
+ assert.equal(await p.getByRole('link',{name:'Find opportunities',exact:true}).count(),1);
  await p.getByRole('link',{name:'Add my skills'}).click();assert.equal(await p.locator('#profileForm').count(),1);
  await p.evaluate(()=>handlers.nav('dashboard'));assert.equal(await p.getByRole('progressbar').getAttribute('aria-valuenow'),'0');
 });
@@ -112,7 +112,7 @@ test('Home, display settings and event dialogs fit small screens, large text and
 
 test('the new font loads locally without Google Fonts',async t=>{
  const p=await helper.page(t);await p.route('**/fonts.googleapis.com/**',r=>r.abort());await p.reload();await helper.signIn(p);await p.evaluate(()=>document.fonts.ready);
- assert.ok(await p.evaluate(()=>[...document.fonts].some(f=>f.family==='Public Sans'&&f.status==='loaded')));
+ assert.ok(await p.evaluate(()=>[...document.fonts].some(f=>f.family==='Atkinson Hyperlegible Next'&&f.status==='loaded')));
 });
 
 test('expanded Home states pass accessibility checks in light and dark themes',{skip:!axePath},async t=>{

@@ -28,15 +28,15 @@ All volunteers, events, and places are sample data. Set your organization's name
 
 ## Features
 
-**Volunteers:** find opportunities as a list or calendar, optionally save a city or town for distance filtering or search by event and place, filter by cause, skills, and verified organizers, open More info for the address, parking, accessibility, what to bring and wear, minimum age, contact, and who posted it, add a shift to their own calendar (.ics), report a listing that seems wrong or unsafe, sign up (blocks overlapping shifts), join a waitlist for full events and get the spot automatically when someone cancels, track verified hours toward a goal, download hours as CSV, read announcements, edit skills and availability.
+**Volunteers:** search eligible open shifts by event, place or cause. A saved city enables approximate nearby filtering. Open a shift for practical details or to report a concern. My schedule has list and calendar views, a full history and waitlist status. My hours shows verified service with a downloadable CSV. Inbox carries shift changes, announcements and club approval updates.
 
 **Coordinators:** program overview, create/edit/delete events (list or calendar), waitlists that fill automatically when spots open, check-in (present, no-show, walk-ins) with roster download and print, volunteer directory with reliability and certificates, reports filtered by dates, cause, and volunteer and grouped by volunteer, event, month, or cause, with CSV download, copy, and print, announcements to everyone or to one event's volunteers, and a review list for concerns volunteers report.
 
-**Trust and safety:** every listing shows who posted it and when. Listings from verified organizers carry a badge, and volunteers see only verified listings unless they turn that filter off. Unverified listings show a safety warning. Volunteers can report a concern on any listing.
+**Trust and safety:** Opportunities shows eligible shifts from verified organizers or clubs. Organizer contact, access details and the way to report a concern are available from the shift.
 
 **Settings:** coordinators enter their organization's name, home ZIP code, and description, and they appear across the whole site, so any nonprofit can use it as its own.
 
-**School clubs:** each club (for example HOSA or NHS) has a join code, an adviser, and student officers. Members earn hours at club events, which count automatically at check-in, and by logging outside service with a supervisor's contact for an officer to approve. Each club sets an hour requirement for the term. Members see progress bars, and officers see who's done, on track, or behind and can download the list. Club events are visible only to members. Officers can't approve their own hours.
+**School clubs:** each club (for example HOSA or NHS) has a join code, an adviser, and student officers. Members earn hours at club events, which count automatically at check-in, and by logging outside service with a supervisor's contact for an officer to approve. Each club sets an hour requirement for the term. Members see approved progress and hours waiting for approval. Officers can review claims and export member records. Club events are visible only to members. Officers can't approve their own hours.
 
 **Site admins:** verify new organizers on the Organizers screen, which includes a checklist for confirming they're real.
 
@@ -62,7 +62,7 @@ All volunteers, events, and places are sample data. Set your organization's name
 | `js/cloud.js` | Live mode: Firebase accounts, the database, live updates, and offline support |
 | `js/store.js` | App data, saving/loading with localStorage, waitlist logic, query helpers |
 | `js/validation.js` | Input validation and error display |
-| `js/components.js` | Reusable pieces: charts, calendar, tiles, pop-ups, messages, CSV export, printing |
+| `js/components.js` | Reusable pieces: calendar, progress, dialogs, messages, CSV export and printing |
 | `js/views/auth.js` | Login and create-account screens |
 | `js/views/landing.js` | Public landing, public links and demo entry points |
 | `js/views/volunteer.js` | Volunteer screens |
@@ -87,7 +87,7 @@ All volunteers, events, and places are sample data. Set your organization's name
 ## Credits
 
 - Firebase (Google): accounts and database, loaded from Google's servers in live mode
-- Fonts: locally served Public Sans and Bitter (SIL Open Font License; bundled in `fonts/`)
+- Fonts: locally served Atkinson Hyperlegible Next and Bitter (SIL Open Font License; bundled in `fonts/`)
 - Landing image: generated temporary placeholder, to be replaced with the team's photo
 - Icons: simple line icons drawn for this project (in `js/components.js`)
 - ZIP code locations: from the open-source `zipcodes` package by Sean Pianka (MIT License), github.com/seanpianka/zipcodes

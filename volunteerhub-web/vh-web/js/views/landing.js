@@ -70,7 +70,7 @@ function landingView(){
       <section id="how-it-works" class="landing-section landing-process" tabindex="-1" aria-labelledby="process-title">
         <h2 id="process-title">From your first shift to approved hours.</h2>
         <div class="landing-process-body"><ol class="landing-steps">
-          <li><h3>Find a shift</h3><p>Browse opportunities by place, cause and skills.</p></li>
+          <li><h3>Find a shift</h3><p>Search for open shifts by place or cause.</p></li>
           <li><h3>Make the commitment</h3><p>Sign up, check the details, and keep your schedule together.</p></li>
           <li><h3>Record the service</h3><p>Coordinators record attendance; clubs track approved hours.</p></li>
         </ol>

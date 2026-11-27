@@ -16,19 +16,19 @@ colors:
   progress-mid: "#ad851b"
   progress-full: "#248348"
 typography:
-  headline: {fontFamily: 'Public Sans, "Segoe UI", sans-serif', fontSize: "1.875rem", fontWeight: 600, lineHeight: 1.35, letterSpacing: "-0.025em"}
-  title: {fontFamily: 'Public Sans, "Segoe UI", sans-serif', fontSize: "1.3125rem", fontWeight: 600, lineHeight: 1.5, letterSpacing: "-0.018em"}
-  event: {fontFamily: 'Public Sans, "Segoe UI", sans-serif', fontSize: "1.125rem", fontWeight: 600, lineHeight: 1.4, letterSpacing: "-0.012em"}
-  body: {fontFamily: 'Public Sans, "Segoe UI", sans-serif', fontSize: "1rem", fontWeight: 400, lineHeight: 1.5}
-  label: {fontFamily: 'Public Sans, "Segoe UI", sans-serif', fontSize: "0.9375rem", fontWeight: 500, lineHeight: 1}
-  meta: {fontFamily: 'Public Sans, "Segoe UI", sans-serif', fontSize: "0.875rem", fontWeight: 400, lineHeight: 1.5}
+  headline: {fontFamily: 'Atkinson Hyperlegible Next, "Segoe UI", sans-serif', fontSize: "1.875rem", fontWeight: 600, lineHeight: 1.35, letterSpacing: "-0.025em"}
+  title: {fontFamily: 'Atkinson Hyperlegible Next, "Segoe UI", sans-serif', fontSize: "1.3125rem", fontWeight: 600, lineHeight: 1.5, letterSpacing: "-0.018em"}
+  event: {fontFamily: 'Atkinson Hyperlegible Next, "Segoe UI", sans-serif', fontSize: "1.125rem", fontWeight: 600, lineHeight: 1.4, letterSpacing: "-0.012em"}
+  body: {fontFamily: 'Atkinson Hyperlegible Next, "Segoe UI", sans-serif', fontSize: "1rem", fontWeight: 400, lineHeight: 1.5}
+  label: {fontFamily: 'Atkinson Hyperlegible Next, "Segoe UI", sans-serif', fontSize: "0.9375rem", fontWeight: 500, lineHeight: 1}
+  meta: {fontFamily: 'Atkinson Hyperlegible Next, "Segoe UI", sans-serif', fontSize: "0.875rem", fontWeight: 400, lineHeight: 1.5}
   public-display: {fontFamily: 'Bitter, Georgia, serif', fontSize: "clamp(2.25rem, 3.25vw, 3rem)", fontWeight: 550, lineHeight: 1.15, letterSpacing: "-0.025em"}
   public-headline: {fontFamily: 'Bitter, Georgia, serif', fontSize: "clamp(1.75rem, 2.4vw, 2.25rem)", fontWeight: 500, lineHeight: 1.25, letterSpacing: "-0.025em"}
   public-title: {fontFamily: 'Bitter, Georgia, serif', fontSize: "1.1875rem", fontWeight: 600, lineHeight: 1.4, letterSpacing: "-0.025em"}
-  public-body: {fontFamily: 'Bitter, Georgia, serif', fontSize: "1rem", fontWeight: 400, lineHeight: 1.65}
-  public-label: {fontFamily: 'Bitter, Georgia, serif', fontSize: "0.9375rem", fontWeight: 600, lineHeight: 1}
-  public-field: {fontFamily: 'Bitter, Georgia, serif', fontSize: "1rem", fontWeight: 400, lineHeight: 1.65}
-  public-meta: {fontFamily: 'Bitter, Georgia, serif', fontSize: "0.875rem", fontWeight: 400, lineHeight: 1.65}
+  public-body: {fontFamily: 'Atkinson Hyperlegible Next, "Segoe UI", sans-serif', fontSize: "1rem", fontWeight: 400, lineHeight: 1.65}
+  public-label: {fontFamily: 'Atkinson Hyperlegible Next, "Segoe UI", sans-serif', fontSize: "0.9375rem", fontWeight: 600, lineHeight: 1}
+  public-field: {fontFamily: 'Atkinson Hyperlegible Next, "Segoe UI", sans-serif', fontSize: "1rem", fontWeight: 400, lineHeight: 1.65}
+  public-meta: {fontFamily: 'Atkinson Hyperlegible Next, "Segoe UI", sans-serif', fontSize: "0.875rem", fontWeight: 400, lineHeight: 1.65}
 rounded: {control: "4px", dialog: "12px"}
 spacing: {fine: "4px", small: "8px", compact: "12px", normal: "16px", group: "24px", section: "32px", desktop: "36px", public-gutter: "clamp(1.25rem, 4vw, 4rem)", public-section: "3.5rem", public-columns: "4rem"}
 components:
@@ -51,7 +51,7 @@ components:
 
 **Creative North Star: "Open agenda"**
 
-The owner selected Open agenda and explicitly required a website. Dark blue wayfinding, a white reading field, readable Public Sans and ordinary web controls establish a simple, ordered service website for both signed-in roles. The approved public landing, sign-in, signup and reset variant uses Bitter's sturdy serif voice within the same navy, white and slate system.
+The owner selected Open agenda and explicitly required a website. Dark blue wayfinding, a white reading field, readable Atkinson Hyperlegible Next and ordinary web controls establish a simple, ordered service website for both signed-in roles. The approved public landing, sign-in, signup and reset variant uses Bitter's sturdy serif voice within the same navy, white and slate system.
 
 Schools and nonprofits receive equal care. Clear dates, explicit actions and distinct service states support people finding opportunities and coordinators maintaining accurate records. Organization details remain configurable; sample content does not establish customers or endorsements.
 
@@ -64,7 +64,7 @@ The prior Open agenda finish disposition was **ship** for its 28 required captur
 **Key Characteristics:**
 
 - Dark blue navigation and flat, generously spaced reading areas.
-- Public Bitter and signed-in Public Sans, tabular dates and amounts, explicit task labels.
+- Bitter for public headings, Atkinson Hyperlegible Next for reading and controls, tabular dates and amounts, explicit task labels.
 - Real navigation links, browser history, natural page scrolling and visible mobile destinations.
 - Numeric and verbal status alongside color, with retained display preferences and keyboard access.
 
@@ -80,13 +80,13 @@ White field carries content; quiet field supports table headers and secondary ho
 
 ### Named Rules
 
-**The Semantic Progress Rule.** Progress continuously mixes low red through midpoint yellow to completion green in OKLCH, accompanied by amounts and percentage text. Keep pending claims distinct from verified service.
+**The Semantic Progress Rule.** Overall service goals use a continuous color scale from red through yellow to green, paired with numeric progress. Club progress uses a single accent and shows approved hours against the term requirement. Hours waiting for approval appear in their own section.
 
 Dark mode uses a deep slate reading field with pale blue actions and softer semantic colors; the sidebar stays dark blue. High contrast promotes quiet text and borders to ink and thickens supported control borders. Preserve these source variants rather than deriving them from the light preview ramps.
 
 ## Typography
 
-Public Sans is self-hosted in `fonts/public-sans-latin.woff2` with weights (400–700) and a Segoe UI/sans-serif fallback. It carries signed-in headings, body text and controls. Technical codes and inherited dialog textareas retain a system monospace. Public landing and account typography uses locally served `fonts/bitter-latin.woff2`, weights (400–700), with Georgia/serif fallbacks and the license in `fonts/Bitter-OFL.txt`.
+Atkinson Hyperlegible Next is self-hosted with Latin and extended Latin subsets in `fonts/`, weights (400–700) and a Segoe UI fallback. It carries signed-in headings and body text, public body text, and controls. Its distinct letter and number shapes help in addresses, times, join codes and hour records. Bitter is self-hosted at `fonts/bitter-latin.woff2` with Georgia fallback and is reserved for public headings and the public wordmark.
 
 The runtime preference starts at (16px), preserves saved preferences, and adjusts the root between (13px) and (21px). Body copy follows the root; the stylesheet's pre-runtime fallback is (15px).
 
@@ -98,7 +98,7 @@ The runtime preference starts at (16px), preserves saved preferences, and adjust
 
 **The Readable Preference Rule.** Use rem-based hierarchy and retain text size, Auto/Light/Dark and high-contrast controls across the website.
 
-**The Public Type Scope Rule.** Use Bitter for the public landing and account pages; keep Public Sans on signed-in screens.
+**The Public Type Scope Rule.** Use Bitter for public display type. Use Atkinson Hyperlegible Next for the text people read and enter across the site.
 
 ## Layout
 
@@ -137,6 +137,10 @@ Regular controls and the desktop public introduction use the small frontmatter r
 **Progress and records.** Home uses a slim meter with numeric hours, goal and percentage. Other progress surfaces retain their existing compact boundaries and status text. Signed up, waitlisted, attended, pending and approved remain separate states.
 
 **Display settings.** Help and Display settings are grouped immediately after the signed-in navigation. The public footer uses the same settings popover. The popover anchors to its trigger and fits within the current viewport. It groups text size, theme and high contrast, and dismisses on an outside click, Escape or Close. Escape and Close return focus to the trigger.
+
+**Shifts and service records.** Opportunity, schedule and coordinator event rows present title, date and time, location and description in the same order. Row actions stack below text on narrow phones. My schedule gives upcoming shifts the first position and keeps the full history under Past shifts. My hours uses a compact goal summary and a chronological ledger with an explicit CSV action. Coordinator Overview gives priority to work needing attention and the next events. Reports put dates, grouping and CSV up front, with additional filters and exports in disclosures.
+
+**Event entry.** Put the name, date and time, location, description, capacity and audience in the visible form. Cause, ZIP, skills, preparation and repeat options belong under Optional event details. Pair each validation message with its field.
 
 **Inbox and announcements.** Message rows group the subject, sender and preview, with the delivery time and disclosure control on the right. Unread items pair a dot with a spoken label. Coordinators open an announcement dialog with audience, headline and message fields. The post and cancel actions sit together below the message.
 

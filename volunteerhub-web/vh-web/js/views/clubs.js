@@ -7,40 +7,40 @@
  */
 "use strict";
 
-function progressBar(h, req){
-  const st = progressStatus(h, req);
-  return `<div class="stack" style="gap:6px">
-    <div class="spread small"><span><b class="num">${fmtH(h.total)}</b>${h.need ? ` of ${esc(h.need)} hours` : " hours"}${req && req.label ? ` · ${esc(req.label)}` : ""}</span><span class="pill ${st.cls}">${st.text}</span></div>
+function clubProgress(h, req){
+  return `<div class="club-progress">
+    <p><strong class="num">${fmtH(h.total)}</strong>${h.need ? ` of ${esc(h.need)} hours` : " hours"}${req?.label ? ` <span class="muted">for ${esc(req.label)}</span>` : ""}</p>
     ${h.need ? progressMeter(h.total,h.need,"Club hour requirement","progressbar",`${fmtH(h.total)} of ${h.need} approved hours`) : ""}
-    <span class="muted small">${fmtH(h.eventHours)} from club events · ${fmtH(h.approved)} approved outside${h.pending ? ` · ${fmtH(h.pending)} waiting for approval` : ""}</span>
   </div>`;
 }
-const logStatusPill = l => l.status === "approved" ? `<span class="pill good">Approved</span>` : l.status === "rejected" ? `<span class="pill bad">Not approved</span>` : `<span class="pill mark">Waiting</span>`;
 
-/* ----- Members ----- */
 function vMyClubs(u){
-  const mine = membershipsOf(u.id).map(m => ({m, c:clubById(m.clubId)})).filter(x => x.c);
-  const logs = state.hourLogs.filter(l => l.userId === u.id).sort((a, b) => b.date.localeCompare(a.date));
-  return `<div class="head"><div><h1>My clubs</h1><p class="muted">Track your hours for each club. Club events count automatically; log service you do elsewhere for an officer to approve.</p></div>
-    ${mine.length ? `<button class="btn" data-act="logHours">Log outside hours</button>` : ""}</div>
-  <form id="joinForm" class="card filters" novalidate>
-    <div class="field grow"><label for="jc-code">Join a club</label><input id="jc-code" name="code" maxlength="20" placeholder="Enter your club's code, like HOSA-7K2PQM" autocomplete="off" style="text-transform:uppercase"><span class="ferr" id="e-code"></span></div>
-    <button class="btn" type="submit" style="align-self:flex-end">Join</button>
-  </form>
-  ${mine.length ? `<section class="club-grid">${mine.map(({m, c}) => `<article class="club-entry stack">
-      <div class="spread"><h2>${esc(c.name)}</h2><span class="pill ${m.role === "member" ? "" : "accent"}">${m.role === "member" ? "Member" : m.role === "officer" ? "Officer" : "Adviser"}</span></div>
+  const mine = membershipsOf(u.id).map(m => ({m,c:clubById(m.clubId)})).filter(x => x.c);
+  const logs = state.hourLogs.filter(l => l.userId === u.id && l.status === "pending").sort((a,b) => b.date.localeCompare(a.date));
+  const join = `<form id="joinForm" class="filters join-club-form" novalidate>
+    <div class="field grow"><label for="jc-code">Club join code</label><input id="jc-code" name="code" maxlength="20" placeholder="e.g. HOSA-7K2PQM" autocomplete="off" aria-describedby="e-code"><span class="ferr" id="e-code"></span></div>
+    <button class="btn" type="submit">Join club</button>
+  </form>`;
+  return `<header class="head"><h1>My clubs</h1>${mine.length ? '<button class="btn" data-act="logHours">Log outside hours</button>' : ""}</header>
+  ${mine.length ? `<section class="club-grid" aria-label="Your clubs">${mine.map(({m,c}) => {
+    const pendingCount = state.hourLogs.filter(l => l.clubId === c.id && l.status === "pending" && l.userId !== u.id).length;
+    const role = {member:"Member",officer:"Officer",adviser:"Adviser"}[m.role];
+    return `<article class="club-entry stack">
+      <div class="spread"><h2>${esc(c.name)}</h2><span class="small muted">${role}</span></div>
       ${c.about ? `<p class="muted small">${esc(c.about)}</p>` : ""}
-      ${progressBar(clubHours(c.id, u.id), c.req)}
-      ${isClubManager(c.id,u) ? `<details class="club-tools disclosure" id="club-tools-${esc(c.id)}" ${ui.expandClub === c.id ? "open" : ""}><summary>Members & approvals${state.hourLogs.filter(l => l.clubId === c.id && l.status === "pending" && l.userId !== u.id).length ? ` (${state.hourLogs.filter(l => l.clubId === c.id && l.status === "pending" && l.userId !== u.id).length} waiting)` : ""}</summary>${clubManagerContent(c,u)}</details>` : ""}
+      ${clubProgress(clubHours(c.id,u.id),c.req)}
+      ${isClubManager(c.id,u) ? `<details class="club-tools disclosure" id="club-tools-${esc(c.id)}" ${ui.expandClub === c.id ? "open" : ""}><summary>${pendingCount ? `Members & approvals (${pendingCount} waiting)` : "Members & approvals"}</summary>${clubManagerContent(c,u)}</details>` : ""}
       ${m.role !== "adviser" ? `<div>${armBtn(`leaveclub:${m.id}`, "Leave club", "Confirm leave", "secondary sm")}</div>` : ""}
-    </article>`).join("")}</section>`
-  : `<div class="empty">You're not in any clubs yet. Ask a club officer for the join code.</div>`}
-  ${mine.length ? `<section><h2 style="margin-bottom:10px">Outside hours I've logged</h2>
-  <div class="tablewrap"><table><thead><tr><th>Date</th><th>Club</th><th>Where and what</th><th class="num">Hours</th><th>Status</th><th class="num">Actions</th></tr></thead><tbody>
-  ${logs.length ? logs.map(l => `<tr><td>${fmtDate(l.date, {month:"short", day:"numeric", year:"numeric"})}</td><td>${esc((clubById(l.clubId) || {}).short || "")}</td>
-    <td>${esc(l.place)}<span class="sub">${esc(l.activity)}</span>${l.note ? `<span class="sub"><b>Officer note:</b> ${esc(l.note)}</span>` : ""}</td><td class="num">${fmtH(l.hours)}</td><td>${logStatusPill(l)}</td>
-    <td><div class="actions">${l.status === "pending" ? armBtn(`dellog:${l.id}`, "Delete", "Confirm delete") : ""}</div></td></tr>`).join("") : `<tr><td colspan="6" class="muted">Nothing logged yet. Choose "Log outside hours" after you volunteer somewhere.</td></tr>`}
-  </tbody></table></div></section>` : ""}`;
+    </article>`;
+  }).join("")}</section>
+  <section class="section" aria-labelledby="waiting-hours-title"><h2 id="waiting-hours-title">Hours waiting for approval</h2>
+    ${logs.length ? `<ul class="pending-hour-list">${logs.map(l => `<li>
+      <div><h3>${esc(l.place)}</h3><p class="muted small">${fmtDate(l.date)}${clubById(l.clubId) ? `, ${esc(clubById(l.clubId).short)}` : ""}</p><p>${esc(l.activity)}</p></div>
+      <div class="pending-hour-actions"><strong class="num">${fmtH(l.hours)} hrs</strong>${armBtn(`dellog:${l.id}`, "Withdraw", "Confirm withdrawal", "secondary sm")}</div>
+    </li>`).join("")}</ul>` : '<p class="muted">No hours waiting for approval.</p>'}
+  </section>
+  <details class="disclosure" id="join-another-club"><summary>Join another club</summary>${join}</details>`
+  : `<p class="empty">Ask a club officer for a join code.</p>${join}`}`;
 }
 
 function logForm(u){
@@ -88,7 +88,7 @@ function clubManagerContent(c,u){
     </section>
     <details class="disclosure" id="club-members-${esc(c.id)}"><summary>Members (${rows.length})</summary>
       <div class="spread"><p class="muted small">Approved hours within the current club term.</p><button class="btn secondary sm" data-act="clubCsvDownload" data-id="${esc(c.id)}">Download CSV</button></div>
-      <div class="tablewrap"><table><thead><tr><th>Member</th><th>Role</th><th>Approved hours</th><th>Pending</th><th class="num">Actions</th></tr></thead><tbody>${rows.length ? rows.map(({m,h}) => `<tr><td><b>${esc(memberName(m.userId))}</b><span class="sub">${esc(m.email || "")}</span></td><td>${m.role === "officer" ? "Officer" : "Member"}</td><td><div class="member-progress">${h.need ? progressMeter(h.total,h.need,`Hours for ${memberName(m.userId)}`,"progressbar") : ""}<span class="num">${fmtH(h.total)}${h.need ? `/${h.need}` : ""}</span><span class="muted small">${progressStatus(h,req).text}</span></div></td><td class="num">${h.pending ? fmtH(h.pending) : "—"}</td><td><div class="row">${isAdviser(c.id,u) && m.userId !== u.id ? `<button class="btn secondary sm" data-act="toggleOfficer" data-id="${esc(m.id)}">${m.role === "officer" ? "Make member" : "Make officer"}</button>` : ""}${m.userId !== u.id ? armBtn(`removemember:${m.id}`,"Remove","Confirm remove") : ""}</div></td></tr>`).join("") : `<tr><td colspan="5">No members yet. Share the club's join code.</td></tr>`}</tbody></table></div>
+      <div class="tablewrap"><table><thead><tr><th>Member</th><th>Role</th><th>Approved hours</th><th>Pending</th><th class="num">Actions</th></tr></thead><tbody>${rows.length ? rows.map(({m,h}) => `<tr><td><b>${esc(memberName(m.userId))}</b><span class="sub">${esc(m.email || "")}</span></td><td>${m.role === "officer" ? "Officer" : "Member"}</td><td><div class="member-progress">${h.need ? progressMeter(h.total,h.need,`Hours for ${memberName(m.userId)}`,"progressbar") : ""}<span class="num">${fmtH(h.total)}${h.need ? `/${h.need}` : ""}</span></div></td><td class="num">${h.pending ? fmtH(h.pending) : "—"}</td><td><div class="row">${isAdviser(c.id,u) && m.userId !== u.id ? `<button class="btn secondary sm" data-act="toggleOfficer" data-id="${esc(m.id)}">${m.role === "officer" ? "Make member" : "Make officer"}</button>` : ""}${m.userId !== u.id ? armBtn(`removemember:${m.id}`,"Remove","Confirm remove") : ""}</div></td></tr>`).join("") : `<tr><td colspan="5">No members yet. Share the club's join code.</td></tr>`}</tbody></table></div>
     </details>
     <details class="disclosure" id="club-events-${esc(c.id)}"><summary>Club events (${evs.length})</summary>
       ${evs.length ? evs.map(e => eventMini(e,`<button class="btn secondary sm" data-act="editEvent" data-id="${esc(e.id)}">Edit</button>`)).join("") : `<p class="muted">No recent or upcoming club events.</p>`}

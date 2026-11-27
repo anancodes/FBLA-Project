@@ -52,7 +52,9 @@ function render(){
   const m = $("#modal .modal");
   if (m && ui.modalEvent && eventById(ui.modalEvent) && u){
     const hadFocus = m.contains(a);
+    const detailsOpen = m.querySelector(".event-details")?.open;
     m.innerHTML = eventPopup(eventById(ui.modalEvent), u);
+    if (detailsOpen) m.querySelector(".event-details")?.setAttribute("open", "");
     const title = m.querySelector("h2"); if (title) title.id = "modal-title";
     if (hadFocus) (replacementControl(a,m) || modalControls()[0] || m).focus();
   }
@@ -64,7 +66,8 @@ function render(){
   else if (fid){ const el = document.getElementById(fid); if (el){ el.focus(); try { if (sel) el.setSelectionRange(sel[0], sel[1]); } catch(e){} } }
   else if (hadAppFocus){
     const disclosure = focusDisclosureId && document.getElementById(focusDisclosureId);
-    const target = replacementControl(a,$("#app")) || (disclosure && disclosure.querySelector("summary"));
+    const target = replacementControl(a,$("#app")) || (disclosure && disclosure.querySelector("summary")) ||
+      (a.closest("#open-shifts") && $("#search-results"));
     if (target) target.focus({preventScroll:true});
   }
 }

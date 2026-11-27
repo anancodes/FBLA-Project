@@ -32,7 +32,7 @@ VolunteerHub connects nonprofit opportunity discovery and event attendance with 
 
 ## Operating Context
 
-- Volunteers browse event lists or calendars, inspect practical details and organizer status, sign up or join a waitlist, and manage their schedule.
+- Volunteers search open shifts, inspect practical details, and sign up. My schedule shows confirmed shifts in a list or calendar, waitlist status, and the full shift history.
 - Coordinators create and edit events, manage capacity, check people in, communicate through announcements, and export or print records and reports.
 - Students join clubs using join codes. Club managers set term requirements, organize club events, review outside-service claims, and manage officers and members.
 - Live accounts and shared records use Firebase Authentication and Firestore when configured. Demo mode uses fictional sample records saved in the browser and remains available for demonstrations and local testing.
@@ -44,7 +44,7 @@ VolunteerHub connects nonprofit opportunity discovery and event attendance with 
 
 - Preserve the existing vanilla HTML, CSS, and JavaScript application. Its entry point is `volunteerhub-web/vh-web/index.html`; classic scripts load in a deliberate order. The app has no package build step.
 - `js/db.js` centralizes data changes. `js/cloud.js` handles the optional Firebase connection; `firestore.rules` contains server-side access rules. UI refinements must preserve backend behavior and permission boundaries.
-- Opportunity browsing includes cause, location, skill, and organizer filters, event details, calendar views, waitlists, and schedule-conflict checks.
+- Opportunity search uses text, cause, and optional nearby filters. Results include open shifts from verified organizers and exclude existing sign-ups, waitlist entries, and known schedule conflicts.
 - Service records include attended event hours and approved outside-service logs. Club progress uses the club's hour requirement and term dates; pending logs are displayed separately.
 - Verified coordinators, site administrators, club advisers, officers, and ordinary members have different responsibilities and access. Preserve those distinctions when changing navigation or flows.
 - Records can be exported or printed, including service certificates, rosters, and reports. On-screen totals and exported records should communicate the same underlying service activity.
@@ -54,7 +54,7 @@ VolunteerHub connects nonprofit opportunity discovery and event attendance with 
 - Keep both school and nonprofit workflows usable as the product evolves.
 - Account creation must allow users to skip providing a location. Location-based discovery is available only after a user provides one; users who skip it can discover opportunities manually through search. The owner confirmed city or town, with state-based suggestions, instead of ZIP-only input. City-center distances are approximate; no street address or device geolocation is collected.
 - Preserve the current framework and design system during scoped UI changes. A request for initialization is not a redesign.
-- The owner's requested progress semantics are a continuous spectrum from red for low progress, through yellow halfway, to vibrant green at completion. Communicate amounts and status in text as well as color.
+- Overall service goals show numeric progress and use the red-to-green progress scale. Club progress uses a neutral accent and gives hours awaiting approval their own section.
 - Real-world use is the confirmed goal. This initialization records that intent; it does not verify a production Firebase deployment, security posture, or launch readiness.
 - Specific initial schools, nonprofit partners, deployment ownership, support arrangements, and operational success targets have not been confirmed. Do not invent them.
 
@@ -62,7 +62,7 @@ VolunteerHub connects nonprofit opportunity discovery and event attendance with 
 
 - The product is named VolunteerHub.
 - The owner prefers simple, readable interfaces with deliberate whitespace, order and contrast. Avoid neon accents, vague actions, descriptive clutter on tabs, and unnecessary dropdown menus. SignUpGenius is an explicit anti-reference for clutter.
-- The owner selected Open agenda: a dark blue sidebar, readable Public Sans, equal-weight dated shifts and full-width recommendations. Apply that visual direction consistently to the existing website while preserving navigation and functionality.
+- The owner selected Open agenda: a dark blue sidebar, readable type, equal-weight dated shifts and full-width recommendations. Apply that visual direction consistently to the existing website while preserving navigation and functionality.
 - The owner explicitly wants a website rather than a native-app aesthetic. Use ordinary web links, browser navigation, natural page scrolling and responsive layouts; avoid OS window chrome and app-like bottom navigation.
 - The public landing page should emphasize sign-in while offering an immediately visible demo entry for judging. The owner selected the community-led proposal with a single large photo, the service-led proposal's restraint, purposeful copy and a serif-led public type treatment. The current photo is a temporary placeholder for the owner's own image; avoid adding more volunteer photos. This scoped public variant does not replace the signed-in design system.
 - The organization's identity is configurable. Use the configured organization's details in the product rather than treating the fictional sample organization as a permanent brand or real partner.

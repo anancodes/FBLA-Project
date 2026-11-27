@@ -11,7 +11,7 @@
 "use strict";
 
 const KEY = "volunteerhub-demo-v1";
-const CATS = ["Food Pantry","Tutoring","Environment","Senior Support","Fundraising"];
+const CATS = ["Food Pantry","Tutoring","Environment","Senior Support","Fundraising","Other"];
 const SKILLS = ["Lifting","Driving","Spanish","Tutoring","Cooking","Tech","First Aid"];
 const AVAIL = ["Weekday mornings","Weekday evenings","Weekends"];
 const HOUR_GOAL = 60;   // service-hour goal shown to volunteers

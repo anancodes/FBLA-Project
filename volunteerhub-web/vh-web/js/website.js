@@ -115,16 +115,16 @@ function agendaRecommendation(e){
 }
 function volunteerHome(u){
   const s = userStats(u.id), up = s.upcoming.map(r => eventById(r.eventId)).filter(Boolean).sort(byDate);
-  const recs = state.events.filter(e => e.date >= TODAY && canSeeEvent(e,u) && isVerified(e) && spotsLeft(e) > 0 && !myReg(u.id,e.id) && e.skills.some(k => u.skills.includes(k))).sort(byDate).slice(0,3);
+  const recs = state.events.filter(e => canSignUpFor(e,u) && e.skills.some(k => u.skills.includes(k))).sort(byDate).slice(0,3);
   return `<header class="pv-greeting"><h1>Welcome back, ${esc(u.name.split(" ")[0])}</h1><a class="btn" href="#find" data-act="nav" data-v="find">Find opportunities</a></header>
     ${tourCard(u)}
     <div class="pv-home-grid">
       <section class="pv-schedule" aria-labelledby="next-shifts-heading"><div class="pv-section-head"><h2 id="next-shifts-heading">Your next shifts</h2><a class="linkbtn" href="#shifts" data-act="nav" data-v="shifts">View schedule</a></div>
-        ${up.length ? `<ol class="pv-shifts">${up.slice(0,3).map(agendaShift).join("")}</ol><p class="pv-scheduled-total">${up.length} upcoming ${up.length === 1 ? "shift" : "shifts"}</p>` : `<div class="pv-empty"><h3>Your schedule is open</h3><p>Find an opportunity that fits your time and interests.</p><a class="linkbtn" href="#find" data-act="nav" data-v="find">Find your first shift</a></div>`}
+        ${up.length ? `<ol class="pv-shifts">${up.slice(0,3).map(agendaShift).join("")}</ol><p class="pv-scheduled-total">${up.length} upcoming ${up.length === 1 ? "shift" : "shifts"}</p>` : `<div class="pv-empty"><h3>Your schedule is open</h3><p>Shifts appear here after you sign up.</p></div>`}
       </section>
       <aside class="pv-hours" aria-labelledby="service-heading"><h2 id="service-heading">Verified service</h2><p class="pv-hours-total"><strong>${fmtH(s.hours)}</strong> <span>hours</span></p><p class="pv-hours-goal">of your ${HOUR_GOAL}-hour goal</p>${progressMeter(s.hours,HOUR_GOAL,"Service hour goal","progressbar",`${fmtH(s.hours)} of ${HOUR_GOAL} hours`)}<p class="pv-hours-percent">${Math.round(progressPercent(s.hours,HOUR_GOAL))}% complete</p><a class="linkbtn" href="#hours" data-act="nav" data-v="hours">View my hours</a></aside>
-      <section class="pv-recommended" aria-labelledby="recommendations-heading"><div class="pv-section-head"><h2 id="recommendations-heading">Recommended for you</h2><a class="linkbtn" href="#find" data-act="nav" data-v="find">Browse opportunities</a></div>
-        ${recs.length ? `<ul class="pv-recommendations">${recs.map(agendaRecommendation).join("")}</ul>` : `<div class="pv-empty"><p>${u.skills.length ? "No matching open shifts right now. Browse opportunities to explore other ways to help." : "Add your skills to get recommendations that match your interests."}</p><a class="linkbtn" href="#${u.skills.length ? "find" : "profile"}" data-act="nav" data-v="${u.skills.length ? "find" : "profile"}">${u.skills.length ? "Explore opportunities" : "Add my skills"}</a></div>`}
-      </section>
+      ${recs.length || !u.skills.length ? `<section class="pv-recommended" aria-labelledby="recommendations-heading"><div class="pv-section-head"><h2 id="recommendations-heading">Recommended for you</h2></div>
+        ${recs.length ? `<ul class="pv-recommendations">${recs.map(agendaRecommendation).join("")}</ul>` : '<a class="linkbtn" href="#profile" data-act="nav" data-v="profile">Add my skills</a>'}
+      </section>` : ""}
     </div>`;
 }

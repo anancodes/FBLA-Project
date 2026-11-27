@@ -126,7 +126,7 @@ test("event queries enforce club membership and event writes preserve ownership 
   await assertFails(updateDoc(ref(org,"events/10"),{postedBy:"other"}));
   await assertFails(updateDoc(ref(org,"events/10"),{slots:201}));
   await assertFails(updateDoc(ref(org,"events/10"),{start:"25:00"}));
-  await assertSucceeds(setDoc(ref(org,"events/90"),venue(90)));
+  await assertSucceeds(setDoc(ref(org,"events/90"),venue(90,{category:"Other",location:"West footbridge",zip:""})));
   await assertSucceeds(setDoc(ref(user("officer"),"events/91"),venue(91,{postedBy:"officer",clubId:5})));
 });
 

@@ -240,6 +240,8 @@ test('recurring events share one commit and a failed save keeps the event form i
   await page.getByRole('button',{name:'New event',exact:true}).click();
   await page.locator('#ef-title').fill('Garden cleanup series');
   await page.locator('#ef-loc').fill('Community Garden');
+  await page.locator('#ef-desc').fill('Remove litter and sort recyclables.');
+  await page.locator('.event-form-options > summary').click();
   await page.locator('#ef-zip').fill('20001');
   await page.locator('#ef-repeat').selectOption('2');
   const submit = page.locator('#eventForm [type="submit"]');

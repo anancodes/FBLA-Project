@@ -68,7 +68,7 @@ function findOpportunities(form){
   const location = saved ? String(fd.get("location") || placeName(saved)).trim() : "";
   const errs = {q:!saved && !q && fd.get("cat") === "all" ? "Enter an event or place, or choose a cause to search." : V.text(q, "the search", 0, 120), location:saved ? cityError(location) : ""};
   if (!showErrors(form, errs)) return;
-  Object.assign(ui.find, {q, location:saved ? placeName(resolveCity(location)) : null, cat:fd.get("cat"), radius:fd.get("radius") || "any", verifiedOnly:fd.has("verifiedOnly"), match:fd.has("match"), hideFull:fd.has("hideFull")});
+  Object.assign(ui.find, {q, location:saved ? placeName(resolveCity(location)) : null, cat:fd.get("cat"), radius:fd.get("radius") || "any"});
   render();
   const results = document.getElementById("search-results"); if (results) results.focus();
 }
@@ -78,7 +78,7 @@ function findOpportunities(form){
 // Sign the current volunteer up for an event, after checking it's allowed.
 function signup(eid, trigger){
   const u = currentUser(), e = eventById(eid);
-  if (e.date < TODAY) return toast("This event has already happened.", "bad");
+  if (eventHasEnded(e)) return toast("This event has already ended.", "bad");
   if (spotsLeft(e) <= 0) return toast("This event just filled up. You can join the waitlist instead.", "bad");
   const existing = myReg(u.id, eid) || (DB.live && state.regs.find(r => r.id === DB.registrationId(eid, u.id)));
   if (existing && !["waitlist","cancelled"].includes(existing.status)) return toast("You're already signed up for this event.", "bad");
@@ -100,7 +100,7 @@ function signup(eid, trigger){
 // Add the current volunteer to the end of a full event's waitlist.
 function joinWaitlist(eid, trigger){
   const u = currentUser(), e = eventById(eid);
-  if (e.date < TODAY) return toast("This event has already happened.", "bad");
+  if (eventHasEnded(e)) return toast("This event has already ended.", "bad");
   if (spotsLeft(e) > 0) return signup(eid, trigger);                       // a spot is open, so just sign up
   if (myReg(u.id, eid)) return toast("You're already on the list for this event.", "bad");
   const clash = findClash(u.id, e);
@@ -129,17 +129,18 @@ function saveEventForm(form){
              bring:fd.get("bring").trim(), wear:fd.get("wear").trim(), minAge:fd.get("minAge").trim()};
   const repeat = Number(fd.get("repeat") || 0), clubId = fd.get("club") ? asId(fd.get("club")) : null;
   const n = Number(d.slots), signed = old ? activeRegs(old.id).length : 0, age = d.minAge === "" ? null : Number(d.minAge);
-  // Saved places already have a location. Only store a ZIP when it's needed or different.
-  const known = VENUES.find(v => d.location === v.name || d.location.startsWith(v.name + ","));
-  const knownZip = known ? eventZipInfo({location:d.location}).zip : "";
-  if (known && (!d.zip || d.zip === knownZip)) d.zip = "";
+  // A custom address can supply its own ZIP. Saved venues already have a known position.
+  const known = venueOf({location:d.location}).east !== undefined;
+  const addressZip = d.location.match(/\b[0-9]{5}(?=(?:-[0-9]{4})?(?:[ ,]+USA)?$)/i)?.[0];
+  if (!d.zip && !known && lookupZip(addressZip)) d.zip = addressZip;
+  if (known && d.zip === eventZipInfo({location:d.location}).zip) d.zip = "";
   const errs = {
     title: V.text(d.title, "the event name", 3, 80),
     location: V.text(d.location, "the location", 1, 160),
-    desc: V.text(d.desc, "the description", 0, 2000, true),
+    desc: !d.desc && old?.desc !== "" ? "Enter a description of what volunteers will do." : V.text(d.desc, "the description", 0, 2000, true),
     bring: V.text(d.bring, "what to bring", 0, 120),
     wear: V.text(d.wear, "what to wear", 0, 120),
-    zip: !d.zip && !known ? "Enter the ZIP code so volunteers nearby can find this shift." : d.zip ? zipError(d.zip) : "",
+    zip: d.zip ? zipError(d.zip) : "",
     minAge: age !== null && (!Number.isInteger(age) || age < 0 || age > 21) ? "Enter a whole number from 0 to 21, or leave it blank." : "",
     date: !/^\d{4}-\d{2}-\d{2}$/.test(d.date) ? "Choose a date." : (d.date < TODAY && (!old || old.date !== d.date)) ? "The date can't be in the past." : "",
     start: !/^\d{2}:\d{2}$/.test(d.start) ? "Choose a start time." : "",
@@ -147,6 +148,7 @@ function saveEventForm(form){
     slots: !Number.isInteger(n) || n < 1 ? "Enter a whole number of at least 1." : n > 200 ? "The maximum is 200 volunteers." : n < signed ? `${signed} people are already signed up, so you need at least ${signed} spots.` : "",
     repeat: !Number.isInteger(repeat) || repeat < 0 || repeat > 12 ? "Choose from 0 to 12 weeks." : "",
   };
+  if (["bring","wear","zip","minAge","repeat"].some(key => errs[key])) form.querySelector("details").open = true;
   if (!showErrors(form, errs)) { $("#ef-err").textContent = "Fix the highlighted fields to continue."; return; }
   if (clubId && !isClubManager(clubId)) return toast("You can only post events for clubs you manage.", "bad");
   const ev = {...d, slots:n, minAge:age, clubId, updatedAt:TODAY};
@@ -244,12 +246,15 @@ function addSampleEvents(){
 function confirmAction(kind, id, trigger){
   if (kind === "cancel" || kind === "leave"){
     const r = state.regs.find(x => x.id === id), e = eventById(r.eventId), wasWaiting = r.status === "waitlist";
+    const closeEvent = () => { if (ui.modalEvent === e.id) closeModal(); };
     if (DB.live) return saveLiveRecords(`shift:${e.id}`, wasWaiting ? "Leaving waitlist…" : "Cancelling shift…", trigger,
       "regs", [{id, fields:{status:"cancelled"}}], () => {
         if (!wasWaiting) fillFromWaitlist(e);
+        closeEvent();
         toast(wasWaiting ? `You left the waitlist for ${e.title}.` : "Your shift was cancelled.");
       });
     DB.update("regs", r, {status:"cancelled"});
+    closeEvent();
     if (wasWaiting) return toast(`You left the waitlist for ${e.title}.`);
     const moved = fillFromWaitlist(e);
     toast(moved.length ? "Your shift was cancelled. The next person on the waitlist got your spot." : "Your shift was cancelled.");
@@ -260,6 +265,7 @@ function confirmAction(kind, id, trigger){
     state.regs.filter(r => r.eventId === id).forEach(r => DB.remove("regs", r.id));
     state.announcements.filter(a => a.audience === String(id)).forEach(a => DB.remove("announcements", a.id));
     DB.remove("events", id);
+    if (ui.modalEvent === id) closeModal();
     toast(`${e.title} was deleted. Anyone signed up was told.`);
   }
   if (kind === "ann"){ DB.remove("announcements", id); toast("Announcement deleted."); }
@@ -277,7 +283,7 @@ function confirmAction(kind, id, trigger){
     DB.remove("memberships", m.id);
     toast(kind === "leaveclub" ? `You left ${c.name}.` : `${m.name} was removed from ${c.name}.`);
   }
-  if (kind === "dellog"){ DB.remove("hourLogs", id); toast("Logged hours deleted."); }
+  if (kind === "dellog"){ DB.remove("hourLogs", id); toast("Hours withdrawn."); }
   if (kind === "newcode"){
     const c = clubById(id);
     Promise.resolve(setClubCode(c, makeCode(c.short))).then(() => toast("New join code created.")).catch(error => toast(Cloud.friendly(error), "bad"));
@@ -367,7 +373,7 @@ const handlers = {
   },
   logout: () => {
     clearPageURL(); setPageURL("login",true);
-    ui.authMode = "login"; ui.armed = null; ui.tour = null; ui.cal = TODAY.slice(0, 7); ui.find.mode = ui.ev.mode = "list"; ui.find.location = null; ui.find.q = ""; ui.disclosures.clear(); ui.view = "dashboard";
+    ui.authMode = "login"; ui.armed = null; ui.tour = null; ui.cal = TODAY.slice(0, 7); ui.shifts.mode = ui.ev.mode = "list"; ui.find.location = null; ui.find.q = ""; ui.disclosures.clear(); ui.view = "dashboard";
     if (DB.live) return Cloud.logout();
     state.session.userId = null; save();
     if (ui.demo) return Cloud.exitDemo();
@@ -389,11 +395,11 @@ const handlers = {
   confirm: (v, _, ev) => { const i = v.indexOf(":"), kind = v.slice(0, i), id = asId(v.slice(i + 1)); ui.armed = null; confirmAction(kind, id, ev.target.closest("button")); save(); render(); },
 
   // Events and check-in
-  newEvent: () => openModal(eventForm(null)),
-  editEvent: (_, id) => openModal(eventForm(eventById(asId(id)))),
+  newEvent: () => openModal(eventForm(null), {dismissOnBackdrop:false}),
+  editEvent: (_, id) => openModal(eventForm(eventById(asId(id))), {dismissOnBackdrop:false}),
   dupEvent: (_, id) => {                                          // same event, one week later
     const e = eventById(asId(id)), next = e.date < TODAY ? addDays(7) : iso(new Date(parseDate(e.date).getTime() + 7 * 86400000));
-    openModal(eventForm({...e, id:null, date:next}));
+    openModal(eventForm({...e, id:null, date:next}), {dismissOnBackdrop:false});
   },
   evtab: (v) => { ui.ev.tab = v; render(); },
   goCheckin: (_, id) => { ui.ciEvent = asId(id); handlers.nav("checkin"); },
@@ -421,7 +427,16 @@ const handlers = {
   },
 
   // Calendar
-  viewMode: (v) => { const [key, mode] = v.split(":"); ui[key].mode = mode; render(); },
+  viewMode: (v) => {
+    const [key, mode] = v.split(":");
+    if (key !== "ev" && key !== "shifts") return;
+    ui[key].mode = mode;
+    if (key === "shifts" && mode === "calendar"){
+      const next = userStats(currentUser().id).upcoming.map(r => eventById(r.eventId)).sort(byDate)[0];
+      ui.cal = (next?.date || TODAY).slice(0,7);
+    }
+    render();
+  },
   calMonth: (v) => {
     if (+v === 0) ui.cal = TODAY.slice(0, 7);
     else { const [y, m] = ui.cal.split("-").map(Number); ui.cal = iso(new Date(y, m - 1 + +v, 1)).slice(0, 7); }
@@ -447,7 +462,7 @@ const handlers = {
   pickClub: (_, id) => { ui.club = asId(id); render(); },
   newClub: () => openModal(clubForm(null)),
   editClub: (_, id) => openModal(clubForm(clubById(asId(id)))),
-  newClubEvent: (_, id) => openModal(eventForm({...{title:"", category:CATS[0], date:addDays(7), start:"15:30", end:"17:30", location:"", zip:"", slots:10, skills:[], desc:"", bring:"", wear:"", minAge:""}, id:null, clubId:asId(id)})),
+  newClubEvent: (_, id) => openModal(eventForm({id:null,title:"",category:"Other",date:addDays(7),start:"15:30",end:"17:30",location:"",zip:"",slots:10,skills:[],desc:"",clubId:asId(id)}), {dismissOnBackdrop:false}),
   copyCode: (v) => copyText(v, `the join code ${v}`),
   approveLog: (_, id) => reviewLog(asId(id), "approved"),
   rejectLog: (_, id) => {
@@ -465,7 +480,7 @@ const handlers = {
   // Reports, exports, printing
   preset: (v) => { ui.rep.from = addDays(-+v); ui.rep.to = TODAY; render(); },
   csv: () => { if (ui.csv) copyCSV(ui.csv.build()); },
-  csvDownload: () => { if (ui.csv) downloadCSV(ui.csv.name, ui.csv.build()); const menu = $("#hours-actions"); if (menu){ menu.open = false; menu.querySelector("summary").focus(); } },
+  csvDownload: () => { if (ui.csv) downloadCSV(ui.csv.name, ui.csv.build()); },
   clubCsvDownload: (_, id) => downloadClubCSV(asId(id)),
   print: () => printView("page"),
   cert: (_, id) => openModal(certificate(userById(asId(id)))),

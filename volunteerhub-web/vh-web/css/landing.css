@@ -1,5 +1,5 @@
 @font-face{font-family:"Bitter";font-style:normal;font-weight:400 700;font-display:swap;src:url("../fonts/bitter-latin.woff2") format("woff2")}
-.public-site{--f-body:"Bitter",Georgia,serif;--f-display:var(--f-body);--site-gutter:clamp(1.25rem,4vw,4rem);font-family:var(--f-body);background:var(--surface);color:var(--ink);min-height:100dvh;line-height:1.65}
+.public-site{--f-display:"Bitter",Georgia,serif;--site-gutter:clamp(1.25rem,4vw,4rem);font-family:var(--f-body);background:var(--surface);color:var(--ink);min-height:100dvh;line-height:1.65}
 .public-site a{text-underline-offset:4px}
 .public-site a:not([class]){color:var(--accent)}
 .public-site a:hover{text-decoration-thickness:2px}

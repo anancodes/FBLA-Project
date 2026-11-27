@@ -10,13 +10,13 @@ const TOURS = {
   volunteer: [
     {view:"dashboard", title:"Welcome to VolunteerHub", text:"Home keeps your next shifts and recommendations together, with a quick view of verified service hours."},
     {view:"find", title:"Opportunities", text:"Search for an event, place, or cause. Add an optional city or town on your profile to unlock nearby results. Click a title for full details."},
-    {view:"shifts", title:"My schedule", text:"Your upcoming shifts, waitlists, and history. If you can't make it, cancel here so the next person in line gets your spot."},
-    {view:"hours", title:"Hours & clubs", text:"See your last three attended events, expand your full service record, or use the More hour actions menu to download CSV. My clubs includes your requirements, outside-service logs, and officer tools when applicable."},
+    {view:"shifts", title:"My schedule", text:"See your upcoming shifts in a list or calendar. Use Past shifts for your full history, or cancel a sign-up here if you can't make it."},
+    {view:"hours", title:"Hours & clubs", text:"See verified hours and recent service, expand older records, or choose Download CSV. My clubs shows club requirements and hours waiting for approval."},
     {view:"news", title:"Inbox", text:"Announcements from coordinators and your clubs. The number in the menu shows what's new."},
     {view:"dashboard", title:"Your profile and display", text:"Use the Profile link to update your details. Display settings has text size, light or dark theme, and high contrast. Help lets you replay this tour."},
   ],
   coordinator: [
-    {view:"dashboard", title:"Welcome to VolunteerHub", text:"The Overview lists everything that needs your attention in one place, followed by your program's key numbers."},
+    {view:"dashboard", title:"Welcome to VolunteerHub", text:"Use the Overview to find tasks that need attention and open the roster for your next events."},
     {view:"events", title:"Events", text:"Create, copy, and edit shifts, and see sign-ups and waitlists. Switch to the calendar to see the month."},
     {view:"checkin", title:"Check-in", text:"On event day, mark each volunteer present or a no-show. Hours are credited automatically, and you can add walk-ins."},
     {view:"volunteers", title:"People & clubs", text:"Find volunteers and manage club members and hour approvals in one section. Site admins also get an Organizers tab to review new coordinators."},

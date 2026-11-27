@@ -17,6 +17,7 @@ test('Home prioritizes upcoming shifts and recommendations without duplicate att
   const goal = p.getByRole('progressbar',{name:'Service hour goal'});
   assert.equal(await goal.getAttribute('aria-valuetext'),await p.evaluate(() => `${fmtH(userStats(currentUser().id).hours)} of ${HOUR_GOAL} hours`));
   assert.equal(await p.locator('.rail [data-v="manage"]').count(),0);
+  assert.equal(await p.locator('main [href="#find"]').count(),1);
 });
 
 test('signup can omit location; discovery then requires a manual search',async t => {
@@ -28,14 +29,14 @@ test('signup can omit location; discovery then requires a manual search',async t
   await p.locator('[data-act="tourEnd"]').click();
   assert.equal(await p.evaluate(() => currentUser().location),null);
   await p.locator('.rail [data-v="find"]').click();
-  assert.equal(await p.locator('#f-location,#f-radius,.ev').count(),0);
+  assert.equal(await p.locator('#f-location,#f-radius,#open-shifts > li').count(),0);
   await p.locator('#findForm [type="submit"]').click();
   assert.match(await p.locator('#e-q').textContent(),/Enter an event/);
   await p.locator('#f-q').fill('food'); await p.locator('#findForm [type="submit"]').click();
-  assert.ok(await p.locator('.ev').count() > 0);
+  assert.ok(await p.locator('#open-shifts > li').count() > 0);
   assert.equal(await p.locator('#f-location,#f-radius').count(),0);
   await p.locator('#f-q').fill(''); await p.locator('#f-cat').selectOption('Food Pantry'); await p.locator('#findForm [type="submit"]').click();
-  assert.ok(await p.locator('.ev').count() > 0,'Choosing a cause is also a manual search');
+  assert.ok(await p.locator('#open-shifts > li').count() > 0,'Choosing a cause is also a manual search');
 });
 
 test('city selection validates input, enables nearby filters, and can be removed',async t => {
@@ -46,9 +47,9 @@ test('city selection validates input, enables nearby filters, and can be removed
   await p.locator('#p-location').fill('Washington, DC'); await p.locator('#profileForm [type="submit"]').click();
   assert.equal(await p.evaluate(() => currentUser().location.city),'Washington');
   assert.equal(await p.evaluate(() => currentUser().zip),'');
-  await p.locator('.rail [data-v="find"]').click(); await p.locator('#f-radius').selectOption('5'); await p.locator('#findForm [type="submit"]').click();
-  assert.ok(await p.locator('.ev').count() > 0);
-  assert.equal(await p.evaluate(() => [...document.querySelectorAll('.ev-title')].every(el => milesTo(eventById(asId(el.dataset.id)),searchOrigin()) <= 5)),true);
+  await p.locator('.rail [data-v="find"]').click(); await p.locator('#nearby-filters > summary').click(); await p.locator('#f-radius').selectOption('5'); await p.locator('#findForm [type="submit"]').click();
+  assert.ok(await p.locator('#open-shifts > li').count() > 0);
+  assert.equal(await p.evaluate(() => [...document.querySelectorAll('#open-shifts h3 button')].every(el => milesTo(eventById(asId(el.dataset.id)),searchOrigin()) <= 5)),true);
   await p.evaluate(() => handlers.nav('profile')); await p.locator('#p-location').fill(''); await p.locator('#profileForm [type="submit"]').click();
   await p.locator('.rail [data-v="find"]').click();
   assert.equal(await p.locator('#f-location,#f-radius').count(),0);
@@ -67,11 +68,38 @@ test('live signup receives the optional city without changing role or verificati
   assert.equal(result.role,'volunteer'); assert.equal(result.verified,false); assert.equal(result.zip,''); assert.equal('admin' in result,false);
 });
 
-test('schedule previews three attended events and keeps full history behind a keyboard disclosure',async t => {
+test('Opportunities lists only eligible shifts and moves a new registration to My schedule',async t => {
+  const p = await helper.page(t); await helper.signIn(p);
+  await p.evaluate(() => { currentUser().location = resolveCity("Washington, DC"); currentUser().zip = ""; handlers.nav("find"); });
+  assert.equal(await p.locator('#findForm input[type="checkbox"],[data-act="viewMode"]').count(),0);
+  const rows = p.locator('#open-shifts > li');
+  assert.ok(await rows.count() > 0);
+  const ids = await rows.locator('[data-act="signup"]').evaluateAll(nodes => nodes.map(node => asId(node.dataset.id)));
+  const snapshots = await p.evaluate(ids => ids.map(id => {
+    const e = eventById(id), u = currentUser();
+    return {eligible:spotsLeft(e) > 0 && !myReg(u.id,id) && !findClash(u.id,e) && canSeeEvent(e,u) && isVerified(e), desc:e.desc, place:e.location};
+  }), ids);
+  assert.ok(snapshots.every(x => x.eligible));
+  assert.equal(await rows.first().locator('.shift-description').textContent(),snapshots[0].desc);
+  assert.equal(await rows.first().locator('.shift-place').textContent(),snapshots[0].place);
+  const action = p.locator(`#open-shifts [data-act="signup"][data-id="${ids[0]}"]`);
+  await action.focus(); await p.keyboard.press('Enter');
+  assert.equal(await action.count(),0);
+  assert.equal(await p.evaluate(() => document.activeElement.id),'search-results');
+  await p.locator('.rail [data-v="shifts"]').click();
+  assert.equal(await p.locator(`#upcoming-shifts [data-act="moreInfo"][data-id="${ids[0]}"]`).count(),1);
+});
+
+test('schedule shows the full past record behind one keyboard disclosure',async t => {
   const p = await helper.page(t); await helper.signIn(p); await p.locator('.rail [data-v="shifts"]').click();
-  assert.equal(await p.locator('.service-preview li').count(),3);
   assert.equal(await p.locator('#schedule-history').evaluate(el => el.open),false);
-  assert.ok(await p.locator('#schedule-history tbody tr').count() > 3);
+  const expected = await p.evaluate(() => state.regs.filter(r => {
+    const e = eventById(r.eventId);
+    return r.userId === currentUser().id && e && (eventHasEnded(e) || ['attended','no-show'].includes(r.status));
+  }).length);
+  assert.ok(expected > 3);
+  assert.equal(await p.locator('#schedule-history li').count(),expected);
+  assert.ok(await p.locator('#upcoming-shifts .shift-when').count() > 0);
   await p.locator('#schedule-history > summary').focus(); await p.keyboard.press('Enter');
   assert.equal(await p.locator('#schedule-history').evaluate(el => el.open),true);
   await p.evaluate(() => render());
@@ -80,20 +108,21 @@ test('schedule previews three attended events and keeps full history behind a ke
   assert.equal(await p.evaluate(() => document.activeElement.tagName),'SUMMARY');
 });
 
-test('hours preview three attended events while overflow CSV exports the complete service record',async t => {
+test('hours displays recent service, older records, and a direct CSV for all service',async t => {
   const p = await helper.page(t); await helper.signIn(p); await p.locator('.rail [data-v="hours"]').click();
-  assert.equal(await p.locator('.hb-row:visible').count(),3);
+  assert.equal(await p.locator('.service-ledger li:visible').count(),3);
   assert.equal(await p.locator('#hours-record').evaluate(el => el.open),false);
   assert.equal(await p.locator('[data-act="cert"],[data-act="print"],[data-act="csv"]').count(),0);
-  assert.equal(await p.locator('[data-act="csvDownload"]').isVisible(),false);
-  await p.locator('#hours-actions > summary').click();
-  const downloadEvent = p.waitForEvent('download'); await p.locator('[data-act="csvDownload"]').click();
+  const exportButton=p.getByRole('button',{name:'Download CSV'});
+  assert.equal(await exportButton.isVisible(),true);
+  const downloadEvent = p.waitForEvent('download'); await exportButton.click();
   const download = await downloadEvent, csv = await fs.readFile(await download.path(),'utf8');
   const expected = await p.evaluate(() => state.regs.filter(r => r.userId === currentUser().id && r.status === 'attended').length + outsideRows(currentUser().id).length);
   assert.equal(csv.split('\n').length,expected+2);
   assert.match(csv,/outside service/); assert.match(csv,/Total/);
-  assert.equal(await p.locator('#hours-actions').evaluate(el => el.open),false);
-  assert.equal(await p.evaluate(() => document.activeElement.parentElement.id),'hours-actions');
+  await p.locator('#hours-record > summary').click();
+  assert.equal(await p.locator('.service-ledger li:visible').count(),expected);
+  assert.equal(await p.evaluate(() => fmtH(1.25)),'1.25');
 });
 
 test('officer approvals are embedded in My clubs and persist through updates',async t => {
@@ -109,6 +138,8 @@ test('officer approvals are embedded in My clubs and persist through updates',as
   assert.equal(await p.locator('#club-tools-2 [data-act="approveLog"][data-id="999"]').count(),0);
   await p.evaluate(() => reviewLog(999,'approved'));
   assert.equal(await p.evaluate(() => state.hourLogs.find(l => l.id === 999).status),'pending');
+  assert.match(await p.locator('.pending-hour-list').textContent(),/Helping readers/);
+  assert.equal(await p.getByText('Behind',{exact:true}).count(),0);
 });
 
 test('ordinary members cannot see club management controls',async t => {
@@ -249,7 +280,7 @@ test('a new member can join, log outside service, and receive approved hours thr
   assert.equal(await p.evaluate(id => clubHours(1,id).approved,userId),2.5);
   await p.evaluate(() => handlers.logout()); await p.locator('#li-email').fill('jamie@example.org'); await p.locator('#li-pass').fill('demo1234');
   await p.locator('#loginForm [type="submit"]').click(); await p.locator('.rail [data-v="hours"]').click();
-  assert.equal(await p.locator('.summary-strip dd').first().textContent(),'2.5');
+  assert.equal(await p.locator('.hours-total strong').textContent(),'2.5');
   await p.locator('.subtabs [data-v="clubs"]').click();
   assert.match(await p.locator('.club-entry').textContent(),/2.5 of 10 hours/);
 });
@@ -258,11 +289,13 @@ test('club event creation retains protected membership and modal keyboard focus'
   const p = await helper.page(t); await helper.signIn(p); await p.locator('.rail [data-v="hours"]').click(); await p.locator('.subtabs [data-v="clubs"]').click();
   await p.locator('#club-tools-2 > summary').click(); await p.locator('#club-tools-2 [data-act="newClubEvent"]').click();
   assert.equal(await p.locator('#app').evaluate(el => el.inert),true);
-  await p.locator('#modal [data-act="close"]').first().focus(); await p.keyboard.press('Shift+Tab');
+  assert.equal(await p.evaluate(() => document.activeElement.id),'ef-title');
+  await p.keyboard.press('Shift+Tab');
   assert.equal(await p.evaluate(() => document.activeElement.type),'submit'); await p.keyboard.press('Tab');
-  assert.equal(await p.evaluate(() => document.activeElement.dataset.act),'close');
+  assert.equal(await p.evaluate(() => document.activeElement.id),'ef-title');
   await p.locator('#ef-title').fill('Community reading afternoon');
   const venue = await p.evaluate(() => VENUES[0].name); await p.locator('#ef-loc').fill(venue);
+  await p.locator('#ef-desc').fill('Help children select books and practice reading.');
   await p.locator('#eventForm [type="submit"]').click();
   assert.equal(await p.locator('#eventForm').count(),0);
   assert.equal(await p.evaluate(() => state.events[state.events.length-1].clubId),2);
@@ -273,14 +306,37 @@ test('club event creation retains protected membership and modal keyboard focus'
 test('calendar controls keep dates, times, status names, and usable phone targets',async t => {
   const p = await helper.page(t);
   for (const id of [2,1]){
-    await p.evaluate(id => { state.session.userId = id; ui.view = id === 2 ? 'find' : 'events'; ui.tour = null; ui.find.mode = ui.ev.mode = 'calendar'; render(); },id);
+    await p.evaluate(id => { state.session.userId = id; ui.tour = null; handlers.nav(id === 2 ? 'shifts' : 'events'); },id);
+    await p.getByRole('button',{name:'Calendar',exact:true}).click();
     for (const width of [1440,768,320]){
       await p.setViewportSize({width,height:900});
       const chip = p.locator('.cal-chip').first();
       assert.ok(await chip.count()); assert.match(await chip.getAttribute('aria-label'),/AM|PM/);
-      assert.match(await chip.getAttribute('aria-label'),id === 2 ? /Signed up|On waitlist|Spots open|Full/ : /spots filled/);
+      assert.match(await chip.getAttribute('aria-label'),id === 2 ? /Signed up/ : /signed up/);
       if (width === 320) assert.ok(await chip.evaluate(el => el.getBoundingClientRect().height) >= 24);
       assert.ok(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth+1));
     }
   }
+});
+
+
+test('coordinator creates a custom-location event with the essentials and finds its roster on a phone',async t => {
+  const p = await helper.page(t,{viewport:{width:390,height:844}}); await helper.signIn(p,1);
+  await p.locator('.rail [data-v="events"]').click();
+  await p.getByRole('button',{name:'New event',exact:true}).click();
+  assert.equal(await p.locator('#ef-cat').isVisible(),false);
+  await p.locator('#ef-title').fill('River cleanup');
+  await p.locator('#ef-loc').fill('West footbridge');
+  await p.locator('#eventForm [type="submit"]').click();
+  assert.equal(await p.locator('#ef-desc').getAttribute('aria-invalid'),'true');
+  await p.locator('#ef-desc').fill('Pick up litter along the river path.');
+  await p.locator('#ef-slots').fill('12');
+  await p.locator('#eventForm [type="submit"]').click();
+  assert.equal(await p.locator('#eventForm').count(),0);
+  const e = await p.evaluate(() => state.events.find(e => e.title === 'River cleanup'));
+  assert.deepEqual([e.category,e.zip,e.slots,e.clubId],['Other','',12,null]);
+  const roster = p.getByRole('button',{name:'Roster for River cleanup',exact:true});
+  assert.equal(await roster.isVisible(),true);
+  assert.ok(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+  await roster.click(); assert.equal(await p.locator('#ci-ev').inputValue(),String(e.id));
 });

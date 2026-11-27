@@ -107,7 +107,7 @@ service cloud.firestore {
         numericId(data.id) && string(data.id) == id && uid(data.postedBy) &&
         validDay(data.postedAt) && validDay(data.updatedAt) && validDay(data.date) &&
         line(data.title, 3, 80) && line(data.location, 1, 160) &&
-        data.category in ['Food Pantry','Tutoring','Environment','Senior Support','Fundraising'] &&
+        data.category in ['Food Pantry','Tutoring','Environment','Senior Support','Fundraising','Other'] &&
         validTime(data.start) && validTime(data.end) && data.start < data.end &&
         data.slots is int && number(data.slots, 1, 200) && skills(data.skills) &&
         text(data.desc, 0, 2000) && line(data.get('bring', ''), 0, 120) && line(data.get('wear', ''), 0, 120) &&

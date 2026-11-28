@@ -10,11 +10,7 @@ const authOrigin = "http://127.0.0.1:9099";
 const projectEndpoint = authOrigin + "/emulator/v1/projects/" + project;
 const sdk = path.dirname(require.resolve("firebase/package.json"));
 const html = fs.readFileSync(path.resolve(__dirname, "../volunteerhub-web/vh-web/index.html"), "utf8");
-test.before(async () => {
-  const reset = await fetch("http://127.0.0.1:8875/emulator/v1/projects/" + project + "/databases/(default)/documents", {method:"DELETE"});
-  assert.equal(reset.status,200,"Start the local Firestore emulator before running the account suite");
-  await helper.start();
-});
+test.before(helper.start);
 test.after(helper.stop);
 
 async function connectedPage(t){

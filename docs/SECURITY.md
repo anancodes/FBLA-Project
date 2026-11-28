@@ -10,7 +10,6 @@ The review covered Firestore permissions and query scope, write validation, emai
 | Account controls did not require email verification. Live data could persist in the browser. | Live data requires a verified email. Sign-in is session-scoped, persistent Firestore storage is disabled, and old cache cleanup is attempted during startup. Account deletion requires password reauthentication. |
 | Untrusted text entered HTML templates and exported files. | The app validates fields by purpose, encodes dynamic values in markup, treats formula-like CSV strings as text, and escapes calendar line breaks. A Content Security Policy blocks inline scripts. The loaded Firebase SDK files have integrity hashes. |
 | Club join codes were short and their records changed independently. | New codes use 12 cryptographically random characters. Creation and rotation update both records atomically. |
-| Guest volunteers join without an email (added after this review). | Guests use Firebase anonymous sign-in. The rules accept a guest profile only with an active guest link or the current club join code, and only as a volunteer with no email and an accepted waiver. Coordinator, admin and club-adviser powers still require a verified email. Guest passes use local persistence so they survive closing the tab; signing out clears it. A guest who links an email must verify it before the profile switches to that email. |
 | Workspace users could interact while the initial live event queries were still running. | Workspace navigation and actions are inert during the load. Retry and Sign out provide a way to recover. Pending event saves still block duplicate submissions. |
 
 ## Before using real records
@@ -24,8 +23,6 @@ The review covered Firestore permissions and query scope, write validation, emai
 ## Remaining launch boundaries
 
 **Treat this branch as staging-ready.** The current client still reads registration identifiers across accounts to show capacity and waitlist position. Capacity and waitlist promotion are still reconciled by browsers. Before a public launch with real volunteer rosters, move booking and waitlist transitions to a trusted transaction and expose only counts publicly. Restrict registration reads to the volunteer and authorized staff once that path is in place.
-
-Anyone holding an active guest link can create guest profiles until a coordinator makes a new link. Treat posted QR codes as public. Turning a link off does not remove guests who already joined; a site admin deletes unwanted guest profiles in the Firebase console. A guest pass lives in one browser, so a guest who clears site data without adding an email loses access to that profile (coordinators keep the attendance records).
 
 Each Firebase project is one organization-wide trust boundary. Verified coordinators can read volunteer records across that project. Independent organizations that should not share records need separate Firebase projects or a tenant-aware authorization model.
 

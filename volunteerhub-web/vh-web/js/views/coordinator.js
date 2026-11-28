@@ -165,7 +165,7 @@ function cVolunteers(){
   <div class="field" style="max-width:380px"><label for="v-q">Search volunteers</label><input id="v-q" data-filter="vq" value="${esc(ui.vq)}" placeholder="Name, email, or skill"></div>
   <div class="tablewrap"><table><thead><tr><th>Volunteer</th><th>Skills</th><th>Availability</th><th class="num">Events</th><th class="num">Hours</th><th class="num">Reliability</th><th class="num no-print">Certificate</th></tr></thead><tbody>
   ${vols.length ? vols.map(({u, s}) => { const tot = s.attended + s.noShows, rel = tot ? Math.round(s.attended / tot * 100) : null;
-    return `<tr><td><b>${esc(u.name)}</b><span class="sub">${u.guest ? `Guest${u.phone ? ` · ${esc(u.phone)}` : ""}` : esc(u.email)}</span></td><td><div class="tags">${u.skills.map(k => `<span class="pill">${esc(k)}</span>`).join("") || `<span class="muted small">None listed</span>`}</div></td><td class="small">${esc(u.availability.join(", ") || "—")}</td><td class="num">${s.attended}</td><td class="num"><b>${fmtH(s.hours)}</b></td><td class="num">${rel === null ? "—" : `<span class="pill ${rel >= 90 ? "good" : rel >= 75 ? "warn" : "bad"}">${rel}%</span>`}</td><td class="num no-print"><button class="btn secondary sm" data-act="cert" data-id="${esc(u.id)}" ${s.attended ? "" : "disabled"}>View</button></td></tr>`; }).join("") : `<tr><td colspan="7" class="muted">No volunteers match.</td></tr>`}
+    return `<tr><td><b>${esc(u.name)}</b><span class="sub">${esc(u.email)}</span></td><td><div class="tags">${u.skills.map(k => `<span class="pill">${esc(k)}</span>`).join("") || `<span class="muted small">None listed</span>`}</div></td><td class="small">${esc(u.availability.join(", ") || "—")}</td><td class="num">${s.attended}</td><td class="num"><b>${fmtH(s.hours)}</b></td><td class="num">${rel === null ? "—" : `<span class="pill ${rel >= 90 ? "good" : rel >= 75 ? "warn" : "bad"}">${rel}%</span>`}</td><td class="num no-print"><button class="btn secondary sm" data-act="cert" data-id="${esc(u.id)}" ${s.attended ? "" : "disabled"}>View</button></td></tr>`; }).join("") : `<tr><td colspan="7" class="muted">No volunteers match.</td></tr>`}
   </tbody></table></div>`;
 }
 
@@ -250,7 +250,7 @@ function eventDetail(e){
     ${e.desc ? `<p class="shift-description">${esc(e.desc)}</p>` : ""}
     ${concerns ? `<p class="formerr">${concerns} open ${concerns === 1 ? "concern" : "concerns"} about this listing. See the Overview.</p>` : ""}
     <p>${n} of ${esc(e.slots)} signed up${w ? `, ${w} on the waitlist` : ""}</p>
-    <div class="row">${rosterButton(e)}${(!DB.live || DB.isVerifiedCoordinator() || (e.clubId && isClubManager(e.clubId))) ? `<button class="btn" data-act="editEvent" data-id="${esc(e.id)}">Edit event</button>` : ""}${e.date >= TODAY && (e.clubId ? state.clubCodes[e.clubId] : (!DB.live || DB.isVerifiedCoordinator())) ? `<button class="btn secondary" data-act="shareEvent" data-id="${esc(e.id)}">Share</button>` : ""}</div>
+    <div class="row">${rosterButton(e)}${(!DB.live || DB.isVerifiedCoordinator() || (e.clubId && isClubManager(e.clubId))) ? `<button class="btn" data-act="editEvent" data-id="${esc(e.id)}">Edit event</button>` : ""}</div>
     <details class="disclosure event-details"><summary>Event options</summary>
       ${!isVerified(e) ? trustBox(e) : ""}
       ${eventFacts(e)}

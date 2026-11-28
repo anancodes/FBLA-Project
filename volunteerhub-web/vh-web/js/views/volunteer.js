@@ -190,11 +190,10 @@ function vHours(u){
 
 function vProfile(u){
   return `<div class="head"><div><h1>Profile</h1><p class="muted">Your skills help us suggest shifts. Share a city or town to find opportunities nearby.</p></div></div>
-  ${u.guest ? guestSaveCard() : ""}
   <form id="profileForm" class="card stack" novalidate style="max-width:720px">
     <div class="grid2">
       <div class="field"><label for="p-name">Full name</label><input id="p-name" name="name" maxlength="80" value="${esc(u.name)}"><span class="ferr" id="e-name"></span></div>
-      <div class="field"><label for="p-email">Email</label><input id="p-email" value="${esc(u.guest ? "None (guest pass)" : u.email)}" disabled><span class="muted small">${u.guest ? "Add an email above to keep your hours on any device." : "Contact a coordinator to change your email."}</span></div>
+      <div class="field"><label for="p-email">Email</label><input id="p-email" value="${esc(u.email)}" disabled><span class="muted small">Contact a coordinator to change your email.</span></div>
       <div class="field"><label for="p-phone">Phone</label><input id="p-phone" name="phone" maxlength="30" value="${esc(u.phone)}"><span class="ferr" id="e-phone"></span></div>
       <div class="field"><label for="p-emergency">Emergency contact <span class="muted">(optional)</span></label><input id="p-emergency" name="emergency" maxlength="100" value="${esc(u.emergency || "")}" placeholder="Name and phone, e.g. Ana Chen 555-201-3344"><span class="muted small">Only verified coordinators can see this.</span><span class="ferr" id="e-emergency"></span></div>
       ${cityField("p-location", placeName(userLocation(u)))}
@@ -206,7 +205,7 @@ function vProfile(u){
   <section class="card stack" style="max-width:720px">
     <h2>Privacy and your account</h2>
     <p class="muted">${u.waiverAt ? `You accepted the <button class="linkbtn" data-act="waiver">volunteer waiver</button> on ${new Date(u.waiverAt).toLocaleDateString("en-US", {month:"long", day:"numeric", year:"numeric"})}. ` : `Read the <button class="linkbtn" data-act="waiver">volunteer waiver</button>. `}Your phone, saved city or town, and emergency contact are only shown to you and verified coordinators.</p>
-    <div class="row">${armBtn("delacct:me", u.guest ? "Delete my guest profile" : "Delete my account", "Yes, delete it permanently")}</div>
+    <div class="row">${armBtn("delacct:me", "Delete my account", "Yes, delete it permanently")}</div>
     <p class="muted small">This cancels your upcoming shifts and removes your profile. Hours you've already served stay in the organization's records.</p>
   </section>`;
 }

@@ -16,7 +16,7 @@
  */
 "use strict";
 
-const DATA_VERSION = 8;   // bump this when the data shape changes so old saved data is replaced
+const DATA_VERSION = 7;   // bump this when the data shape changes so old saved data is replaced
 
 // Only the separately generated offline file and the loopback test fixture opt into local accounts.
 const OFFLINE_WORKBOOK = window.VH_OFFLINE_WORKBOOK === true &&
@@ -24,7 +24,7 @@ const OFFLINE_WORKBOOK = window.VH_OFFLINE_WORKBOOK === true &&
 
 function emptyWorkspace(org){
   return {v:DATA_VERSION, org:Object.assign({name:"Your Organization", zip:DEFAULT_HOME_ZIP, about:"", waiver:DEFAULT_WAIVER}, org || {}),
-    users:[], events:[], regs:[], announcements:[], notices:[], concerns:[], clubs:[], memberships:[], hourLogs:[], clubCodes:{}, invites:[],
+    users:[], events:[], regs:[], announcements:[], notices:[], concerns:[], clubs:[], memberships:[], hourLogs:[], clubCodes:{},
     session:{userId:null}, prefs:loadPrefs()};
 }
 

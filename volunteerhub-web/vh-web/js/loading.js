@@ -15,8 +15,7 @@ function operationKey(button){
   if (button.dataset.operation) return button.dataset.operation;
   if (button.type === "submit" && button.form){
     const {id, dataset} = button.form;
-    if (["loginForm", "signupForm", "resetForm", "completeProfileForm", "guestForm"].includes(id)) return "auth";
-    if (id === "guestUpgradeForm") return "guest-upgrade";
+    if (["loginForm", "signupForm", "resetForm", "completeProfileForm"].includes(id)) return "auth";
     if (id === "joinForm") return "join-club";
     if (id === "clubForm" && !dataset.id) return "create-club";
     if (id === "deleteAccountForm") return "delete-account";

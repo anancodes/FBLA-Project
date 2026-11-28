@@ -529,11 +529,3 @@ button[aria-disabled="true"]{cursor:default}
 .action-pending::before{content:"";inline-size:.8em;block-size:.8em;flex:none;border:1px solid currentColor;border-radius:50%;background:currentColor;animation:load-pulse 1.8s ease-in-out 3}
 @keyframes load-pulse{50%{opacity:.27}}
 @media (max-width:480px){.load-skeleton-row{gap:1rem;min-height:4.5rem}}
-
-/* Guest links and QR codes (guest.js) */
-.share-block{display:grid;grid-template-columns:minmax(150px,200px) 1fr;gap:20px;align-items:start}
-.qr-code{display:block;inline-size:100%;block-size:auto;aspect-ratio:1;background:#fff;border:1px solid var(--line);border-radius:6px}
-.share-link{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.85rem}
-.plain-list{margin:0;padding-left:1.2em;display:grid;gap:8px}
-.guest-banner{margin-bottom:1rem}
-@media (max-width:560px){.share-block{grid-template-columns:1fr}.qr-code{max-inline-size:220px}}

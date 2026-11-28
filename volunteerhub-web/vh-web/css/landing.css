@@ -192,4 +192,3 @@ form:not(:has(#su-role-volunteer:checked)) .volunteer-waiver{display:none}
   .account-verification p{grid-column:1;margin-bottom:0}
   .account-verification .row{grid-column:2;grid-row:1/3}
 }
-.landing-intro .landing-note{margin-top:1rem;font-size:.9375rem;max-width:40ch}

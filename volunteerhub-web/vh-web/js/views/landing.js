@@ -1,7 +1,7 @@
 /* Public website and account navigation. */
 "use strict";
 
-const PUBLIC_MODES = ["landing", "login", "signup", "reset", "join"];
+const PUBLIC_MODES = ["landing", "login", "signup", "reset"];
 const PUBLIC_SECTIONS = ["how-it-works", "schools"];
 document.addEventListener("error",ev => {
   const image = ev.target;
@@ -60,7 +60,6 @@ function landingView(){
         <div class="landing-intro"><h1 id="page-title">Show up for your <em>community.</em></h1>
           <p>Find volunteer shifts that fit your schedule. Organize events with your school or nonprofit and keep track of every approved hour.</p>
           <div class="landing-actions"><a class="btn" href="#login" data-act="authmode" data-v="login">Sign in ${icon("arrow")}</a><a class="btn secondary" href="#signup" data-act="authmode" data-v="signup">Create an account</a></div>
-          <p class="landing-note">Volunteers don't need an account. Open the link or scan the QR code your coordinator shares.</p>
         </div>
         <figure class="landing-photo"><img class="landing-hero-image" src="images/community-garden.webp" width="2232" height="779" fetchpriority="high" alt="Volunteers planting seedlings together in a community garden.">
           <figcaption>Community gardening <span>· Illustrative scene</span></figcaption></figure>
@@ -69,7 +68,7 @@ function landingView(){
         <h2 id="process-title">From your first shift to approved hours.</h2>
         <div class="landing-process-body"><ol class="landing-steps">
           <li>${icon("search")}<h3>Find a shift</h3><p>Search for open shifts by place or cause.</p></li>
-          <li>${icon("calendar")}<h3>Make the commitment</h3><p>Sign up from a coordinator's link or QR code. No account needed.</p></li>
+          <li>${icon("calendar")}<h3>Make the commitment</h3><p>Sign up, check the details, and keep your schedule together.</p></li>
           <li>${icon("clipboard")}<h3>Record the service</h3><p>Coordinators record attendance; clubs track approved hours.</p></li>
         </ol>
         </div>
@@ -77,7 +76,7 @@ function landingView(){
       <section id="schools" class="landing-section landing-audiences" tabindex="-1" aria-labelledby="audiences-title"><h2 id="audiences-title">For the people who make service happen.</h2>
         <div><h3>Nonprofits & organizers</h3><p>Post opportunities, manage sign-ups and waitlists, record attendance, and export service reports.</p>
           <h3>Schools & clubs</h3><p>Set a term goal, approve outside service, and send a Gmail check-in when a member falls behind.</p>
-          <a class="linkbtn" href="#signup" data-act="authmode" data-v="signup">Create a coordinator account</a></div>
+          <a class="linkbtn" href="#signup" data-act="authmode" data-v="signup">Create an account</a></div>
       </section>
       ${orgName || state.org.about ? `<section class="landing-section landing-org"><h2>${orgName ? esc(orgName) : "Your community"}</h2>${state.org.about ? `<p>${esc(state.org.about)}</p>` : ""}</section>` : ""}
     </main>${publicFooter()}</div>`;

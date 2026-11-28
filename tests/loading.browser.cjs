@@ -8,7 +8,7 @@ test.after(helper.stop);
 // Drive the Firebase compat boundary. Queries emit cache and server snapshots
 // independently, and writes can be observed locally before they are acknowledged.
 function installFirebaseMock(){
-  const listeners = new Map(), reads = new Map();
+  const listeners = new Map();
   function ref(path, filter = null){
     return {
       path,
@@ -35,7 +35,7 @@ function installFirebaseMock(){
     async signOut(){ this.currentUser = null; this.notify(null); },
   };
   const mock = {
-    signIns:0, batches:[], singleReads:0,
+    signIns:0, batches:[],
     ready:() => !!auth.notify,
     signedOut:() => auth.notify(null),
     user(id, emailVerified = true){
@@ -45,9 +45,7 @@ function installFirebaseMock(){
     },
     fail(path, code){ listeners.get(path).error({code}); },
     doc(path, record, fromCache = false){
-      const snapshot = {exists:!!record, metadata:{fromCache}, data:() => structuredClone(record)};
-      if (reads.has(path)){ reads.get(path)(snapshot); reads.delete(path); }
-      else listeners.get(path).next(snapshot);
+      listeners.get(path).next({exists:!!record, metadata:{fromCache}, data:() => structuredClone(record)});
     },
     push(path, records, {fromCache = false, pending = []} = {}){
       for (const [key, listener] of listeners){
@@ -71,10 +69,6 @@ function installFirebaseMock(){
     firestore:() => ({
       clearPersistence:async () => {},
       doc:ref, collection:ref,
-      runTransaction(callback){
-        mock.singleReads++;
-        return callback({get:({path}) => new Promise(resolve => reads.set(path, resolve))});
-      },
       batch(){
         const changes = [];
         return {
@@ -114,7 +108,7 @@ function initialRecords(role){
   const roster = [3,4].map((userId, k) => ({id:801 + k, userId, eventId:902, status:"registered", hours:0}));
   firebaseMock.user(me.id);
   firebaseMock.doc(`users/${me.id}`, me);
-  for (const name of ["events","regs","announcements","notices","concerns","clubs","memberships","hourLogs","users","organizers","invites"]){
+  for (const name of ["events","regs","announcements","notices","concerns","clubs","memberships","hourLogs","users","organizers"]){
     const records = {events, regs:role === "coordinator" ? roster : [], users:sample.users,
       organizers:sample.users.filter(user => user.role === "coordinator")};
     firebaseMock.push(name, records[name] || []);
@@ -156,7 +150,7 @@ test('account startup and workspace hold empty cache results and recover without
   assert.match(await page.locator('.load-status').textContent(),/couldn't load your shifts and service hours/);
   assert.equal(await page.getByRole('button',{name:'Try again',exact:true}).isEnabled(), true);
   await page.evaluate(() => {
-    for (const name of ["events","regs","announcements","notices","concerns","clubs","memberships","hourLogs","users","organizers","invites"]) firebaseMock.push(name,[]);
+    for (const name of ["events","regs","announcements","notices","concerns","clubs","memberships","hourLogs","users","organizers"]) firebaseMock.push(name,[]);
   });
   await page.clock.fastForward(100);
   await page.waitForFunction(() => !document.querySelector('.pv-sidebar').inert);
@@ -295,7 +289,6 @@ test('a signed-in volunteer sees example shifts while verification protects shar
     firebaseMock.doc("users/pending-volunteer", {...seed().users[1],id:"pending-volunteer"});
   });
   assert.equal(await page.locator('h1').textContent(),'Volunteer workspace');
-  assert.equal(await page.evaluate(() => firebaseMock.singleReads),1);
   assert.ok(await page.locator('.activity-row').count() > 0);
   await page.getByRole('heading', {name:'Verify your email'}).waitFor();
   assert.equal(await page.locator('.pv-sidebar').count(), 0);

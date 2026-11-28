@@ -17,14 +17,14 @@ npm --cache /tmp/volunteerhub-npm-cache install --prefix /tmp/volunteerhub-test-
 Use an installed Chromium executable:
 
 ```sh
-NODE_PATH=/tmp/volunteerhub-test-tools/node_modules BROWSER_PATH=/usr/bin/chromium node --test tests/location.test.cjs tests/ui-cleanup.browser.cjs tests/home-preview.browser.cjs tests/website-navigation.browser.cjs tests/public-landing.browser.cjs tests/loading.browser.cjs tests/guest-access.browser.cjs
+NODE_PATH=/tmp/volunteerhub-test-tools/node_modules BROWSER_PATH=/usr/bin/chromium node --test tests/location.test.cjs tests/ui-cleanup.browser.cjs tests/home-preview.browser.cjs tests/website-navigation.browser.cjs tests/public-landing.browser.cjs tests/loading.browser.cjs
 ```
 
 Or install Playwright's Chromium and omit `BROWSER_PATH`:
 
 ```sh
 /tmp/volunteerhub-test-tools/node_modules/.bin/playwright install chromium
-NODE_PATH=/tmp/volunteerhub-test-tools/node_modules node --test tests/location.test.cjs tests/ui-cleanup.browser.cjs tests/home-preview.browser.cjs tests/website-navigation.browser.cjs tests/public-landing.browser.cjs tests/loading.browser.cjs tests/guest-access.browser.cjs
+NODE_PATH=/tmp/volunteerhub-test-tools/node_modules node --test tests/location.test.cjs tests/ui-cleanup.browser.cjs tests/home-preview.browser.cjs tests/website-navigation.browser.cjs tests/public-landing.browser.cjs tests/loading.browser.cjs
 ```
 
 The fixture starts its own local server and isolated browser contexts, replaces the Firebase configuration for testing, and never connects to the production database. The live-signup test captures the profile handoff using a mock. `AXE_CORE_PATH` can point to an existing `axe.min.js`; when axe-core is unavailable, its scan is explicitly skipped.

@@ -41,10 +41,14 @@ Until you finish these steps, the site keeps working as an offline demo.
 2. Share each club's join code with its members. Students join from **My clubs**.
 3. Next to a student's name, choose **Make officer** so they can approve hours and run club events.
 
+## Connect Gmail for hour alerts
+
+A billing-enabled Firebase project can run daily checks when the website is closed. Deploy the functions, connect the organization mailbox from Settings, then enable an alert threshold for each participating club. [Gmail setup and verification](../../docs/GMAIL-ALERTS.md)
+
 ## When rules change
 If an update to the site includes a new `firestore.rules`, paste it into **Firestore Database → Rules** again and click **Publish**.
 
 ## Good to know
-- **Cost:** Firebase's free plan has daily limits that are plenty for a school project or a small nonprofit. You won't be charged unless you add a payment method.
+- **Cost:** The browser demo has no hosting-service dependency. Live Firestore use is subject to Firebase quotas, and scheduled Gmail alerts require a billing-enabled project.
 - **Competition day:** if the internet is unreliable, use the demo buttons on the login page. Demo mode works offline and never touches your live data.
 - **Who can see what:** volunteers' phone numbers, ZIP codes, and emergency contacts are visible only to themselves and verified coordinators. Verified coordinators and authorized club managers can mark attendance. Only site admins can verify organizers or change organization settings. `firestore.rules` has the details.

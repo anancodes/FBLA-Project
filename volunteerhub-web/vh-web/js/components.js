@@ -6,10 +6,12 @@
  */
 "use strict";
 
-const LOGO = `<svg class="logo" viewBox="0 0 28 28" aria-hidden="true"><rect width="28" height="28" rx="6" fill="var(--accent)"/><path d="M8.5 14.5l3.5 3.5 7.5-8" stroke="var(--accent-ink)" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+// Four leaves identify VolunteerHub on the public site, in the workspace and on certificates.
+const LOGO = '<span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>';
 
 // Line icons (24×24, drawn with strokes so they take the text color). icon("clock") returns an inline SVG.
 const ICONS = {
+  mail:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/>',
   more:'<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
   home:'<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/>',
   search:'<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',

@@ -12,6 +12,7 @@ function cSettings(u){
   const o = state.org, canEdit = DB.live ? !!u.admin : DB.isVerifiedCoordinator(u);
   if (!canEdit) return `<div class="head"><div><h1>Settings</h1></div></div><div class="empty">Only site admins can change organization settings.</div>`;
   return `<div class="head"><div><h1>Settings</h1><p class="muted">Your organization's details. Changes show up everywhere on the site right away.</p></div></div>
+  ${GmailAlerts.panel()}
   <form id="orgForm" class="settings-form stack" novalidate>
     <h2>Organization</h2>
     <div class="field"><label for="org-name">Organization name</label><input id="org-name" name="name" maxlength="60" value="${esc(o.name)}" placeholder="e.g. Lakeside Food Bank"><span class="ferr" id="e-name"></span></div>

@@ -4,6 +4,8 @@
 
 A website that helps nonprofits recruit, organize, and manage volunteers, built for the FBLA Coding & Programming 2026–27 topic, *Serving the Community: Nonprofit Volunteer Management*.
 
+The `github` branch includes club hour alerts, an email preview, a monthly service breakdown and an optional outside-service filter in Reports. [Competition evaluation](../../docs/FBLA-REVIEW.md) · [Connecting Gmail and enabling clubs](../../docs/GMAIL-ALERTS.md)
+
 ## Two modes
 
 - **Live mode** uses Firebase for real accounts and one shared database, with live updates across devices, offline support, and password reset by email. Turn it on with `SETUP-FIREBASE.md`.
@@ -91,7 +93,7 @@ All volunteers, events, and places are sample data. Set your organization's name
 - Landing image: generated temporary placeholder, to be replaced with the team's photo
 - Icons: simple line icons drawn for this project (in `js/components.js`)
 - ZIP code locations: from the open-source `zipcodes` package by Sean Pianka (MIT License), github.com/seanpianka/zipcodes
-- AI assistance (Claude) was used as a coding tool. The team reviewed and can explain all code.
+- The original project credits Claude. The current redesign and alert implementation used Codex with Impeccable and UI UX Designer.
 
 ## Interface cleanup
 

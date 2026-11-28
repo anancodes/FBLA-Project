@@ -32,7 +32,7 @@ function websiteShell(u){
     <a class="pv-skip" href="#main">Skip to main content</a>
     <div class="frame pv-frame">
       <aside class="pv-sidebar" ${loading ? "inert" : ""}>
-        <div class="pv-brand"><a href="#dashboard" data-act="nav" data-v="dashboard">VolunteerHub</a>${state.org.name !== "Your Organization" ? `<span>${esc(state.org.name)}</span>` : ""}${!DB.live ? `<span>Demo data</span>` : ""}</div>
+        <div class="pv-brand"><a href="#dashboard" data-act="nav" data-v="dashboard">${LOGO}VolunteerHub</a>${state.org.name !== "Your Organization" ? `<span>${esc(state.org.name)}</span>` : ""}${!DB.live ? `<span>Demo data</span>` : ""}</div>
         <nav class="rail" aria-label="Main">${menuFor(u).map(([view,label]) => `<a href="#${view}" data-act="nav" data-v="${view}" ${section === view ? 'aria-current="page"' : ""} class="${ui.tour && section === view ? "tour-hl" : ""}">${icon(NAV_ICON[view])}<span>${label}</span>${!loading && counts[view] ? `<span class="count" aria-label="${counts[view]} ${countLabel[view]}">${counts[view]}</span>` : ""}</a>`).join("")}</nav>
         <div class="pv-tools">
           <a class="pv-utility" href="#help" data-act="nav" data-v="help">${icon("help")}<span>Help</span></a>

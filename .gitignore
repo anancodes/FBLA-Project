@@ -10,3 +10,8 @@
 !**/.impeccable/live/
 **/.impeccable/live/*
 !**/.impeccable/live/config.json
+
+# Local emulator logs and the generated offline presentation bundle.
+firebase-debug*.log
+firestore-debug*.log
+/VolunteerHub-demo.html

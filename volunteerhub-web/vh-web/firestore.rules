@@ -203,7 +203,9 @@ service cloud.firestore {
     }
 
     function requirement(value) {
-      return value == null || (value is map && fields(value, ['hours','label','start','end'], []) &&
+      return value == null || (value is map && fields(value, ['hours','label','start','end'], ['emailAlerts','alertGap']) &&
+        value.get('emailAlerts', false) is bool &&
+        (!('alertGap' in value) || (number(value.alertGap, 0.25, value.hours) && (value.alertGap * 4) % 1 == 0)) &&
         number(value.hours, 0.25, 500) && line(value.label, 2, 30) && validDay(value.start) && validDay(value.end) && value.end > value.start);
     }
     function clubShape(data, id) {

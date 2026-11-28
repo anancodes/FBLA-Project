@@ -1,0 +1,4 @@
+node_modules/
+pace.cjs
+.env*
+.secret.local

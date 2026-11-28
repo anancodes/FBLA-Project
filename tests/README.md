@@ -50,3 +50,20 @@ NODE_PATH=/tmp/volunteerhub-rules-tools/node_modules \
 ```
 
 The rules suite checks supported application operations and expected denials with fictional accounts and records.
+
+## Hour alerts and reporting
+
+The browser fixtures use fictional accounts. The Functions integration tests run actual Firestore transactions against the local emulator with a simulated Gmail provider and verified-account directory. All commands run from the repository root.
+
+```sh
+npm --prefix functions ci
+npm --prefix functions run build
+node --test tests/hour-alerts.test.cjs
+NODE_PATH=/tmp/volunteerhub-test-tools/node_modules BROWSER_PATH=/usr/bin/chromium \
+  node --test tests/hour-alerts.browser.cjs
+NODE_PATH=/tmp/volunteerhub-rules-tools/node_modules \
+  /tmp/volunteerhub-rules-tools/node_modules/.bin/firebase emulators:exec --project demo-volunteerhub \
+  --only firestore 'node --test --test-concurrency=1 tests/firestore.rules.test.cjs tests/hour-alerts.emulator.cjs'
+```
+
+The worker checks both recipient identities, repeated runs, recovery and draft retries. The HTTP test exercises admin access, Google consent state, callback replay protection, status and disconnect. The browser test covers previews, validation, persistence, status recovery, monthly totals and report exports. [Real mailbox activation and staging verification](../docs/GMAIL-ALERTS.md)

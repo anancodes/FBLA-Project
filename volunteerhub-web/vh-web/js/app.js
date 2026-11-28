@@ -27,6 +27,7 @@ function render(){
     if (!Cloud.loadPhase) ui.requestedRoute = null;
   }
   if (confirmation && (confirmation.userId !== u?.id || confirmation.view !== ui.view || (DB.live && Cloud.loadPhase === "workspace"))) closeConfirmation(false);
+  GmailAlerts.observe(u);
   const previousViewKey = ui.renderKey;
   const displayWasOpen = Boolean(activeDisplaySettings());
   if (ui.renderKey) document.querySelectorAll("#app details[id]").forEach(el => {

@@ -43,25 +43,18 @@ function memberName(uid){
 const canSeeEvent = (e, u = currentUser()) => !e.clubId || !u || u.role === "coordinator" || !!membershipOf(e.clubId, u.id);
 
 /* ----- Hours and progress ----- */
-const inTerm = (date, req) => !req || !req.start || (date >= req.start && date <= req.end);
-// Hours for one member in one club during the club's current term.
-function clubHours(clubId, uid){
-  const c = clubById(clubId), req = c && c.req;
-  const events = state.regs.filter(r => r.userId === uid && r.status === "attended").map(r => ({r, e:eventById(r.eventId)}))
-    .filter(x => x.e && x.e.clubId === clubId && inTerm(x.e.date, req));
-  const logs = state.hourLogs.filter(l => l.clubId === clubId && l.userId === uid && inTerm(l.date, req));
-  const eventHours = sum(events.map(x => x.r.hours)), approved = sum(logs.filter(l => l.status === "approved").map(l => l.hours));
-  const pending = sum(logs.filter(l => l.status === "pending").map(l => l.hours));
-  const total = eventHours + approved, need = req && req.hours ? req.hours : 0;
-  return {eventHours, approved, pending, total, need, pct:need ? Math.min(100, Math.round(total / need * 100)) : 0};
+function memberTotals(club, entry = {eventHours:0, approved:0, pending:0}){
+  const total = entry.eventHours + entry.approved, need = club.req?.hours || 0;
+  return {...entry, total, need, pct:need ? Math.min(100, Math.round(total / need * 100)) : 0};
 }
-// "Done", "On track", or "Behind": compares progress with how much of the term has passed.
+function clubHours(clubId, uid){
+  const club = clubById(clubId);
+  const totals = HourPace.totals(club, state.events, state.regs, state.hourLogs);
+  return memberTotals(club, totals.get(uid));
+}
 function progressStatus(h, req){
-  if (!h.need) return {cls:"", text:"No requirement"};
-  if (h.total >= h.need) return {cls:"good", text:"Done"};
-  if (!req || !req.start) return {cls:"accent", text:`${fmtH(h.need - h.total)} hrs to go`};
-  const span = parseDate(req.end) - parseDate(req.start), passed = Math.max(0, Math.min(1, (parseDate(TODAY) - parseDate(req.start)) / span));
-  return h.total / h.need + 0.1 >= passed ? {cls:"accent", text:"On track"} : {cls:"warn", text:"Behind"};
+  const pace = HourPace.progress(req, h.total);
+  return {cls:pace.behind ? "warn" : pace.status === "Complete" ? "good" : "accent", text:pace.status};
 }
 // Approved outside hours count toward a person's overall total too.
 const approvedOutsideHours = uid => sum(state.hourLogs.filter(l => l.userId === uid && l.status === "approved").map(l => l.hours));
@@ -134,7 +127,12 @@ function reviewLog(id, status, note = ""){
 function saveClub(form){
   const fd = new FormData(form), d = Object.fromEntries(fd.entries()), id = form.dataset.id ? asId(form.dataset.id) : null, old = id ? clubById(id) : null;
   const hours = d.reqHours === "" ? 0 : Number(d.reqHours);
+  if (old && !isAdviser(old.id)) return toast("Only the adviser can change this club.", "bad");
+  const customGap = Boolean(d.alertGap?.trim());
+  const threshold = customGap ? Number(d.alertGap) : HourPace.defaultGap(hours);
   const errs = {
+    alertGap:hours && customGap && !(threshold >= 0.25 && threshold <= hours && Number.isInteger(threshold * 4)) ? "Use quarter hours between 0.25 and the term goal." : "",
+    emailAlerts:d.emailAlerts && !hours ? "Set a term goal before enabling email alerts." : "",
     name:V.text(d.name.trim(), "the club name", 2, 80),
     about:V.text(d.about.trim(), "the club description", 0, 1000, true),
     short: !/^[A-Za-z0-9]{2,6}$/.test(d.short.trim()) ? "Use 2–6 letters or numbers, like HOSA." : "",
@@ -144,7 +142,10 @@ function saveClub(form){
     end: hours && (!d.end || d.end <= d.start) ? "The term must end after it starts." : "",
   };
   if (!showErrors(form, errs)) return;
-  const club = {name:d.name.trim(), short:d.short.trim().toUpperCase(), about:d.about.trim(), req:hours ? {hours, label:d.label.trim(), start:d.start, end:d.end} : null};
+  const club = {name:d.name.trim(), short:d.short.trim().toUpperCase(), about:d.about.trim(), req:hours ? {hours, label:d.label.trim(), start:d.start, end:d.end, ...(customGap ? {alertGap:threshold} : {}), emailAlerts:!!d.emailAlerts} : null};
+  if (old && DB.live) return runPending("edit-club", "Saving club…", form.querySelector('[type="submit"]'),
+    () => DB.commit("clubs", [{id:old.id, fields:club}]),
+    () => { if (form.isConnected) closeModal(); render(); toast("Club settings saved."); }, error => toast(Cloud.friendly(error), "bad"));
   if (old){ DB.update("clubs", old, club); toast(`${club.name} was updated.`); }
   else {
     const u = currentUser(), clubId = DB.newId("clubs");

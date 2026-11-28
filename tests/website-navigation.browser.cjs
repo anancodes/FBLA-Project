@@ -36,7 +36,7 @@ test('website form fields retain focused and invalid borders with their error me
  const p=await helper.page(t);await helper.signIn(p);await p.locator('.pv-profile').click();
  const input=p.locator('#p-location');await input.fill('Atlantis under the sea');await p.locator('#profileForm [type="submit"]').click();
  assert.equal(await input.getAttribute('aria-invalid'),'true');assert.match(await p.locator('#e-location').textContent(),/Choose a city/);
- assert.equal(await input.evaluate(e=>getComputedStyle(e).borderTopColor),'rgb(173, 70, 62)');
+ assert.equal(await input.evaluate(e=>getComputedStyle(e).borderTopColor),'rgb(166, 62, 56)');
  await input.fill('Washington, DC');await p.locator('#profileForm [type="submit"]').click();await input.focus();
- assert.notEqual(await input.getAttribute('aria-invalid'),'true');assert.equal(await input.evaluate(e=>getComputedStyle(e).borderTopColor),'rgb(73, 106, 128)');
+ assert.notEqual(await input.getAttribute('aria-invalid'),'true');assert.equal(await input.evaluate(e=>getComputedStyle(e).borderTopColor),'rgb(34, 98, 77)');
 });

@@ -433,6 +433,11 @@ function copyText(text, what){
 /* ----- Button handlers ----- */
 
 const handlers = {
+  gmailStatus:() => GmailAlerts.act("status"),
+  gmailConnect:() => GmailAlerts.act("connect"),
+  gmailDisconnectPrompt:() => openModal(`<h2>Disconnect Gmail?</h2><p>Scheduled hour alerts will pause for all clubs until an administrator reconnects a sending account.</p><div class="row"><button class="btn secondary" data-act="close">Keep connected</button><button class="btn danger" data-act="gmailDisconnect">Disconnect Gmail</button></div>`),
+  gmailDisconnect:() => { closeModal(); GmailAlerts.act("disconnect"); },
+  pacePreview:(uid,clubId) => previewHourAlert(clubId,uid),
   composeAnnouncement: () => {
     const user = currentUser();
     if (user?.role === "coordinator" && (!DB.live || DB.isVerifiedCoordinator(user))) openModal(announcementForm(), {dismissOnBackdrop:false});

@@ -47,7 +47,7 @@ const ui = {
   disclosures:new Set(), expandClub:null,
   ev:{tab:"upcoming", q:"", mode:"list"}, cal:TODAY.slice(0, 7),
   ciEvent:null, vq:"",
-  rep:{from:addDays(-90), to:TODAY, cat:"all", group:"volunteer", vol:"all"},
+  rep:{from:addDays(-90), to:TODAY, cat:"all", group:"volunteer", vol:"all", includeOutside:false},
 };
 
 /* ----- Lookups ----- */

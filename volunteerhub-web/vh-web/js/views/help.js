@@ -15,6 +15,7 @@ function helpView(u){
     ["What does reliability mean?","It's the share of a volunteer's completed shifts they showed up for. No-shows lower it; cancellations don't."],
     ["How do I get report data into Excel?","On Reports, choose Download CSV and open the file in Excel or Google Sheets. Copy works too, if you'd rather paste."],
     ["How does the waitlist work?","If a shift fills while a volunteer is viewing it, they can join the waitlist. When spots open, eligible volunteers on the waitlist are signed up in order and get an update."],
+    ["When does Gmail send an hour alert?","A site admin connects Gmail in Settings. A club adviser opens People & clubs, chooses the club, and enables email in Edit club. At 9 a.m. Central each day, verified hours are compared with the share of the term that has elapsed. A shortfall at or above the chosen threshold triggers one email to the volunteer and a private copy to the adviser. A later check on pace resets the alert. Demo mode offers a preview."],
     ["How do I set up a club?","Go to People & clubs, open Clubs, and choose New club. Set the hour requirement and term dates, then share the join code with members. To add student officers, choose Make officer next to their name. Officers can approve hours and run club events, but can't approve their own hours."],
     ["A join code got shared too widely. What do I do?","On the club's page, choose New code. The old code stops working right away; people who already joined stay in the club."],
     ["How do I verify a new organizer?","Site admins see an Organizers screen. Follow its checklist (call the organization at a number you look up yourself and confirm they're a real nonprofit), then choose Verify."],
@@ -24,6 +25,7 @@ function helpView(u){
     ["What do I do with a reported concern?","Reported concerns appear at the top of the Overview. Open the listing, fix or delete it if needed, then choose Mark resolved."],
     ["Who sees my announcements?","Choose All volunteers, or pick one event to reach only the people signed up for it or waiting for a spot."],
   ] : [
+    ["Why did my adviser and I receive an hour check-in?","Your club compares approved hours with its term dates and hour goal. If the shortfall reaches the threshold your adviser set, Gmail sends you a check-in with a private copy to the adviser. Open Hours & clubs → My clubs to see your pace. Pending hours count after an officer or adviser approves them."],
     ["Why can't I sign up for an event?","Opportunities shows open shifts that fit around the shifts you have already booked. If a shift fills while you are viewing its details, you can join its waitlist."],
     ["How does the waitlist work?","If someone cancels, the first person in line gets the spot automatically. You'll see an update in your Inbox."],
     ["How do I know an opportunity is real?","Open the shift and choose Organizer and access details to see who posted it and how to reach them. Verified means VolunteerHub checked the organizer. Real listings never ask you to pay, share bank details, or send ID numbers. If something seems off, choose Report a concern."],

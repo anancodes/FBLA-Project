@@ -141,11 +141,19 @@ const Cloud = {
     ui.disclosures.clear();
     if (!user){ render(); return; }
     this.startLoad("profile");
-    // Account creation and the first saved profile may arrive in different snapshots.
-    this.meSub = this.fs.collection("users").doc(user.uid).onSnapshot({includeMetadataChanges:true}, d => {
+    const ref = this.fs.collection("users").doc(user.uid);
+    if (this.verificationUser){
+      // Illustrative activity needs just the saved role. A short server request also works
+      // on connections that delay Firestore's long-lived listener.
+      if (!this.creatingProfile) this.fs.runTransaction(tx => tx.get(ref)).then(snapshot => {
+        if (this.verificationUser === user && !this.previewProfile) this.showAccountProfile(user, snapshot.exists ? snapshot.data() : null);
+      }, error => { if (this.verificationUser === user && !this.previewProfile) this.loadFailed(error); });
+      return;
+    }
+    this.meSub = ref.onSnapshot({includeMetadataChanges:true}, d => {
       if (this.auth.currentUser?.uid !== user.uid || d.metadata.hasPendingWrites || (d.metadata.fromCache && this.online)) return;
       if (!d.exists){
-        if (this.me || this.previewProfile){
+        if (this.me){
           if (this.deletingUid !== user.uid) this.logout().catch(err => this.loadFailed(err));
         } else if (!this.creatingProfile){
           this.needsProfile = true; this.clearLoad(); render();
@@ -153,12 +161,6 @@ const Cloud = {
         return;
       }
       this.needsProfile = false;
-      if (this.verificationUser){
-        this.previewProfile = d.data();
-        this.clearLoad();
-        render();
-        return;
-      }
       const me = d.data(), key = `${me.role}|${!!me.verified}|${!!me.admin}`;
       this.me = me;
       if (key !== this.roleKey){
@@ -417,13 +419,24 @@ const Cloud = {
       this.creatingProfile = false;
     }
   },
-  saveNewProfile(user, profile){
+  async saveNewProfile(user, profile){
     const ref = this.fs.collection("users").doc(user.uid);
     // Retried setup or a second tab must keep the profile and role already saved.
-    return this.fs.runTransaction(async transaction => {
+    const saved = await this.fs.runTransaction(async transaction => {
       const existing = await transaction.get(ref);
-      if (!existing.exists) transaction.set(ref, clean({...profile, id:user.uid, email:user.email}));
+      if (existing.exists) return existing.data();
+      const record = clean({...profile, id:user.uid, email:user.email});
+      transaction.set(ref, record);
+      return record;
     });
+    if (!user.emailVerified) this.showAccountProfile(user, saved);
+  },
+  showAccountProfile(user, profile){
+    if (this.auth.currentUser?.uid !== user.uid || this.auth.currentUser.emailVerified) return;
+    this.verificationUser = user;
+    this.previewProfile = profile;
+    this.needsProfile = !profile;
+    this.clearLoad(); render();
   },
   resetPassword(email){
     return this.auth.sendPasswordResetEmail(email).catch(error => {

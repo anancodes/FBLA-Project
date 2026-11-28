@@ -8,7 +8,7 @@ test.after(helper.stop);
 // Drive the Firebase compat boundary. Queries emit cache and server snapshots
 // independently, and writes can be observed locally before they are acknowledged.
 function installFirebaseMock(){
-  const listeners = new Map();
+  const listeners = new Map(), reads = new Map();
   function ref(path, filter = null){
     return {
       path,
@@ -35,7 +35,7 @@ function installFirebaseMock(){
     async signOut(){ this.currentUser = null; this.notify(null); },
   };
   const mock = {
-    signIns:0, batches:[],
+    signIns:0, batches:[], singleReads:0,
     ready:() => !!auth.notify,
     signedOut:() => auth.notify(null),
     user(id, emailVerified = true){
@@ -45,7 +45,9 @@ function installFirebaseMock(){
     },
     fail(path, code){ listeners.get(path).error({code}); },
     doc(path, record, fromCache = false){
-      listeners.get(path).next({exists:!!record, metadata:{fromCache}, data:() => structuredClone(record)});
+      const snapshot = {exists:!!record, metadata:{fromCache}, data:() => structuredClone(record)};
+      if (reads.has(path)){ reads.get(path)(snapshot); reads.delete(path); }
+      else listeners.get(path).next(snapshot);
     },
     push(path, records, {fromCache = false, pending = []} = {}){
       for (const [key, listener] of listeners){
@@ -69,6 +71,10 @@ function installFirebaseMock(){
     firestore:() => ({
       clearPersistence:async () => {},
       doc:ref, collection:ref,
+      runTransaction(callback){
+        mock.singleReads++;
+        return callback({get:({path}) => new Promise(resolve => reads.set(path, resolve))});
+      },
       batch(){
         const changes = [];
         return {
@@ -289,6 +295,7 @@ test('a signed-in volunteer sees example shifts while verification protects shar
     firebaseMock.doc("users/pending-volunteer", {...seed().users[1],id:"pending-volunteer"});
   });
   assert.equal(await page.locator('h1').textContent(),'Volunteer workspace');
+  assert.equal(await page.evaluate(() => firebaseMock.singleReads),1);
   assert.ok(await page.locator('.activity-row').count() > 0);
   await page.getByRole('heading', {name:'Verify your email'}).waitFor();
   assert.equal(await page.locator('.pv-sidebar').count(), 0);

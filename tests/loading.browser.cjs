@@ -282,9 +282,14 @@ test('recurring events share one commit and a failed save keeps the event form i
 });
 
 
-test('an unverified email cannot open the workspace until refreshed verification succeeds', async t => {
+test('a signed-in volunteer sees example shifts while verification protects shared records', async t => {
   const page = await livePage(t);
-  await page.evaluate(() => firebaseMock.user("pending-volunteer", false));
+  await page.evaluate(() => {
+    firebaseMock.user("pending-volunteer", false);
+    firebaseMock.doc("users/pending-volunteer", {...seed().users[1],id:"pending-volunteer"});
+  });
+  assert.equal(await page.locator('h1').textContent(),'Volunteer workspace');
+  assert.ok(await page.locator('.activity-row').count() > 0);
   await page.getByRole('heading', {name:'Verify your email'}).waitFor();
   assert.equal(await page.locator('.pv-sidebar').count(), 0);
   await page.getByRole('button', {name:'Check verification'}).click();

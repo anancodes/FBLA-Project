@@ -33,7 +33,7 @@ The suite covers role-specific workflows, location behavior, complete CSV export
 
 The website checks also cover browser Back/Forward/refresh, new tabs, direct URL permissions and focused/invalid field borders. See [the selected design](../docs/OPEN_AGENDA.md) for the current scope and previews.
 
-The public landing checks cover account links and history/new tabs, both demo roles and permissions, keyboard sign-in/error recovery, connection/reset behavior, responsive themes, enlarged text and missing-image recovery. See [the public landing guide](../docs/PUBLIC_LANDING.md).
+The public landing checks cover account links and history/new tabs, both account roles and permissions, keyboard sign-in/error recovery, connection/reset behavior, responsive themes, enlarged text and missing-image recovery. See [the public landing guide](../docs/PUBLIC_LANDING.md).
 
 The loading checks simulate Firebase cache snapshots, slow startup, rate-limit errors, and unconfirmed or failed sign-up, attendance, and event writes.
 
@@ -67,3 +67,15 @@ NODE_PATH=/tmp/volunteerhub-rules-tools/node_modules \
 ```
 
 The worker checks both recipient identities, repeated runs, recovery and draft retries. The HTTP test exercises admin access, Google consent state, callback replay protection, status and disconnect. The browser test covers previews, validation, persistence, status recovery, monthly totals and report exports. [Real mailbox activation and staging verification](../docs/GMAIL-ALERTS.md)
+
+## Persistent account and role checks
+
+With the Firebase CLI, Firebase browser SDK and Playwright installed in the test tools path, run the account suite against both local emulators.
+
+```sh
+NODE_PATH=/tmp/volunteerhub-rules-tools/node_modules:/tmp/volunteerhub-test-tools/node_modules \
+  /tmp/volunteerhub-rules-tools/node_modules/.bin/firebase emulators:exec --project demo-volunteerhub \
+  --only auth,firestore 'node --test tests/accounts.emulator.cjs'
+```
+
+The browser registers both roles, reads the stored profile, signs out and returns from a fresh browser context. A local verification email opens the shared workspace. A separate test completes a profile after interrupted registration.

@@ -32,7 +32,7 @@ function websiteShell(u){
     <a class="pv-skip" href="#main">Skip to main content</a>
     <div class="frame pv-frame">
       <aside class="pv-sidebar" ${loading ? "inert" : ""}>
-        <div class="pv-brand"><a href="#dashboard" data-act="nav" data-v="dashboard">${LOGO}VolunteerHub</a>${state.org.name !== "Your Organization" ? `<span>${esc(state.org.name)}</span>` : ""}${!DB.live ? `<span>Demo data</span>` : ""}</div>
+        <div class="pv-brand"><a href="#dashboard" data-act="nav" data-v="dashboard">${LOGO}VolunteerHub</a>${state.org.name !== "Your Organization" ? `<span>${esc(state.org.name)}</span>` : ""}</div>
         <nav class="rail" aria-label="Main">${menuFor(u).map(([view,label]) => `<a href="#${view}" data-act="nav" data-v="${view}" ${section === view ? 'aria-current="page"' : ""} class="${ui.tour && section === view ? "tour-hl" : ""}">${icon(NAV_ICON[view])}<span>${label}</span>${!loading && counts[view] ? `<span class="count" aria-label="${counts[view]} ${countLabel[view]}">${counts[view]}</span>` : ""}</a>`).join("")}</nav>
         <div class="pv-tools">
           <a class="pv-utility" href="#help" data-act="nav" data-v="help">${icon("help")}<span>Help</span></a>
@@ -44,8 +44,11 @@ function websiteShell(u){
         </div>
       </aside>
       <div class="pv-workspace">
-        <main id="main" tabindex="-1"><div class="page pv-page">${!loading && !home ? tourCard(u) : ""}${tabs.length ? `<nav class="subtabs" ${loading ? "inert" : ""} aria-label="${esc(menuFor(u).find(n => n[0] === section)[1])}">${tabs.map(([view,label]) => `<a href="#${view}" data-act="nav" data-v="${view}" ${ui.view === view ? 'aria-current="page"' : ""}>${label}${view === "organizers" && !loading && pendingOrgs ? ` <span class="count">${pendingOrgs}</span>` : ""}</a>`).join("")}</nav>` : ""}${loading ? workspaceLoading(u, labels.find(([view]) => view === ui.view)?.[1]) : VIEWS[u.role][ui.view](u)}</div></main>
-        <footer class="foot pv-footer"><div class="pv-footer-data">${DB.live ? `<span>Signed in as ${esc(u.email)}</span><span class="pill ${Cloud.online && !syncFailed && !loading ? "good" : "warn"}" id="sync-status">${syncFailed ? "Couldn’t sync records" : loading ? "Syncing your records" : Cloud.online ? "Connected" : "Offline: changes will sync when you reconnect"}</span>` : `<span>Sample data, saved in this browser.</span>${armBtn("reset","Reset demo data","Confirm reset","secondary sm")}`}</div><div class="pv-utility-links">${!loading ? '<button data-act="tour">Take the tour</button>' : ""}<button data-act="logout">${DB.live ? "Sign out" : "Exit demo"}</button></div></footer>
+        <main id="main" tabindex="-1"><div class="page pv-page">${!loading && !home ? tourCard(u) : ""}${tabs.length ? `<nav class="subtabs" ${loading ? "inert" : ""} aria-label="${esc(menuFor(u).find(n => n[0] === section)[1])}">${tabs.map(([view,label]) => `<a href="#${view}" data-act="nav" data-v="${view}" ${ui.view === view ? 'aria-current="page"' : ""}>${label}${view === "organizers" && !loading && pendingOrgs ? ` <span class="count">${pendingOrgs}</span>` : ""}</a>`).join("")}</nav>` : ""}${loading ? workspaceLoading(u, labels.find(([view]) => view === ui.view)?.[1]) : VIEWS[u.role][ui.view](u)}
+          ${DB.live && !loading && ui.view === "dashboard" ? (state.events.length
+            ? `<details class="disclosure" id="community-examples"><summary>Example community activity</summary>${exampleActivity(u.role)}</details>`
+            : exampleActivity(u.role)) : ""}</div></main>
+        <footer class="foot pv-footer"><div class="pv-footer-data">${DB.live ? `<span>Signed in as ${esc(u.email)}</span><span class="pill ${Cloud.online && !syncFailed && !loading ? "good" : "warn"}" id="sync-status">${syncFailed ? "Couldn’t sync records" : loading ? "Syncing your records" : Cloud.online ? "Connected" : "Offline: changes will sync when you reconnect"}</span>` : `<span>Saved in this browser.</span>`}</div><div class="pv-utility-links">${!loading ? '<button data-act="tour">Take the tour</button>' : ""}<button data-act="logout">Sign out</button></div>${accountDisclaimer()}</footer>
       </div>
     </div>
   </div>`;

@@ -22,8 +22,8 @@ test('Home prioritizes upcoming shifts and recommendations without duplicate att
 
 test('signup can omit location; discovery then requires a manual search',async t => {
   const p = await helper.page(t);
-  await p.locator('[data-act="authmode"][data-v="signup"]').click();
-  await p.locator('#su-name').fill('Alex Service'); await p.locator('#su-email').fill('alex@example.org');
+  await p.locator('.landing-actions a[href="#signup"]').click();
+  await p.locator('#su-role-volunteer').check(); await p.locator('#su-name').fill('Alex Service'); await p.locator('#su-email').fill('alex@example.org');
   await p.locator('#su-pass').fill('demo1234'); await p.locator('#su-pass2').fill('demo1234'); await p.locator('#su-waiver').check();
   await p.locator('#signupForm [type="submit"]').click();
   await p.locator('[data-act="tourEnd"]').click();
@@ -57,8 +57,8 @@ test('city selection validates input, enables nearby filters, and can be removed
 });
 
 test('live signup receives the optional city without changing role or verification defaults',async t => {
-  const p = await helper.page(t); await p.locator('[data-act="authmode"][data-v="signup"]').click();
-  await p.locator('#su-name').fill('Casey Student'); await p.locator('#su-email').fill('casey.student@example.org');
+  const p = await helper.page(t); await p.locator('.landing-actions a[href="#signup"]').click();
+  await p.locator('#su-role-volunteer').check(); await p.locator('#su-name').fill('Casey Student'); await p.locator('#su-email').fill('casey.student@example.org');
   await p.locator('#su-pass').fill('Words with spaces & symbols'); await p.locator('#su-pass2').fill('Words with spaces & symbols'); await p.locator('#su-waiver').check();
   await p.locator('#su-location').fill('Washington, DC');
   await p.evaluate(() => { Cloud.enabled = Cloud.ready = true; Cloud.signup = async profile => { window.capturedSignup = profile; }; });
@@ -283,8 +283,8 @@ test('axe finds no accessibility violations across role screens and account form
 
 test('a new member can join, log outside service, and receive approved hours through the merged club workflow',async t => {
   const p = await helper.page(t);
-  await p.locator('[data-act="authmode"][data-v="signup"]').click();
-  await p.locator('#su-name').fill('Jamie Volunteer'); await p.locator('#su-email').fill('jamie@example.org');
+  await p.locator('.landing-actions a[href="#signup"]').click();
+  await p.locator('#su-role-volunteer').check(); await p.locator('#su-name').fill('Jamie Volunteer'); await p.locator('#su-email').fill('jamie@example.org');
   await p.locator('#su-pass').fill('demo1234'); await p.locator('#su-pass2').fill('demo1234'); await p.locator('#su-waiver').check();
   await p.locator('#signupForm [type="submit"]').click(); await p.locator('[data-act="tourEnd"]').click();
   const userId = await p.evaluate(() => currentUser().id);

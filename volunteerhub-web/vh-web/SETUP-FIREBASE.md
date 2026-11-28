@@ -2,7 +2,7 @@
 
 Live mode gives VolunteerHub real accounts and one shared database, so volunteers and coordinators on different devices see the same events and sign-ups. Review the [security and release notes](../../docs/SECURITY.md) before connecting a project that contains real records.
 
-Until you finish these steps, the site keeps working as an offline demo.
+The published configuration uses `volunteerhub-12975`. Its Authentication authorized domains include `anancodes.github.io`. Hosting an installation with a different Firebase project requires the steps below.
 
 ## 1. Create the project
 1. Go to **console.firebase.google.com** and click **Create a project**.
@@ -26,7 +26,7 @@ Until you finish these steps, the site keeps working as an offline demo.
 4. Commit and push to GitHub. These values are safe to publish, because the rules from step 3 control who can see and change data.
 
 ## 5. Make yourself the site admin
-1. Open the staging site, click **Create an account**, choose **Coordinate volunteers**, and verify the email address.
+1. Open the staging site, click **Create an account**, choose **Coordinator**, select **Send verification email**, and verify the email address.
 2. Back in Firebase, open **Firestore Database → Data → users** and click your document (look for your email).
 3. Click **Add field**: name `admin`, type **boolean**, value **true**. Then change `verified` to **true**.
 4. Refresh the site. You'll see **Site admin** under your name, and the **Settings** and **Organizers** screens.
@@ -50,5 +50,5 @@ If an update to the site includes a new `firestore.rules`, paste it into **Fires
 
 ## Good to know
 - **Cost:** The browser demo has no hosting-service dependency. Live Firestore use is subject to Firebase quotas, and scheduled Gmail alerts require a billing-enabled project.
-- **Competition day:** if the internet is unreliable, use the demo buttons on the login page. Demo mode works offline and never touches your live data.
+- **Competition day:** use the separately packaged offline workbook when an internet connection is unavailable. The online sign-in requires Firebase.
 - **Who can see what:** volunteers' phone numbers, ZIP codes, and emergency contacts are visible only to themselves and verified coordinators. Verified coordinators and authorized club managers can mark attendance. Only site admins can verify organizers or change organization settings. `firestore.rules` has the details.

@@ -15,7 +15,7 @@ function operationKey(button){
   if (button.dataset.operation) return button.dataset.operation;
   if (button.type === "submit" && button.form){
     const {id, dataset} = button.form;
-    if (["loginForm", "signupForm", "resetForm"].includes(id)) return "auth";
+    if (["loginForm", "signupForm", "resetForm", "completeProfileForm"].includes(id)) return "auth";
     if (id === "joinForm") return "join-club";
     if (id === "clubForm" && !dataset.id) return "create-club";
     if (id === "deleteAccountForm") return "delete-account";
@@ -40,7 +40,7 @@ function sessionActionKey(key){
 
 function actionBlocked(button){
   const key = operationKey(button);
-  return !!(!ui.demo && key && (pendingActions.has(sessionActionKey(key)) ||
+  return !!(key && (pendingActions.has(sessionActionKey(key)) ||
     (key === "auth" && Cloud.enabled && (!Cloud.ready || Cloud.loadPhase || Date.now() < authRetryAt))));
 }
 
@@ -78,7 +78,7 @@ async function runPending(key, label, trigger, request, succeeded, failed){
   const actionKey = sessionActionKey(key);
   if (pendingActions.has(actionKey)) return false;
   const session = state.session.userId;
-  const stillHere = () => !ui.demo && (key === "auth" || session === state.session.userId);
+  const stillHere = () => (key === "auth" || session === state.session.userId);
   const pending = {label, trigger, visible:false};
   const confirmationStatus = trigger?.id === "confirm-action" ? $("#confirmation-status") : null;
   const status = confirmationStatus || $("#operation-status");

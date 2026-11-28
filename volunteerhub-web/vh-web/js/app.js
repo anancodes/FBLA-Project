@@ -44,8 +44,9 @@ function render(){
   if (u && !ui.tour && !Cloud.loadPhase) setPageURL(ui.view,true);
   const pageTitle = $("#main h1"); if (pageTitle){ pageTitle.id = "page-title"; pageTitle.tabIndex = -1; }
   document.title = pageTitle ? `${pageTitle.textContent} | VolunteerHub` : "VolunteerHub";
-  const openingWorkspace = DB.live && ui.renderKey?.startsWith("auth:") && ui.authMode !== "landing";
-  ui.renderKey = `${u ? u.id : "auth"}:${u ? ui.view : ui.authMode}`;
+  if (Cloud.previewProfile) setPageURL("dashboard",true);
+  const openingWorkspace = (DB.live || Cloud.previewProfile) && ui.renderKey?.startsWith("auth:") && !Cloud.loadPhase;
+  ui.renderKey = u ? `${u.id}:${ui.view}` : Cloud.previewProfile ? `${Cloud.previewProfile.id}:activity` : `auth:${ui.authMode}`;
   const keepDisplayOpen = displayWasOpen && previousViewKey === ui.renderKey && !(DB.live && Cloud.loadPhase === "workspace");
   document.querySelectorAll("#app details[id]").forEach(el => { if (ui.disclosures.has(`${ui.renderKey}:${el.id}`)) el.open = true; });
   ui.expandClub = null;
@@ -163,7 +164,7 @@ document.addEventListener("submit", ev => {
 function handleSubmit(form){
   if (form.id === "deleteAccountForm") return confirmAccountDeletion(form);
   if (form.id === "loginForm") doLogin(form);
-  if (form.id === "signupForm") doSignup(form);
+  if (form.id === "signupForm" || form.id === "completeProfileForm") doSignup(form);
   if (form.id === "resetForm") doReset(form);
   if (form.id === "profileForm") saveProfile(form);
   if (form.id === "findForm") findOpportunities(form);
@@ -203,5 +204,5 @@ ui.authMode = publicModeFromURL(initialRoute);
 ui.requestedRoute = isPublicRoute(initialRoute) ? null : initialRoute;
 window.addEventListener("popstate",followPageURL);
 window.addEventListener("hashchange",followPageURL);
-if (window.FIREBASE_CONFIG?.apiKey) Cloud.boot();
-else render();     // turns on live mode if Firebase settings are filled in (see firebase-config.js)
+if (OFFLINE_WORKBOOK && !window.FIREBASE_CONFIG?.apiKey) render();
+else Cloud.boot();

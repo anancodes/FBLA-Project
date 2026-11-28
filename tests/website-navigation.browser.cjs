@@ -14,7 +14,7 @@ test('website links retain the page through browser Back, Forward and refresh',a
 
 test('modified link clicks open the selected page in a new tab without navigating the original',async t=>{
  const p=await helper.page(t);await helper.signIn(p);
- await p.context().route('**/js/firebase-config.js',r=>r.fulfill({contentType:'text/javascript',body:'window.FIREBASE_CONFIG={};'}));
+ await p.context().route('**/js/firebase-config.js',r=>r.fulfill({contentType:'text/javascript',body:'window.FIREBASE_CONFIG={}; window.VH_OFFLINE_WORKBOOK=true;'}));
  const opened=p.context().waitForEvent('page');await p.locator('.rail a[data-v="hours"]').click({modifiers:['Control']});
  const tab=await opened;t.after(()=>tab.close());await tab.waitForURL('**/#hours');
  await tab.waitForFunction(()=>typeof currentUser==='function'&&currentUser()&&ui.view==='hours');

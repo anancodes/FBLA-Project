@@ -11,12 +11,14 @@ const asset = (file, mime) => "data:" + mime + ";base64," + fs.readFileSync(path
 const hashes = [];
 let html = read("index.html");
 html = html.replace(/<link rel="preload"[^>]+>\s*/g, "");
-html = html.replace(/<link rel="stylesheet" href="([^"]+)">/g, (_,file) => {
+html = html.replace(/<link rel="stylesheet" href="([^"]+)">/g, (_,url) => {
+  const file = url.split("?")[0];
   const css = read(file).replace(/url\("\.\.\/fonts\/([^"]+)"\)/g, (_,name) => 'url("' + asset("fonts/" + name, "font/woff2") + '")');
   return "<style>" + css + "</style>";
 });
-html = html.replace(/<script src="([^"]+)"><\/script>/g, (_,file) => {
-  let source = file === "js/firebase-config.js" ? "window.FIREBASE_CONFIG = {};" : read(file);
+html = html.replace(/<script src="([^"]+)"><\/script>/g, (_,url) => {
+  const file = url.split("?")[0];
+  let source = file === "js/firebase-config.js" ? "window.FIREBASE_CONFIG = {}; window.VH_OFFLINE_WORKBOOK = true;" : read(file);
   if (file === "js/views/landing.js") source = source.replace("images/community-garden.webp", asset("images/community-garden.webp","image/webp"));
   source = source.replace(/<\/script/gi, "<\\/script").replace(/\r\n/g, "\n");
   hashes.push("'sha256-" + createHash("sha256").update(source).digest("base64") + "'");

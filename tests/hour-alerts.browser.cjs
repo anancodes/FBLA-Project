@@ -7,11 +7,11 @@ test("adviser previews both recipients and saves a threshold that survives refre
   const p = await helper.page(t,{viewport:{width:390,height:844}});
   await helper.signIn(p,1);
   await p.locator('.rail [data-v="settings"]').click();
-  assert.match(await p.locator(".mail-panel").textContent(),/Demo preview/);
+  assert.match(await p.locator(".mail-panel").textContent(),/Preview only/);
   await p.getByRole("button",{name:"Preview club alerts"}).click();
   await p.locator("[data-act=pacePreview]").click();
   const modal=p.getByRole("dialog",{name:"Hour alert preview"});
-  assert.match(await modal.locator("dl").textContent(),/Adviser · Bcc.*coordinator@demo.org/);
+  assert.match(await modal.locator("dl").textContent(),/Adviser · Bcc.*jordan\.reyes@example\.org/);
   assert.match(await modal.locator(".mail-body").textContent(),/hours behind pace/);
   await modal.getByRole("button",{name:"Close"}).click();
   await p.locator("[data-act=editClub]").click();

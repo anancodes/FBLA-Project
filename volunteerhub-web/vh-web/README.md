@@ -1,32 +1,20 @@
 # VolunteerHub
 
-**Live demo:** https://anancodes.github.io/FBLA-Project/volunteerhub-web/vh-web/
+[Open VolunteerHub](https://anancodes.github.io/FBLA-Project/volunteerhub-web/vh-web/)
 
 A website that helps nonprofits recruit, organize, and manage volunteers, built for the FBLA Coding & Programming 2026–27 topic, *Serving the Community: Nonprofit Volunteer Management*.
 
-The `github` branch includes club hour alerts, an email preview, a monthly service breakdown and an optional outside-service filter in Reports. [Competition evaluation](../../docs/FBLA-REVIEW.md) · [Connecting Gmail and enabling clubs](../../docs/GMAIL-ALERTS.md)
+VolunteerHub includes club hour alerts, an email preview, a monthly service breakdown and an optional outside-service filter in Reports. [Competition evaluation](../../docs/FBLA-REVIEW.md) · [Connecting Gmail and enabling clubs](../../docs/GMAIL-ALERTS.md)
 
-## Two modes
+## Accounts
 
-- **Live mode** uses Firebase for real accounts and one shared database, with live updates across devices, offline support, and password reset by email. Turn it on with `SETUP-FIREBASE.md`.
-- **Demo mode** uses sample data saved only in your browser and works with no internet. It's always available from the login page's demo buttons.
+Choose **Create an account**, enter an email and password, and select **Volunteer** or **Coordinator**. Returning members sign in with the same email and password. Firebase Authentication manages credentials. Each Firestore `users/{uid}` profile stores the selected role and name.
 
-## Security and privacy
-
-- **Passwords:** in live mode, Firebase Authentication handles passwords and the site never sees them. In demo mode, only a salted SHA-256 hash is stored.
-- **Database rules:** `firestore.rules` controls access. Volunteers can change only their own sign-ups. Only coordinators can mark attendance and hours, and only verified coordinators can see volunteers' contact details or post announcements. Only site admins can verify organizers.
-- **Accounts:** volunteers accept the organization's waiver when they sign up, and anyone can delete their own account from Profile.
+The first workspace shows role-specific examples. Use **Send verification email**, open the email link, then select **Check verification** to access shared records. Coordinators need administrator approval before managing volunteers. Illustrative hours stay out of personal totals and email alerts.
 
 ## How to run
 
-Double-click `index.html` to open it in a browser. No install or server is needed.
-
-Demo accounts (password `demo1234`):
-
-- Volunteer: `volunteer@demo.org`
-- Coordinator: `coordinator@demo.org`
-
-All volunteers, events, and places are sample data. Set your organization's name in Settings. It is saved in your browser only. Use **Reset demo data** at the bottom of the app to start over.
+From the repository root, run `python -m http.server 4173 --directory volunteerhub-web/vh-web` and open `http://localhost:4173`. The published app requires its configured Firebase service. The separately built offline workbook and its fictional credentials are documented in the [repository guide](../../README.md). [Firebase setup](SETUP-FIREBASE.md)
 
 ## Features
 
@@ -59,7 +47,7 @@ All volunteers, events, and places are sample data. Set your organization's name
 | `js/zipdata.js` | US ZIP codes with locations, so distance search works offline |
 | `js/geo.js` | ZIP lookup, ZIP validation, and distance math |
 | `js/data.js` | Constants and the sample (seed) data |
-| `js/firebase-config.js` | Your Firebase settings (leave empty for demo-only) |
+| `js/firebase-config.js` | Public project identifiers for Firebase Authentication and Firestore |
 | `js/db.js` | The one place data changes; routes saves to the browser or to Firebase |
 | `js/cloud.js` | Live mode: Firebase accounts, the database, live updates, and offline support |
 | `js/store.js` | App data, saving/loading with localStorage, waitlist logic, query helpers |

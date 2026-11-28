@@ -53,9 +53,9 @@ const EVENT_INFO = {
 function seed(){
   let s = 11; const rnd = () => (s = (s * 9301 + 49297) % 233280) / 233280;
   const users = [
-    {id:1, name:"Jordan Reyes", email:"coordinator@demo.org", phone:"555-201-4410", role:"coordinator", skills:[], availability:[],
+    {id:1, name:"Jordan Reyes", email:"jordan.reyes@example.org", phone:"555-201-4410", role:"coordinator", skills:[], availability:[],
      org:"", verified:true, verifiedAt:addDays(-60), admin:true},   // admin: can verify other organizers
-    {id:2, name:"Maya Chen", email:"volunteer@demo.org", phone:"555-318-0927", role:"volunteer", skills:["Tutoring","Tech","Spanish"], availability:["Weekday evenings","Weekends"]},
+    {id:2, name:"Maya Chen", email:"maya.chen@example.org", phone:"555-318-0927", role:"volunteer", skills:["Tutoring","Tech","Spanish"], availability:["Weekday evenings","Weekends"]},
   ];
   const people = [["Liam Okafor",["Lifting","Driving"]],["Sofia Martinez",["Spanish","Cooking"]],["Ethan Brooks",["Tech","Tutoring"]],["Aisha Rahman",["First Aid","Cooking"]],["Noah Kim",["Lifting"]],["Grace Thompson",["Tutoring","Spanish"]],["Lucas Silva",["Driving","Lifting"]],["Priya Patel",["Tech","First Aid"]],["Owen Murphy",["Cooking","Lifting"]],["Zoe Williams",["Tutoring"]],["Daniel Nguyen",["Driving","Tech"]],["Hannah Lee",["First Aid","Spanish"]]];
   people.forEach(([n, sk], i) => users.push({
@@ -126,8 +126,7 @@ function seed(){
   // Maya lives near the Eastside Library, so her ZIP search starts there
   const home = lookupZip(org.zip), near = offsetPoint(home, 3.4, 0.6);
   users.find(u => u.id === 2).zip = nearestZip(near.lat, near.lon).zip;
-  // Every sample account uses the password demo1234, stored only as a salted hash
-  users.forEach(u => { const h = hashPassword("demo1234", "demo" + u.id); u.passSalt = h.salt; u.passHash = h.hash; u.reads = []; u.toured = false; u.emergency = ""; });
+  users.forEach(u => { u.reads = []; u.toured = false; u.emergency = ""; });
   // ----- School clubs: a HOSA chapter and an NHS chapter -----
   const termStart = addDays(-80), termEnd = addDays(45);
   const clubs = [

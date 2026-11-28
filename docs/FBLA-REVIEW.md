@@ -24,7 +24,7 @@ The baseline was the public GitHub Pages site on November 27, 2026. Both demo ro
 
 | Action | Implemented evidence | Completion check |
 |---|---|---|
-| Make each audience's starting point obvious | Public role demos, one garden image, prominent sign-in, clear entry to volunteer and coordinator tasks | Open both roles from the public entry and return using browser history. |
+| Make each audience's starting point obvious | Role selection during registration, one garden image, prominent sign-in, clear entry to volunteer and coordinator tasks | Open both roles from the public entry and return using browser history. |
 | Give color an operational meaning | Forest actions and navigation, sky schedule dates, violet verified hours, warm alert surfaces and labeled pace states | Check phone and desktop, both themes, enlarged text, visible focus and keyboard dialogs. |
 | Close the hours feedback loop | An adviser sets the threshold, a member sees their pace, and the daily job addresses the volunteer and adviser | Exercise equality, a near miss, pending hours, out-of-term work, incomplete recipients, recovery, repeats and interrupted Gmail calls. |
 | Make numbers reproducible | A single ledger feeds volunteer monthly totals and CSV. Coordinator reports add outside hours on request | Compare the monthly sum and CSV with the verified total, then switch report grouping and check that the grand total holds. |

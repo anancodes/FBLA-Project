@@ -18,6 +18,16 @@
 
 const DATA_VERSION = 7;   // bump this when the data shape changes so old saved data is replaced
 
+// Only the separately generated offline file and the loopback test fixture opt into local accounts.
+const OFFLINE_WORKBOOK = window.VH_OFFLINE_WORKBOOK === true &&
+  (location.protocol === "file:" || ["localhost","127.0.0.1"].includes(location.hostname));
+
+function emptyWorkspace(org){
+  return {v:DATA_VERSION, org:Object.assign({name:"Your Organization", zip:DEFAULT_HOME_ZIP, about:"", waiver:DEFAULT_WAIVER}, org || {}),
+    users:[], events:[], regs:[], announcements:[], notices:[], concerns:[], clubs:[], memberships:[], hourLogs:[], clubCodes:{},
+    session:{userId:null}, prefs:loadPrefs()};
+}
+
 function load(){
   try {
     const raw = localStorage.getItem(KEY);
@@ -30,18 +40,26 @@ function loadPrefs(){ try { return Object.assign({font:16, hc:false, theme:"auto
 function save(){
   try {
     localStorage.setItem(KEY + "-prefs", JSON.stringify(state.prefs));
-    if (!DB.live && !ui.liveShell) localStorage.setItem(KEY, JSON.stringify(state));   // demo data only
+    if (OFFLINE_WORKBOOK && !Cloud.enabled) localStorage.setItem(KEY, JSON.stringify(state));   // demo data only
   } catch(e){}
 }
-function demoState(){ const s = load() || seed(); s.prefs = loadPrefs(); return s; }
-let state = demoState();
+function offlineState(){
+  const cached = load();
+  if (cached){ cached.prefs = loadPrefs(); return cached; }
+  const sample = seed();
+  sample.users.forEach(user => {
+    const hash = hashPassword("demo1234");
+    user.passSalt = hash.salt; user.passHash = hash.hash;
+  });
+  sample.prefs = loadPrefs();
+  return sample;
+}
+let state = OFFLINE_WORKBOOK ? offlineState() : emptyWorkspace();
 
 // Temporary screen state (filters, open tabs, calendar month). Not saved.
 const ui = {
   view:"dashboard", authMode:"landing", armed:null, csv:null, tour:null,
   requestedRoute:null, fromHistory:false,
-  demo:false,        // true while exploring sample data on a site that also has live mode
-  liveShell:false,   // true while showing live-mode data (signed in or on the live login page)
   find:{q:"", cat:"all", location:null, radius:"25"},
   shifts:{mode:"list"},
   disclosures:new Set(), expandClub:null,

@@ -1,27 +1,20 @@
 # VolunteerHub
 
-VolunteerHub helps nonprofits and school clubs recruit volunteers, schedule shifts, verify service and report hours. The `github` branch adds a colorful public entry, role-specific workspaces and scheduled Gmail check-ins. [Competition scorecard and implementation plan](docs/FBLA-REVIEW.md) · [Gmail setup](docs/GMAIL-ALERTS.md)
+VolunteerHub helps nonprofits and school clubs recruit volunteers, schedule shifts, verify service and report hours. The site includes volunteer and coordinator workspaces and scheduled Gmail check-ins. [Competition scorecard and implementation plan](docs/FBLA-REVIEW.md) · [Gmail setup](docs/GMAIL-ALERTS.md)
 
-The published site and this development branch have independent release cycles. [Published VolunteerHub](https://anancodes.github.io/FBLA-Project/volunteerhub-web/vh-web/)
+GitHub Pages publishes the website from `main`. [Open VolunteerHub](https://anancodes.github.io/FBLA-Project/volunteerhub-web/vh-web/)
 
-![VolunteerHub public entry and sample workspaces](docs/volunteerhub-preview.webp)
+Create an account with an email, password and role. Firebase Authentication manages the sign-in. Firestore stores the name and role under the same user ID. Sign in from another device with the same credentials to return to that workspace. New accounts can explore shifts, service records and clubs immediately. Email verification opens shared organization records, and a site administrator approves coordinator access.
 
 ## How to run
 
 Open `volunteerhub-web/vh-web/index.html` with your local preview workflow. For consistent font loading, run `python -m http.server 4173 --directory volunteerhub-web/vh-web` from the repository root and visit `http://localhost:4173`.
 
-Demo accounts (password `demo1234`):
-
-- Volunteer: `volunteer@demo.org`
-- Coordinator: `coordinator@demo.org`
-
-Demo accounts use fictional sample data saved in your browser only. Configured live accounts use Firebase; see the web app's `SETUP-FIREBASE.md` for setup. Use **Reset demo data** at the bottom of the app to start over.
-
-For a single-file offline demo, run `node scripts/build-demo.cjs` at the repository root and open the generated `VolunteerHub-demo.html`. It embeds the fonts, image, scripts, location data and two fictional accounts. The sample data is saved locally.
+For the competition’s offline fallback, run `node scripts/build-demo.cjs VolunteerHub-offline.html` and open the file directly. The workbook accepts fictional accounts stored on that device. Use `maya.chen@example.org` for a volunteer or `jordan.reyes@example.org` for a coordinator with the fixture password `demo1234`. Hosted accounts always use Firebase. [Firebase setup](volunteerhub-web/vh-web/SETUP-FIREBASE.md)
 
 ## Why this stack fits the event
 
-Volunteers need to search and join shifts from an ordinary browser, including on phones. Vanilla JavaScript and semantic HTML support native forms, links, focus and browser history. The interface has no runtime build service. Self-hosted assets and a browser-only demo let both roles run without internet access. Firestore provides shared records and atomic changes to live data. Firebase Authentication establishes account identity and server-enforced permissions.
+Volunteers need to search and join shifts from an ordinary browser, including on phones. Vanilla JavaScript and semantic HTML support native forms, links, focus and browser history. The interface has no runtime build service. Self-hosted assets and the optional offline workbook let both roles run without internet access. Firestore provides shared records and atomic changes to live data. Firebase Authentication establishes account identity and server-enforced permissions.
 
 Time passes even when nobody visits the app. A scheduled Node.js function therefore calculates expected club hours independently of the browser. The browser and worker import the same policy. A private Gmail OAuth credential authorizes the sending account, and a persisted draft ID lets a retry address the same message. [Delivery design and setup](docs/GMAIL-ALERTS.md)
 

@@ -1,24 +1,17 @@
 ---
 name: VolunteerHub — Open agenda
-description: A readable service website with forest-green wayfinding and clear records.
+description: A readable service website with dark blue wayfinding and clear records.
 colors:
-  action: "#22624d"
-  action-hover: "#164837"
-  sidebar: "#193e33"
+  action: "#496a80"
+  action-hover: "#34566d"
+  sidebar: "#263f50"
   field: "#ffffff"
-  field-quiet: "#f0f4ed"
-  ink: "#192f2b"
-  muted: "#4c6159"
-  divider: "#d8e1d8"
-  control-line: "#798c80"
-  selected: "#e3efdf"
-  schedule-ink: "#335978"
-  schedule-field: "#e8f1f6"
-  hours-ink: "#594570"
-  hours-field: "#eee9f6"
-  alerts-ink: "#833e26"
-  alerts-field: "#fae7d7"
-  hero-accent: "#f8ce77"
+  field-quiet: "#f2f5f7"
+  ink: "#182c3c"
+  muted: "#526b7b"
+  divider: "#dce5eb"
+  control-line: "#7c94a4"
+  selected: "#e7eef3"
   progress-low: "#b45c52"
   progress-mid: "#ad851b"
   progress-full: "#248348"
@@ -29,7 +22,7 @@ typography:
   body: {fontFamily: 'Atkinson Hyperlegible Next, "Segoe UI", sans-serif', fontSize: "1rem", fontWeight: 400, lineHeight: 1.5}
   label: {fontFamily: 'Atkinson Hyperlegible Next, "Segoe UI", sans-serif', fontSize: "0.9375rem", fontWeight: 500, lineHeight: 1}
   meta: {fontFamily: 'Atkinson Hyperlegible Next, "Segoe UI", sans-serif', fontSize: "0.875rem", fontWeight: 400, lineHeight: 1.5}
-  public-display: {fontFamily: 'Bitter, Georgia, serif', fontSize: "clamp(3rem, 5.5vw, 5.8rem)", fontWeight: 550, lineHeight: 1.03, letterSpacing: "-0.025em"}
+  public-display: {fontFamily: 'Bitter, Georgia, serif', fontSize: "clamp(2.25rem, 3.25vw, 3rem)", fontWeight: 550, lineHeight: 1.15, letterSpacing: "-0.025em"}
   public-headline: {fontFamily: 'Bitter, Georgia, serif', fontSize: "clamp(1.75rem, 2.4vw, 2.25rem)", fontWeight: 500, lineHeight: 1.25, letterSpacing: "-0.025em"}
   public-title: {fontFamily: 'Bitter, Georgia, serif', fontSize: "1.1875rem", fontWeight: 600, lineHeight: 1.4, letterSpacing: "-0.025em"}
   public-body: {fontFamily: 'Atkinson Hyperlegible Next, "Segoe UI", sans-serif', fontSize: "1rem", fontWeight: 400, lineHeight: 1.65}
@@ -58,7 +51,7 @@ components:
 
 **Creative North Star: "Open agenda"**
 
-The website builds on the owner’s Open agenda layout. Forest-green wayfinding, a white reading field, readable Atkinson Hyperlegible Next and ordinary web controls establish a simple, ordered service website for both signed-in roles. The approved public landing, sign-in, signup and reset variant uses Bitter's sturdy serif voice within the same navy, white and slate system.
+The owner selected Open agenda and explicitly required a website. Dark blue wayfinding, a white reading field, readable Atkinson Hyperlegible Next and ordinary web controls establish a simple, ordered service website for both signed-in roles. The approved public landing, sign-in, signup and reset variant uses Bitter's sturdy serif voice within the same navy, white and slate system.
 
 Schools and nonprofits receive equal care. Clear dates, explicit actions and distinct service states support people finding opportunities and coordinators maintaining accurate records. Organization details remain configurable; sample content does not establish customers or endorsements.
 
@@ -66,11 +59,11 @@ Source authority is `volunteerhub-web/vh-web/css/open-agenda.css` and `js/websit
 
 The public variant is grounded in `css/landing.css`, `js/views/landing.js` and `js/views/auth.js` under the same web root, with its scoped direction recorded in `.impeccable/surfaces/volunteerhub-web-vh-web-js-views-landing-js.md`. It merges the community-led composition with the owner's requested restraint, short purposeful copy and one large photograph; it does not replace the signed-in system.
 
-The current branch gives the public entry two immediate paths. Returning users can sign in, and first-time visitors can open either role with sample data. The two workspaces keep the previously reviewed navigation. Daily alerts and their preview share the same term calculations. [Current evaluation](docs/FBLA-REVIEW.md)
+The prior Open agenda finish disposition was **ship** for its 28 required captures and 38 isolated fixture checks. The current public review found no material UI defect in 17 required captures; the reported 43 browser/workflow checks use sample data and mocked Firebase. The full review’s **fix** concerned persistence and workflow documentation. A subsequent narrow **ship** verdict resolved those two findings through accurate documentation and explicit disclosure; it covers those scored fixes only. Automated Impeccable remains open at **SPEC**: font matching reports no resolvable browser/catalog despite installed Chromium/Playwright, and the approximately 70% comparison is recorded drift with owner-authorized type, content and photo-removal deviations. No asset/assembly acceptance or automated gate pass is claimed. Neither review establishes production database behavior, load capacity or deployment readiness.
 
 **Key Characteristics:**
 
-- Forest-green navigation and flat, generously spaced reading areas.
+- Dark blue navigation and flat, generously spaced reading areas.
 - Bitter for public headings, Atkinson Hyperlegible Next for reading and controls, tabular dates and amounts, explicit task labels.
 - Real navigation links, browser history, natural page scrolling and visible mobile destinations.
 - Numeric and verbal status alongside color, with retained display preferences and keyboard access.
@@ -79,7 +72,7 @@ The current branch gives the public entry two immediate paths. Returning users c
 
 ### Primary
 
-Forest green identifies primary controls and anchors the navigation. The pale green selected destination retains its text label. The public hero pairs a forest background with a warm gold action and the garden image. Sky-blue dates identify scheduled work, violet groups verified hours, and clay introduces alerts. Every pace state includes a text label.
+Slate-blue action and its deeper hover state identify deliberate controls. Dark blue sidebar anchors signed-in wayfinding; the pale selected tone identifies the current destination with dark ink. The public masthead and account pages use the white field and reading ink, with slate-blue sign-in emphasis.
 
 ### Neutral
 
@@ -89,7 +82,7 @@ White field carries content; quiet field supports table headers and secondary ho
 
 **The Semantic Progress Rule.** Overall service goals use a continuous color scale from red through yellow to green, paired with numeric progress. Club progress uses a single accent and shows approved hours against the term requirement. Hours waiting for approval appear in their own section.
 
-Dark mode uses deep green surfaces, pale mint actions and lighter semantic foregrounds. The sidebar stays forest green. High contrast promotes quiet text and borders to ink and thickens supported control borders. Preserve these source variants rather than deriving them from the light preview ramps.
+Dark mode uses a deep slate reading field with pale blue actions and softer semantic colors; the sidebar stays dark blue. High contrast promotes quiet text and borders to ink and thickens supported control borders. Preserve these source variants rather than deriving them from the light preview ramps.
 
 ## Typography
 
@@ -115,7 +108,7 @@ At widths up to (900px), signed-in navigation becomes a header with wrapped text
 
 Home shows equal-weight dated shifts beside a quieter hours column (224px or 192px at the intermediate size), then recommendations across the full width. Groups use whitespace and hairline dividers. At desktop widths of (1120px) and up, shift lists align date and time in a dedicated column beside place and description. Desktop Inbox separates sender from the two-line message preview. My hours shows up to five recent records before the older records disclosure. Print hides navigation and footer and restores a single reading column.
 
-Public pages use fluid gutters and a masthead with prominent sign-in. On wide screens the introduction and garden image share a forest-green field in two columns. On phones the primary action appears before the photograph. Two labeled role choices lead directly into their sample workspaces.
+Public pages use fluid gutters from the frontmatter. The horizontal masthead has minimum height (76px); the broad hero has minimum height (32rem), increasing to (36rem) at widths from (1600px), with a left white introduction inset (30rem wide, 2rem padding). Sections center within (82rem); process and sample record, audiences and demo choices use equal columns. At widths up to (900px), the photograph stacks above the full-width introduction, with image height clamped from (12rem) to (23rem); column gaps reduce to (2rem). At (700px), section columns stack, section padding becomes (2.5rem), navigation fills a wrapped row and the footer stacks. At (360px), sample-record labels and values stack.
 
 Sign-in, signup and live password reset share the public masthead, footer and a centered account column. Signup and reset use a maximum width of (31rem). Sign-in uses (40rem) to give the volunteer and coordinator demo panels equal columns below the form. The demo panels wrap to one column if the available width is too small for the selected text size.
 
@@ -125,7 +118,7 @@ Sign-in, signup and live password reset share the public masthead, footer and a 
 
 Inherited dialogs and toasts use the existing popup shadow, with a darker shadow in dark mode. Fields add a soft focus ring; visible keyboard focus uses an outline (2px) offset (4px), with a pale outline on the sidebar. Button state transitions take (0.16s); reduced motion removes transitions and animations.
 
-The hero uses a flat forest background. Soft clay and violet distinguish the two role choices. The sample record uses a quiet tinted surface with accessible labels and amounts.
+The public inset and sample record use flat surface tone rather than added shadow; open sections use whitespace and divider lines. The same theme, high-contrast and reduced-motion behavior remains in effect.
 
 ## Shapes
 
@@ -133,7 +126,7 @@ Regular controls and the desktop public introduction use the small frontmatter r
 
 ## Components
 
-**Buttons.** Primary actions use forest green and white; hover deepens background and border. Secondary actions use a white field, dark ink and a stronger divider, with a quiet-field hover. Standard controls have minimum height (42px); small controls use (34px), while Home row actions use (40px) and padding (8px 15px). Disabled controls reduce opacity to (0.45).
+**Buttons.** Primary actions use slate blue and white; hover deepens background and border. Secondary actions use a white field, dark ink and a stronger divider, with a quiet-field hover. Standard controls have minimum height (42px); small controls use (34px), while Home row actions use (40px) and padding (8px 15px). Disabled controls reduce opacity to (0.45).
 
 **Public actions and fields.** Scoped buttons use the public label tokens and minimum height (46px). The masthead sign-in reduces to (44px) at (700px). Account text and select fields use the public field tokens and minimum height (44px), retaining visible labels, error text and focus treatment. Live forms disable submission while connecting. Password reset appears in live mode and returns to sign-in after requesting the link.
 
@@ -155,7 +148,7 @@ Regular controls and the desktop public introduction use the small frontmatter r
 
 **Public navigation and content.** The masthead links to process and school/nonprofit sections and keeps sign-in primary. The hero's adjacent demo link leads to both existing volunteer and coordinator demo handlers. Ordinary fragment links, browser history, a skip link, route-heading focus and focusable section targets support keyboard navigation. The lower page pairs an ordered three-step process with a labeled sample record, gives schools and nonprofits equal standing, offers both fictional role demos and ends with footer access to the demo and display settings. Dark and high-contrast colors and root text-size preferences remain shared. The sample record gains an ink outline in high contrast.
 
-**Public photograph.** The generated garden scene is identified as illustrative. Keep the volunteers visible in the desktop and phone crops. If the image fails, the heading and both entry actions remain available. The asset provenance accompanies the image.
+**Public photograph.** One generated garden photograph is a temporary owner-accepted filler, replaceable with the owner's own image; it is disclosed as illustrative and does not depict verified VolunteerHub volunteers. Keep the broad crop with subjects toward the right for the desktop inset and review its tighter phone crop. Replace its alt text, visible caption and provenance with accurate information when replacing the image. On image failure, hide the image/caption and retain the introduction and actions in a shorter usable hero. The one-photo limit belongs to this public variant, not a global ban on imagery.
 
 ## Do's and Don'ts
 

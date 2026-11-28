@@ -204,17 +204,3 @@ test("only a recently authenticated volunteer can delete their own profile", asy
   await assertFails(deleteDoc(ref(user("other"),"users/volunteer")));
   await assertSucceeds(deleteDoc(ref(user("volunteer"),"users/volunteer")));
 });
-
-test("advisers may configure a valid term threshold; mail credentials and delivery records are server-only", async () => {
-  const req = {hours:10, label:"Fall", start:"2026-09-01", end:"2026-12-01", emailAlerts:true, alertGap:1.25};
-  const adviserClub = ref(user("organizer"),"clubs/5");
-  await assertSucceeds(updateDoc(adviserClub,{req}));
-  await assertFails(updateDoc(ref(user("volunteer"),"clubs/5"),{req:{...req,alertGap:4}}));
-  for (const gap of [0,0.3,10.25]) await assertFails(updateDoc(adviserClub,{req:{...req,alertGap:gap}}));
-  await assertSucceeds(updateDoc(adviserClub,{req:{hours:10,label:"Fall",start:"2026-09-01",end:"2026-12-01"}}));
-  for (const key of ["mailPrivate/gmail","mailPrivate/consent","hourAlertLedger/record"]){
-    const record = ref(user("admin"),key);
-    await assertFails(setDoc(record,{example:true}));
-    await assertFails(getDoc(record));
-  }
-});

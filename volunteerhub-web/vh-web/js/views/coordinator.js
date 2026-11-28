@@ -170,35 +170,16 @@ function cVolunteers(){
 }
 
 function reportRows(f){
-  const inRange = date => date >= f.from && date <= f.to;
-  const includeUser = id => f.vol === "all" || String(id) === f.vol;
-  const events = new Map(state.events.filter(e => inRange(e.date) && (f.cat === "all" || e.category === f.cat)).map(e => [e.id,e]));
-  const groups = new Map();
-  function add(uid, recordId, title, date, cause, hours, status){
-    const month = monthKey(date);
-    const key = {volunteer:uid, event:recordId, month, category:cause}[f.group];
-    const row = groups.get(key) || {key:f.group === "volunteer" ? userById(uid).name : f.group === "event" ? title :
-      f.group === "month" ? fmtDate(month + "-01", {month:"long",year:"numeric"}) : cause,
-      month, hours:0, attended:0, noShows:0, outside:0};
-    row.hours += hours;
-    if (status === "attended") row.attended++;
-    else if (status === "no-show") row.noShows++;
-    else row.outside++;
-    groups.set(key, row);
-  }
-  for (const r of state.regs){
-    const e = events.get(r.eventId);
-    if (!e || !includeUser(r.userId) || !["attended","no-show"].includes(r.status)) continue;
-    add(r.userId, e.id, e.title + " (" + fmtDate(e.date) + ")", e.date, e.category, r.status === "attended" ? r.hours : 0, r.status);
-  }
-  if (f.includeOutside && f.cat === "all"){
-    for (const log of state.hourLogs){
-      if (log.status !== "approved" || !inRange(log.date) || !includeUser(log.userId)) continue;
-      add(log.userId, "outside-" + log.id, log.place + " (outside service, " + fmtDate(log.date) + ")", log.date, "Outside service", log.hours, "outside");
-    }
-  }
-  const rows = [...groups.values()].sort((a,b) => f.group === "month" ? a.month.localeCompare(b.month) : b.hours - a.hours || a.key.localeCompare(b.key));
-  return {rows, events:events.size};
+  const evs = state.events.filter(e => e.date >= f.from && e.date <= f.to && (f.cat === "all" || e.category === f.cat));
+  const ids = new Set(evs.map(e => e.id));
+  const rs = state.regs.filter(r => ids.has(r.eventId) && (r.status === "attended" || r.status === "no-show") && (f.vol === "all" || String(r.userId) === f.vol));
+  const keyOf = r => { const e = eventById(r.eventId);
+    return f.group === "volunteer" ? userById(r.userId).name : f.group === "event" ? `${e.title} (${fmtDate(e.date, {month:"short", day:"numeric"})})` : f.group === "month" ? monthKey(e.date) : e.category; };
+  const m = {};
+  rs.forEach(r => { const k = keyOf(r); m[k] = m[k] || {key:k, hours:0, attended:0, noShows:0}; if (r.status === "attended"){ m[k].hours += r.hours; m[k].attended++; } else m[k].noShows++; });
+  let rows = Object.values(m);
+  rows = f.group === "month" ? rows.sort((a,b) => a.key.localeCompare(b.key)).map(r => ({...r, key: parseDate(r.key + "-01").toLocaleDateString("en-US", {month:"long", year:"numeric"})})) : rows.sort((a,b) => b.hours - a.hours);
+  return {rows, events:evs.length};
 }
 function cReports(){
   const f = ui.rep;
@@ -208,15 +189,12 @@ function cReports(){
   if (!err){
     const {rows, events} = reportRows(f);
     const hours = sum(rows.map(r => r.hours)), att = sum(rows.map(r => r.attended)), ns = sum(rows.map(r => r.noShows));
-    const includeOutside = f.includeOutside && f.cat === "all";
-    const outside = sum(rows.map(r => r.outside));
-    const scope = includeOutside ? "Event attendance and approved outside service" : "Event attendance";
     const volName = f.vol === "all" ? "All volunteers" : userById(asId(f.vol)).name;
-    ui.csv = {name:`report-by-${f.group}-${f.from}-to-${f.to}.csv`, build:() => toCSV([[`VolunteerHub report: hours by ${groupName.toLowerCase()}`], [`${f.from} to ${f.to}`, f.cat === "all" ? "All causes" : f.cat, volName, scope], [], [groupName, "Hours", "Attended", "No-shows", ...(includeOutside ? ["Outside service records"] : [])], ...rows.map(r => [r.key, fmtH(r.hours), r.attended, r.noShows, ...(includeOutside ? [r.outside] : [])]), ["Total", fmtH(hours), att, ns, ...(includeOutside ? [outside] : [])]])};
-    body = `<p class="print-only"><b>${esc(state.org.name)} · Volunteer report</b><br>${fmtDate(f.from, {month:"short", day:"numeric", year:"numeric"})} to ${fmtDate(f.to, {month:"short", day:"numeric", year:"numeric"})} · ${f.cat === "all" ? "All causes" : esc(f.cat)} · ${esc(volName)} · ${scope} · Grouped by ${groupName.toLowerCase()}</p>
-    <p class="report-recap"><strong>${fmtH(hours)} hours</strong><span>${att} attended shifts</span><span>${ns} missed shifts</span><span>${events} events in range</span>${includeOutside ? `<span>${outside} approved outside records</span>` : ""}</p>
-    <div class="tablewrap"><table><thead><tr><th>${groupName}</th><th class="num">Hours</th><th class="num">Attended</th><th class="num">No-shows</th>${includeOutside ? '<th class="num">Outside records</th>' : ""}</tr></thead><tbody>
-      ${rows.length ? rows.map(r => `<tr><td>${esc(r.key)}</td><td class="num"><b>${fmtH(r.hours)}</b></td><td class="num">${r.attended}</td><td class="num">${r.noShows}</td>${includeOutside ? `<td class="num">${r.outside}</td>` : ""}</tr>`).join("") + `<tr><td><b>Total</b></td><td class="num"><b>${fmtH(hours)}</b></td><td class="num"><b>${att}</b></td><td class="num"><b>${ns}</b></td>${includeOutside ? `<td class="num"><b>${outside}</b></td>` : ""}</tr>` : `<tr><td colspan="${includeOutside ? 5 : 4}" class="muted">No service records match these filters.</td></tr>`}
+    ui.csv = {name:`report-by-${f.group}-${f.from}-to-${f.to}.csv`, build:() => toCSV([[`VolunteerHub report: hours by ${groupName.toLowerCase()}`], [`${f.from} to ${f.to}`, f.cat === "all" ? "All causes" : f.cat, volName], [], [groupName, "Hours", "Attended", "No-shows"], ...rows.map(r => [r.key, fmtH(r.hours), r.attended, r.noShows]), ["Total", fmtH(hours), att, ns]])};
+    body = `<p class="print-only"><b>${esc(state.org.name)} · Volunteer report</b><br>${fmtDate(f.from, {month:"short", day:"numeric", year:"numeric"})} to ${fmtDate(f.to, {month:"short", day:"numeric", year:"numeric"})} · ${f.cat === "all" ? "All causes" : esc(f.cat)} · ${esc(volName)} · Grouped by ${groupName.toLowerCase()}</p>
+    <p class="report-recap"><strong>${fmtH(hours)} hours</strong><span>${att} attended shifts</span><span>${ns} missed shifts</span><span>${events} events in range</span></p>
+    <div class="tablewrap"><table><thead><tr><th>${groupName}</th><th class="num">Hours</th><th class="num">Attended</th><th class="num">No-shows</th></tr></thead><tbody>
+      ${rows.length ? rows.map(r => `<tr><td>${esc(r.key)}</td><td class="num"><b>${fmtH(r.hours)}</b></td><td class="num">${r.attended}</td><td class="num">${r.noShows}</td></tr>`).join("") + `<tr><td><b>Total</b></td><td class="num"><b>${fmtH(hours)}</b></td><td class="num"><b>${att}</b></td><td class="num"><b>${ns}</b></td></tr>` : `<tr><td colspan="4" class="muted">No completed shifts in this range.</td></tr>`}
     </tbody></table></div>`;
   }
   const preset = (label, days) => `<button class="btn secondary sm" data-act="preset" data-v="${days}">${label}</button>`;
@@ -227,12 +205,11 @@ function cReports(){
       <div class="field"><label for="r-to">To</label><input type="date" id="r-to" ${err ? 'aria-invalid="true" aria-describedby="report-error"' : ""} data-filter="rep.to" value="${f.to}"></div>
       <div class="field"><label for="r-group">Group by</label><select id="r-group" data-filter="rep.group">${[["volunteer","Volunteer"],["event","Event"],["month","Month"],["category","Cause"]].map(([v, l]) => `<option value="${v}" ${f.group === v ? "selected" : ""}>${l}</option>`).join("")}</select></div>
     </div>
-    <details class="disclosure" id="report-filters"><summary>More report filters <span class="muted">${f.cat !== "all" || f.vol !== "all" || f.includeOutside ? "(active)" : ""}</span></summary>
+    <details class="disclosure" id="report-filters"><summary>More report filters <span class="muted">${f.cat !== "all" || f.vol !== "all" ? "(active)" : ""}</span></summary>
       <div class="filters">
         <div class="field"><label for="r-cat">Cause</label><select id="r-cat" data-filter="rep.cat"><option value="all">All causes</option>${CATS.map(c => `<option ${f.cat === c ? "selected" : ""}>${c}</option>`).join("")}</select></div>
         <div class="field"><label for="r-vol">Volunteer</label><select id="r-vol" data-filter="rep.vol"><option value="all">All volunteers</option>${state.users.filter(u => u.role === "volunteer").sort((a, b) => a.name.localeCompare(b.name)).map(u => `<option value="${esc(u.id)}" ${f.vol === String(u.id) ? "selected" : ""}>${esc(u.name)}</option>`).join("")}</select></div>
       </div>
-      <label class="toggle-inline"><input type="checkbox" id="r-outside" data-filter="rep.includeOutside" ${f.includeOutside ? "checked" : ""} ${f.cat !== "all" ? "disabled" : ""}> Include approved outside service (all causes)</label>
       <div class="row small"><span class="muted">Quick ranges</span>${preset("Last 30 days", 30)}${preset("Last 90 days", 90)}${preset("Last 12 months", 365)}</div>
     </details>
   </div>

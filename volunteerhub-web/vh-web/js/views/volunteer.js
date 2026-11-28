@@ -154,20 +154,6 @@ function serviceLedger(rows){
   </li>`).join("")}</ol>`;
 }
 
-function monthlyService(rows){
-  const months = new Map();
-  for (const {r,e} of rows){
-    const key = monthKey(e.date), item = months.get(key) || {events:0, outside:0};
-    if (e.category === "Outside service") item.outside += r.hours; else item.events += r.hours;
-    months.set(key, item);
-  }
-  if (!months.size) return "";
-  return `<details class="disclosure" id="service-by-month"><summary>Monthly breakdown</summary>
-    <div class="tablewrap"><table><caption class="sr-only">Verified hours by month and source</caption>
-      <thead><tr><th>Month</th><th class="num">Events</th><th class="num">Outside service</th><th class="num">Total hours</th></tr></thead>
-      <tbody>${[...months].map(([key, item]) => `<tr><th scope="row">${fmtDate(key + "-01", {month:"long",year:"numeric"})}</th><td class="num">${fmtH(item.events)}</td><td class="num">${fmtH(item.outside)}</td><td class="num"><strong>${fmtH(item.events + item.outside)}</strong></td></tr>`).join("")}</tbody></table></div></details>`;
-}
-
 function vHours(u){
   const attended = state.regs.filter(r => r.userId === u.id && r.status === "attended").map(r => ({r,e:eventById(r.eventId)})).filter(x => x.e);
   const rs = attended.concat(outsideRows(u.id)).sort((a,b) => byDate(b.e,a.e)), total = sum(rs.map(x => x.r.hours));
@@ -181,7 +167,6 @@ function vHours(u){
       ${progressMeter(total,HOUR_GOAL,"Service hour goal","progressbar",`${fmtH(total)} of ${HOUR_GOAL} hours`)}
       <p class="muted small">${total >= HOUR_GOAL ? "Goal reached" : `${fmtH(HOUR_GOAL - total)} hours to go`}</p></div>
   </section>
-  ${monthlyService(rs)}
   <section class="section" aria-labelledby="service-history-title"><h2 id="service-history-title">Recent service</h2>
     ${recent.length ? serviceLedger(recent) : `<p class="empty">Hours appear here after a coordinator records attendance or a club approves your service.</p>`}
     ${older.length ? `<details class="disclosure history-disclosure" id="hours-record"><summary>View ${older.length} older ${older.length === 1 ? "record" : "records"}</summary>${serviceLedger(older)}</details>` : ""}

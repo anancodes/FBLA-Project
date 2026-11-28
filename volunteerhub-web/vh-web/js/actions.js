@@ -14,41 +14,35 @@ function doLogin(form){
   const err = $("#li-err");
   if (!email || !pw){ err.textContent = "Enter your email and password."; return; }
   if (V.email(email) || pw.length > 4096){ err.textContent = "Enter a valid email and password."; return; }
-  if (!OFFLINE_WORKBOOK || Cloud.enabled){
+  if (Cloud.enabled && !ui.demo){                                 // live mode: Firebase checks the password
     err.textContent = "";
     return runPending("auth", "Signing in…", form.querySelector('[type="submit"]'), () => Cloud.login(email, pw),
       null, error => authFormError(form.id, null, error));
   }
   const u = state.users.find(x => x.email === email);
-  if (!u || !checkPassword(pw, u)){ err.textContent = "That email and password don't match."; return; }
+  if (!u || !checkPassword(pw, u)){ err.textContent = "That email and password don't match. Try a demo account below."; return; }
   state.session.userId = u.id; ui.view = "dashboard"; save(); render(); maybeStartTour();
 }
 
 function doSignup(form){
-  const d = Object.fromEntries(new FormData(form));
-  const completing = form.id === "completeProfileForm";
-  const email = completing ? Cloud.auth.currentUser.email : d.email.trim().toLowerCase();
-  const volunteer = d.role === "volunteer";
-  const hosted = !OFFLINE_WORKBOOK || Cloud.enabled;
-  const errors = {role:["volunteer","coordinator"].includes(d.role) ? "" : "Choose a role.",
-    name:V.name(d.name), email:V.email(email), phone:V.phone(d.phone), location:cityError(d.location),
-    waiver:volunteer && !d.waiver ? "Accept the volunteer waiver to continue." : ""};
-  if (!completing){
-    errors.password = V.password(d.password, hosted);
-    errors.confirm = d.password === d.confirm ? "" : "Passwords don't match.";
+  const fd = new FormData(form), d = Object.fromEntries(fd.entries());
+  const isVol = d.role === "volunteer";
+  const errs = {name:V.name(d.name), email:V.email(d.email), phone:V.phone(d.phone), location:cityError(d.location), password:V.password(d.password, Cloud.enabled && !ui.demo),
+    confirm: d.password !== d.confirm ? "Passwords don't match." : "",
+    waiver: isVol && !d.waiver ? "Please read and accept the volunteer waiver to continue." : ""};
+  if (!errs.email && !Cloud.enabled && state.users.some(u => u.email === d.email.trim().toLowerCase())) errs.email = "An account with this email already exists. Try logging in.";
+  if (!showErrors(form, errs)) return;
+  const profile = {name:d.name.trim(), email:d.email.trim().toLowerCase(), phone:d.phone.trim(), role:d.role, skills:[], availability:[], zip:"", location:resolveCity(d.location), emergency:"",
+    org:isVol ? "" : "Independent organizer", verified:false, reads:[], toured:false, waiverAt:isVol ? new Date().toISOString() : ""};
+  if (Cloud.enabled && !ui.demo){
+    return runPending("auth", "Creating your account…", form.querySelector('[type="submit"]'), () => Cloud.signup(profile, d.password),
+      null, error => authFormError(form.id, "email", error));
   }
-  if (!hosted && state.users.some(u => u.email === email)) errors.email = "An account with this email already exists. Try signing in.";
-  if (!showErrors(form, errors)) return;
-  const profile = {name:d.name.trim(), email, phone:d.phone.trim(), role:d.role, skills:[], availability:[], zip:"", location:resolveCity(d.location), emergency:"",
-    org:volunteer ? "" : "Independent organizer", verified:false, reads:[], toured:false, waiverAt:volunteer ? new Date().toISOString() : ""};
-  if (hosted){
-    return runPending("auth", completing ? "Saving your profile…" : "Creating your account…", form.querySelector('[type="submit"]'),
-      () => completing ? Cloud.saveNewProfile(Cloud.auth.currentUser, profile) : Cloud.signup(profile, d.password),
-      null, error => authFormError(completing || Cloud.needsProfile ? "completeProfileForm" : form.id, null, error));
-  }
-  const hash = hashPassword(d.password);
-  const u = DB.add("users", {id:DB.newId("users"), ...profile, passSalt:hash.salt, passHash:hash.hash});
-  state.session.userId = u.id; ui.view = volunteer ? "profile" : "dashboard"; save(); render(); maybeStartTour();
+  const h = hashPassword(d.password);
+  const u = DB.add("users", {id:DB.newId("users"), ...profile, passSalt:h.salt, passHash:h.hash});
+  state.session.userId = u.id; ui.view = isVol ? "profile" : "dashboard"; save(); render();
+  toast(isVol ? "Welcome! Add your skills so we can recommend shifts." : "Welcome! Create your first event to get started.");
+  maybeStartTour();
 }
 
 function doReset(form){
@@ -390,7 +384,11 @@ function confirmAction(kind, id, trigger){
     const c = clubById(id);
     Promise.resolve(setClubCode(c, makeCode(c.short))).then(() => toast("New join code created.")).catch(error => toast(Cloud.friendly(error), "bad"));
   }
-
+  if (kind === "reset"){
+    const keep = {prefs:state.prefs, session:state.session, org:state.org};   // keep your organization settings
+    state = Object.assign(seed(), keep);
+    toast("Demo data was reset.");
+  }
 }
 
 // Privacy: a person can delete their own account. Upcoming sign-ups are cancelled first
@@ -435,11 +433,6 @@ function copyText(text, what){
 /* ----- Button handlers ----- */
 
 const handlers = {
-  gmailStatus:() => GmailAlerts.act("status"),
-  gmailConnect:() => GmailAlerts.act("connect"),
-  gmailDisconnectPrompt:() => openModal(`<h2>Disconnect Gmail?</h2><p>Scheduled hour alerts will pause for all clubs until an administrator reconnects a sending account.</p><div class="row"><button class="btn secondary" data-act="close">Keep connected</button><button class="btn danger" data-act="gmailDisconnect">Disconnect Gmail</button></div>`),
-  gmailDisconnect:() => { closeModal(); GmailAlerts.act("disconnect"); },
-  pacePreview:(uid,clubId) => previewHourAlert(clubId,uid),
   composeAnnouncement: () => {
     const user = currentUser();
     if (user?.role === "coordinator" && (!DB.live || DB.isVerifiedCoordinator(user))) openModal(announcementForm(), {dismissOnBackdrop:false});
@@ -468,11 +461,18 @@ const handlers = {
     () => Cloud.sendVerification(), () => toast("Check your email for the verification link."), err => toast(Cloud.friendly(err), "bad")),
   retryLoad: () => Cloud.retryLoad(),
   cloudSignOut: () => Cloud.logout().catch(error => toast(Cloud.friendly(error), "bad")),
+  demo: (v) => {
+    if (Cloud.enabled && !ui.demo) Cloud.enterDemo();       // explore sample data without touching live data
+    Object.assign(ui.find, {q:"", location:null}); ui.disclosures.clear();
+    state.session.userId = asId(v); ui.view = "dashboard"; save(); render();
+    toast(`Signed in as ${userById(asId(v)).name}.`); maybeStartTour();
+  },
   logout: () => {
     clearPageURL(); setPageURL("login",true);
     ui.authMode = "login"; ui.armed = null; ui.tour = null; ui.cal = TODAY.slice(0, 7); ui.shifts.mode = ui.ev.mode = "list"; ui.find.location = null; ui.find.q = ""; ui.disclosures.clear(); ui.view = "dashboard";
-    if (Cloud.enabled) return Cloud.logout().catch(error => toast(Cloud.friendly(error), "bad"));
+    if (DB.live) return Cloud.logout();
     state.session.userId = null; save();
+    if (ui.demo) return Cloud.exitDemo();
     render();
   },
   font: (v) => { state.prefs.font = Math.max(13, Math.min(21, state.prefs.font + +v)); save(); applyPrefs(); },

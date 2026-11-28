@@ -1,6 +1,6 @@
 # VolunteerHub public landing page
 
-The public entry uses one community photo, local serif typography, and links for sign-in and registration. New members choose a role during registration. Their workspace opens after Firebase confirms their sign-in and saved profile. The images below record the earlier design.
+The public entry page now uses the selected community-led composition with the owner's requested restraint: one large photo, serif typography, concise explanations and a sample service record. Sign-in is primary; both demo roles remain available without creating an account.
 
 ![Public landing page](public-landing/desktop.webp)
 
@@ -8,10 +8,10 @@ The public entry uses one community photo, local serif typography, and links for
 
 ## What changed
 
-- A single service image introduces the purpose. Below it, a short process explanation connects opportunities, attendance and approved hours.
+- A single service image introduces the purpose. Below it, a short process explanation and an explicitly labeled sample record connect opportunities, attendance and approved hours.
 - Bitter replaces the public page's sans-serif treatment. The font is served locally with its Open Font License. Signed-in screens retain the selected Open agenda system.
 - The public page, sign-in, signup and password reset use ordinary website links, browser history and meaningful page titles. Protected links still require an account, and role permissions remain enforced.
-- Volunteer and coordinator examples require an account. Signup accepts an optional city. Password reset uses Firebase, and forms wait for the account connection before submission.
+- The existing volunteer and coordinator demo handlers, location-optional signup and password reset are preserved. Live forms wait for their connection before allowing submission.
 - Narrow layouts put the photo above the introduction. Large text, light/dark themes, high contrast, skip navigation, visible focus and image-failure recovery remain usable.
 
 ## Replace the placeholder photo
@@ -36,7 +36,7 @@ The GitHub Pages live site is a separate deployment; this branch does not change
 
 ## Verification
 
-The 43-check suite passes with fictional sample data and mocked Firebase configuration. It covers the existing volunteer/coordinator workflows plus public browser history, refresh/new tabs, keyboard sign-in and error recovery, both account roles, connection/reset behavior, 320/390/768/1024/1440px layouts, enlarged text, missing-image recovery and axe scans in both themes. See [test instructions](../tests/README.md).
+The 43-check suite passes with fictional sample data and mocked Firebase configuration. It covers the existing volunteer/coordinator workflows plus public browser history, refresh/new tabs, keyboard sign-in and error recovery, both demo roles, connection/reset behavior, 320/390/768/1024/1440px layouts, enlarged text, missing-image recovery and axe scans in both themes. See [test instructions](../tests/README.md).
 
 Screenshots additionally cover the original comp's 1487px viewport, expanded display settings, signup validation, dark mode and high contrast. These checks do not establish production database load capacity or deployment readiness.
 

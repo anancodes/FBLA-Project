@@ -8,12 +8,9 @@
 "use strict";
 
 function clubProgress(h, req){
-  const pace = HourPace.progress(req, h.total);
   return `<div class="club-progress">
     <p><strong class="num">${fmtH(h.total)}</strong>${h.need ? ` of ${esc(h.need)} hours` : " hours"}${req?.label ? ` <span class="muted">for ${esc(req.label)}</span>` : ""}</p>
     ${h.need ? progressMeter(h.total,h.need,"Club hour requirement","progressbar",`${fmtH(h.total)} of ${h.need} approved hours`) : ""}
-    ${req?.emailAlerts ? `<p class="muted small">Club alerts are enabled at a ${fmtH(pace.threshold)}-hour shortfall. You and your adviser receive a check-in when Gmail is connected.</p>` : ""}
-    ${req ? `<p class="small pace-note"><span class="pill ${pace.behind ? "warn" : "good"}">${esc(pace.status)}</span> ${pace.behind ? `${fmtH(pace.gap)} hours below today’s expected total.` : ""}</p>` : ""}
   </div>`;
 }
 
@@ -68,8 +65,7 @@ function logForm(u){
 
 /* ----- Managers ----- */
 function clubReportRows(c){
-  const totals = HourPace.totals(c, state.events, state.regs, state.hourLogs);
-  return clubMembers(c.id).filter(m => m.role !== "adviser").map(m => ({m,h:memberTotals(c,totals.get(m.userId))})).sort((a,b) => a.h.pct-b.h.pct || memberName(a.m.userId).localeCompare(memberName(b.m.userId)));
+  return clubMembers(c.id).filter(m => m.role !== "adviser").map(m => ({m,h:clubHours(c.id,m.userId)})).sort((a,b) => a.h.pct-b.h.pct || memberName(a.m.userId).localeCompare(memberName(b.m.userId)));
 }
 function downloadClubCSV(id){
   const c = clubById(id); if (!c || !isClubManager(id)) return;
@@ -86,14 +82,13 @@ function clubManagerContent(c,u){
     <div class="spread"><div class="row"><span class="muted small">Join code</span><code class="joincode">${esc(code || "Loading…")}</code>${code ? `<button class="btn secondary sm" data-act="copyCode" data-v="${esc(code)}">Copy code</button>` : ""}${isAdviser(c.id,u) ? armBtn(`newcode:${c.id}`,"New code","Old code stops working","secondary sm") : ""}</div>
       <div class="row">${isAdviser(c.id,u) ? `<button class="btn secondary sm" data-act="editClub" data-id="${esc(c.id)}">Edit club</button>` : ""}<button class="btn secondary sm" data-act="newClubEvent" data-id="${esc(c.id)}">New club event</button></div></div>
     <p class="muted small">${req ? `${esc(req.hours)} hours required for ${esc(req.label)} · ${fmtDate(req.start,{month:"short",day:"numeric"})} to ${fmtDate(req.end,{month:"short",day:"numeric"})}` : "No hour requirement set."}</p>
-    ${clubAlertPanel(c,rows)}
     <section class="section"><h3>Hours waiting for approval (${pending.length})</h3>
       ${pending.length ? pending.map(l => `<div class="approval"><div class="stack"><strong>${esc(l.name)} · ${fmtH(l.hours)} hrs · ${fmtDate(l.date,{month:"short",day:"numeric"})}</strong><p>${esc(l.place)}: ${esc(l.activity)}</p><p class="muted small">Supervisor: ${esc(l.supervisor)} · ${esc(l.contact)}</p></div>
         <form class="row approve-actions" data-log="${esc(l.id)}" novalidate>${l.userId === u.id ? `<span class="muted small">Another officer needs to review your own hours.</span>` : `<input name="note" id="note-${esc(l.id)}" placeholder="Reason, if not approving" maxlength="160" aria-label="Reason for ${esc(l.name)}"><button type="button" class="btn secondary sm" data-act="rejectLog" data-id="${esc(l.id)}">Don't approve</button><button type="button" class="btn sm" data-act="approveLog" data-id="${esc(l.id)}">Approve</button>`}</form></div>`).join("") : `<p class="muted">Nothing waiting for review.</p>`}
     </section>
     <details class="disclosure" id="club-members-${esc(c.id)}"><summary>Members (${rows.length})</summary>
       <div class="spread"><p class="muted small">Approved hours within the current club term.</p><button class="btn secondary sm" data-act="clubCsvDownload" data-id="${esc(c.id)}">Download CSV</button></div>
-      <div class="tablewrap"><table><thead><tr><th>Member</th><th>Role</th><th>Approved hours</th><th>Pending</th><th class="num">Actions</th></tr></thead><tbody>${rows.length ? rows.map(({m,h}) => `<tr><td><b>${esc(memberName(m.userId))}</b><span class="sub">${esc(m.email || "")}</span></td><td>${m.role === "officer" ? "Officer" : "Member"}</td><td><div class="member-progress">${h.need ? progressMeter(h.total,h.need,`Hours for ${memberName(m.userId)}`,"progressbar") : ""}<span class="num">${fmtH(h.total)}${h.need ? `/${h.need}` : ""}</span></div>${req ? `<small>${esc(progressStatus(h,req).text)}</small>` : ""}</td><td class="num">${h.pending ? fmtH(h.pending) : "—"}</td><td><div class="row">${isAdviser(c.id,u) && m.userId !== u.id ? `<button class="btn secondary sm" data-act="toggleOfficer" data-id="${esc(m.id)}">${m.role === "officer" ? "Make member" : "Make officer"}</button>` : ""}${m.userId !== u.id ? armBtn(`removemember:${m.id}`,"Remove","Confirm remove") : ""}</div></td></tr>`).join("") : `<tr><td colspan="5">No members yet. Share the club's join code.</td></tr>`}</tbody></table></div>
+      <div class="tablewrap"><table><thead><tr><th>Member</th><th>Role</th><th>Approved hours</th><th>Pending</th><th class="num">Actions</th></tr></thead><tbody>${rows.length ? rows.map(({m,h}) => `<tr><td><b>${esc(memberName(m.userId))}</b><span class="sub">${esc(m.email || "")}</span></td><td>${m.role === "officer" ? "Officer" : "Member"}</td><td><div class="member-progress">${h.need ? progressMeter(h.total,h.need,`Hours for ${memberName(m.userId)}`,"progressbar") : ""}<span class="num">${fmtH(h.total)}${h.need ? `/${h.need}` : ""}</span></div></td><td class="num">${h.pending ? fmtH(h.pending) : "—"}</td><td><div class="row">${isAdviser(c.id,u) && m.userId !== u.id ? `<button class="btn secondary sm" data-act="toggleOfficer" data-id="${esc(m.id)}">${m.role === "officer" ? "Make member" : "Make officer"}</button>` : ""}${m.userId !== u.id ? armBtn(`removemember:${m.id}`,"Remove","Confirm remove") : ""}</div></td></tr>`).join("") : `<tr><td colspan="5">No members yet. Share the club's join code.</td></tr>`}</tbody></table></div>
     </details>
     <details class="disclosure" id="club-events-${esc(c.id)}"><summary>Club events (${evs.length})</summary>
       ${evs.length ? evs.map(e => eventMini(e,`<button class="btn secondary sm" data-act="editEvent" data-id="${esc(e.id)}">Edit</button>`)).join("") : `<p class="muted">No recent or upcoming club events.</p>`}
@@ -126,10 +121,6 @@ function clubForm(c){
       <div class="field"><label for="cl-start">Term starts</label><input id="cl-start" name="start" type="date" value="${esc(r.start)}"><span class="ferr" id="e-start"></span></div>
       <div class="field"><label for="cl-end">Term ends</label><input id="cl-end" name="end" type="date" value="${esc(r.end)}"><span class="ferr" id="e-end"></span></div>
     </div>
-    <fieldset class="alert-options"><legend>Gmail hour alerts</legend>
-      <label class="toggle-inline"><input id="cl-alerts" type="checkbox" name="emailAlerts" ${r.emailAlerts ? "checked" : ""} aria-describedby="e-emailAlerts"> Email the volunteer and club adviser when behind</label><span class="ferr" id="e-emailAlerts"></span>
-      <div class="field"><label for="cl-gap">Shortfall threshold in hours</label><input id="cl-gap" name="alertGap" type="number" min="0.25" max="500" step="0.25" placeholder="${HourPace.defaultGap(r.hours)}" value="${esc(r.alertGap ?? "")}" aria-describedby="cl-gap-hint e-alertGap"><span id="cl-gap-hint" class="muted small">Leave blank for the default of 2 hours, or the goal if smaller.</span><span class="ferr" id="e-alertGap"></span></div>
-    </fieldset>
     <p class="muted small">Only hours from inside the term count toward the requirement. Start a new term by changing these dates.</p>
     <div class="row" style="justify-content:flex-end"><button type="button" class="btn secondary" data-act="close">Cancel</button><button class="btn" type="submit">${isNew ? "Create club" : "Save changes"}</button></div>
   </form>`;

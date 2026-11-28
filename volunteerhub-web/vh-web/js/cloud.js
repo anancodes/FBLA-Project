@@ -6,7 +6,7 @@
  *   - Live listeners (onSnapshot) push changes from other devices into `state` instantly.
  *   - firestore.rules decides who may read or change what; the app mirrors those rules
  *     in DB.canManageReg() so it never tries something the database will refuse.
- * Account access on the hosted site requires a working Firebase connection.
+ * If firebase-config.js is left empty, none of this runs and the site is demo-only.
  */
 "use strict";
 
@@ -24,7 +24,6 @@ const Cloud = {
   ready:false,       // we know whether someone is signed in
   online:typeof navigator !== "undefined" ? navigator.onLine : true,
   auth:null, fs:null, verificationUser:null, verificationSentAt:0,
-  previewProfile:null, needsProfile:false, creatingProfile:false,
   clubEvents:new Map(), announcementParts:{general:[], targeted:[]},
   loadPhase:"", loadStatus:"", loadTimers:[], retryAt:0,
   initialReads:null, pendingWrites:new Map(),
@@ -35,16 +34,18 @@ const Cloud = {
   org:null,
 
   emptyState(){
-    return emptyWorkspace(this.org);
+    return {v:DATA_VERSION, org:Object.assign({name:"Your Organization", zip:DEFAULT_HOME_ZIP, about:"", waiver:DEFAULT_WAIVER}, this.org || {}),
+      users:[], events:[], regs:[], announcements:[], notices:[], concerns:[], clubs:[], memberships:[], hourLogs:[], clubCodes:{},
+      session:{userId:null}, prefs:loadPrefs()};
   },
 
   /* ----- Start up ----- */
   boot(){
     const cfg = window.FIREBASE_CONFIG;
-    this.enabled = true;
+    if (!cfg || !cfg.apiKey) return;                        // no settings: demo-only site
+    this.enabled = true; ui.liveShell = true;
     state = this.emptyState();
     this.startLoad("session");
-    if (!cfg?.apiKey){ this.loadFailed(); return; }
     const files = Object.keys(FIREBASE_SCRIPTS);
     if (window.FIREBASE_APP_CHECK_SITE_KEY) files.push("firebase-app-check-compat.js");
     let i = 0;
@@ -88,7 +89,7 @@ const Cloud = {
     this.loadPhase = this.loadStatus = "";
   },
   renderLoad(){
-    if (!$("#app").firstElementChild || this.auth?.currentUser || ui.authMode !== "landing") render();
+    if (!ui.demo && (!$("#app").firstElementChild || currentUser() || ui.authMode !== "landing")) render();
   },
   loadFailed(err){
     this.loadTimers.forEach(clearTimeout);
@@ -119,7 +120,7 @@ const Cloud = {
     await this.fs.clearPersistence().catch(() => {});
     // Only the published organization settings are public.
     this.fs.doc("settings/org").onSnapshot(d => {
-      if (d.exists){ this.org = d.data(); state.org = Object.assign(this.emptyState().org, this.org); this.later(); }
+      if (d.exists){ this.org = d.data(); if (!ui.demo) state.org = Object.assign(this.emptyState().org, this.org); this.later(); }
     }, () => {});
     this.auth.onAuthStateChanged(user => this.onAuth(user), err => this.loadFailed(err));
   },
@@ -129,34 +130,26 @@ const Cloud = {
     this.ready = true;
     this.detach();
     if (this.meSub){ this.meSub(); this.meSub = null; }
-    this.me = null; this.previewProfile = null; this.needsProfile = false; this.roleKey = ""; DB.live = false;
+    this.me = null; this.roleKey = ""; DB.live = false;
     this.pendingWrites = new Map();
     this.verificationUser = user && !user.emailVerified ? user : null;
     this.clearLoad();
     this.data = {users:[], events:[], regs:[], announcements:[], notices:[], concerns:[], clubs:[], memberships:[], hourLogs:[], clubCodes:{}};
     this.parts = {coords:[], all:null};
-    closeModal(false);
-    state = this.emptyState();
-    ui.tour = null;
-    ui.disclosures.clear();
-    if (!user){ render(); return; }
+    if (!ui.demo){
+      closeModal(false);
+      state = this.emptyState();
+    }
+    if (!user || this.verificationUser){
+      if (!ui.demo) render();
+      return;
+    }
     this.startLoad("profile");
     // Account creation and the first saved profile may arrive in different snapshots.
     this.meSub = this.fs.collection("users").doc(user.uid).onSnapshot({includeMetadataChanges:true}, d => {
-      if (this.auth.currentUser?.uid !== user.uid || d.metadata.hasPendingWrites || (d.metadata.fromCache && this.online)) return;
+      if (d.metadata.fromCache && this.online) return;
       if (!d.exists){
-        if (this.me || this.previewProfile){
-          if (this.deletingUid !== user.uid) this.logout().catch(err => this.loadFailed(err));
-        } else if (!this.creatingProfile){
-          this.needsProfile = true; this.clearLoad(); render();
-        }
-        return;
-      }
-      this.needsProfile = false;
-      if (this.verificationUser){
-        this.previewProfile = d.data();
-        this.clearLoad();
-        render();
+        if (this.me && this.deletingUid !== user.uid) this.logout().catch(err => this.loadFailed(err));
         return;
       }
       const me = d.data(), key = `${me.role}|${!!me.verified}|${!!me.admin}`;
@@ -240,7 +233,7 @@ const Cloud = {
     this.initialReads = null;
     this.clearLoad();
     this.apply();
-    setTimeout(() => { if (!this.loadPhase) maybeStartTour(); }, 50);
+    if (!ui.demo) setTimeout(() => { if (!this.loadPhase) maybeStartTour(); }, 50);
   },
 
   mergeAnnouncements(part, docs){
@@ -313,9 +306,9 @@ const Cloud = {
     this.apply();
   },
 
-  // Only authenticated organizational records enter the shared workspace.
+  // Copy the latest database data into `state` and redraw (skipped while exploring the demo).
   apply(){
-    if (!this.me) return;
+    if (ui.demo) return;
     const d = this.data, events = [...d.events, ...[...this.clubEvents.values()].flatMap(entry => entry.docs)];
     const eventIds = new Set(events.map(e => e.id));
     Object.assign(state, {users:d.users, events, announcements:d.announcements, notices:d.notices, concerns:d.concerns,
@@ -401,28 +394,18 @@ const Cloud = {
   login(email, password){
     return this.auth.signInWithEmailAndPassword(email, password).then(() => { ui.view = "dashboard"; });
   },
-  async signup(profile, password){
-    this.creatingProfile = true;
-    let user;
-    try {
-      ({user} = await this.auth.createUserWithEmailAndPassword(profile.email, password));
-      ui.view = "dashboard";
-      await this.saveNewProfile(user, profile);
-    } catch (error) {
-      if (user && this.auth.currentUser?.uid === user.uid){
-        this.needsProfile = true; this.clearLoad(); render();
-      }
-      throw error;
-    } finally {
-      this.creatingProfile = false;
-    }
-  },
-  saveNewProfile(user, profile){
-    const ref = this.fs.collection("users").doc(user.uid);
-    // Retried setup or a second tab must keep the profile and role already saved.
-    return this.fs.runTransaction(async transaction => {
-      const existing = await transaction.get(ref);
-      if (!existing.exists) transaction.set(ref, clean({...profile, id:user.uid, email:user.email}));
+  signup(profile, password){
+    return this.auth.createUserWithEmailAndPassword(profile.email, password).then(cred => {
+      ui.view = profile.role === "volunteer" ? "profile" : "dashboard";
+      return this.fs.collection("users").doc(cred.user.uid).set(clean({id:cred.user.uid, ...profile}))
+        .then(async () => {
+          try {
+            await this.sendVerification(cred.user);
+            toast("Check your email for the verification link.");
+          } catch {
+            toast("Account created. Use Resend email if the verification link doesn't arrive.", "bad");
+          }
+        });
     });
   },
   resetPassword(email){
@@ -433,10 +416,9 @@ const Cloud = {
   logout(){ return this.auth.signOut(); },
   async sendVerification(user = this.verificationUser){
     if (!user || (this.verificationSentUid === user.uid && Date.now() < this.verificationSentAt)) throw {code:"auth/verification-cooldown"};
-    await user.sendEmailVerification({url:location.origin + location.pathname});
     this.verificationSentUid = user.uid;
     this.verificationSentAt = Date.now() + 60000;
-    render();
+    await user.sendEmailVerification();
   },
   async checkVerification(){
     const user = this.verificationUser;
@@ -478,6 +460,13 @@ const Cloud = {
     } finally {
       this.deletingUid = null;
     }
+  },
+
+  /* ----- Demo mode inside a live site ----- */
+  enterDemo(){ ui.demo = true; ui.liveShell = false; DB.live = false; state = demoState(); },
+  exitDemo(){
+    ui.demo = false; ui.liveShell = true; state = this.emptyState();
+    this.apply(); render();
   },
 
   /* ----- Messages ----- */

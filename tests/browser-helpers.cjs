@@ -11,7 +11,7 @@ exports.start = async () => {
     // Cover every tab, including popups whose first scripts can race Playwright routing.
     if (pathname === '/js/firebase-config.js'){
       res.writeHead(200,{'Content-Type':'text/javascript'});
-      return res.end('window.FIREBASE_CONFIG = {}; window.VH_OFFLINE_WORKBOOK = true;');
+      return res.end('window.FIREBASE_CONFIG = {};');
     }
     const file = path.resolve(root,decodeURIComponent(pathname).slice(1) || 'index.html');
     if (!file.startsWith(root+path.sep)) return res.writeHead(403).end();
@@ -33,15 +33,8 @@ exports.page = async (t,options = {}) => {
   return page;
 };
 exports.signIn = async (page,id = 2) => {
-  const email = await page.evaluate(id => {
-    state.users.forEach(u => u.toured = true);
-    return state.users.find(user => user.id === id).email;
-  },id);
-  if (!await page.locator('#loginForm').count()) await page.locator('.landing-actions a[href="#login"]').click();
-  await page.locator('#li-email').fill(email);
-  await page.locator('#li-pass').fill('demo1234');
-  await page.locator('#loginForm [type="submit"]').click();
-  await page.waitForSelector('.pv-sidebar');
+  await page.evaluate(() => state.users.forEach(u => u.toured = true));
+  await page.locator(`[data-act="demo"][data-v="${id}"]`).click();
 };
 
 exports.loadAxe = async (page, path) => {

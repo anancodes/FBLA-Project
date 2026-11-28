@@ -1,22 +1,21 @@
 # VolunteerHub
 
-VolunteerHub helps nonprofits and school clubs recruit volunteers, schedule shifts, verify service and report hours. The site includes volunteer and coordinator workspaces and scheduled Gmail check-ins. [Competition scorecard and implementation plan](docs/FBLA-REVIEW.md) · [Gmail setup](docs/GMAIL-ALERTS.md)
+The [public landing page](docs/PUBLIC_LANDING.md) adds the selected one-photo composition and serif typography on `codex/public-landing-redesign`. It builds on the [Open agenda website](docs/OPEN_AGENDA.md); both guides include previews and local run instructions.
 
-GitHub Pages publishes the website from `main`. [Open VolunteerHub](https://anancodes.github.io/FBLA-Project/volunteerhub-web/vh-web/)
+**Live demo:** https://anancodes.github.io/FBLA-Project/volunteerhub-web/vh-web/
 
-Create an account with an email, password and role. Firebase Authentication manages the sign-in. Firestore stores the name and role under the same user ID. Sign in from another device with the same credentials to return to that workspace. New accounts can explore shifts, service records and clubs immediately. Email verification opens shared organization records, and a site administrator approves coordinator access.
+A website that helps nonprofits recruit, organize, and manage volunteers, built for the FBLA Coding & Programming 2026–27 topic, *Serving the Community: Nonprofit Volunteer Management*.
 
 ## How to run
 
 Open `volunteerhub-web/vh-web/index.html` with your local preview workflow. For consistent font loading, run `python -m http.server 4173 --directory volunteerhub-web/vh-web` from the repository root and visit `http://localhost:4173`.
 
-For the competition’s offline fallback, run `node scripts/build-demo.cjs VolunteerHub-offline.html` and open the file directly. The workbook accepts fictional accounts stored on that device. Use `maya.chen@example.org` for a volunteer or `jordan.reyes@example.org` for a coordinator with the fixture password `demo1234`. Hosted accounts always use Firebase. [Firebase setup](volunteerhub-web/vh-web/SETUP-FIREBASE.md)
+Demo accounts (password `demo1234`):
 
-## Why this stack fits the event
+- Volunteer: `volunteer@demo.org`
+- Coordinator: `coordinator@demo.org`
 
-Volunteers need to search and join shifts from an ordinary browser, including on phones. Vanilla JavaScript and semantic HTML support native forms, links, focus and browser history. The interface has no runtime build service. Self-hosted assets and the optional offline workbook let both roles run without internet access. Firestore provides shared records and atomic changes to live data. Firebase Authentication establishes account identity and server-enforced permissions.
-
-Time passes even when nobody visits the app. A scheduled Node.js function therefore calculates expected club hours independently of the browser. The browser and worker import the same policy. A private Gmail OAuth credential authorizes the sending account, and a persisted draft ID lets a retry address the same message. [Delivery design and setup](docs/GMAIL-ALERTS.md)
+Demo accounts use fictional sample data saved in your browser only. Configured live accounts use Firebase; see the web app's `SETUP-FIREBASE.md` for setup. Use **Reset demo data** at the bottom of the app to start over.
 
 ## Features
 
@@ -27,8 +26,6 @@ Time passes even when nobody visits the app. A scheduled Node.js function theref
 **Trust and safety:** every listing shows who posted it and when. Listings from verified organizers carry a badge, and volunteers see only verified listings unless they turn that filter off. Unverified listings show a safety warning. Volunteers can report a concern on any listing.
 
 **Everyone:** guided tour on first login (replay from Help), help page and FAQ, adjustable text size, high-contrast mode, dark mode, full keyboard support.
-
-Advisers can set a term threshold and preview the volunteer and adviser copies in **People & clubs → Clubs**. Administrators connect the sending mailbox in **Settings**. Volunteers see their status in **Hours & clubs → My clubs**.
 
 ## Project structure
 
@@ -52,18 +49,13 @@ Advisers can set a term threshold and preview the volunteer and adviser copies i
 | `js/views/news.js` | Announcements screen (post for coordinators, read for volunteers) |
 | `js/tour.js` | First-login guided tour |
 | `js/actions.js` | What each button does |
-| `js/app.js` | Starts the app, draws screens and routes interaction |
-| `js/pace.js`, `js/gmail.js` | Shared pace and message logic, Gmail status and preview UI |
-| `functions/` (repository root) | OAuth consent, scheduled checks, Gmail transport and persistent delivery records |
-| `scripts/build-demo.cjs` (repository root) | Packages the full offline single-file demo |
+| `js/app.js` | Starts the app, draws screens, routes clicks and form submits |
 
 ## Credits
 
-- Atkinson Hyperlegible Next and Bitter are self-hosted. Their SIL Open Font Licenses are in the web application's `fonts/` directory.
-- The garden image is an AI-generated illustration from the existing design branch. Its provenance is stored with the image. [Image record](volunteerhub-web/vh-web/images/community-garden.webp.json)
-- Offline locations use Sean Pianka's Zipcodes data. [Project source](https://github.com/seanpianka/Zipcodes) · [Bundled MIT license](volunteerhub-web/vh-web/licenses/zipcodes-MIT.txt)
-- The live website uses the Firebase JavaScript SDK. The optional worker uses Firebase Admin, Firebase Functions and Google's Auth Library. Reproducible dependency versions are in `functions/package-lock.json`.
-- The original project credits Claude. This branch used Codex, Impeccable and UI UX Designer for implementation and review.
+- Fonts: self-hosted Public Sans and Bitter (SIL Open Font License), with system monospace for code
+- Public landing image: generated temporary placeholder, to be replaced with the team's photo
+- AI assistance (Claude) was used as a coding tool. The team reviewed and can explain all code.
 
 ## Design assistance in Codex
 

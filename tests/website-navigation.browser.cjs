@@ -14,7 +14,7 @@ test('website links retain the page through browser Back, Forward and refresh',a
 
 test('modified link clicks open the selected page in a new tab without navigating the original',async t=>{
  const p=await helper.page(t);await helper.signIn(p);
- await p.context().route('**/js/firebase-config.js',r=>r.fulfill({contentType:'text/javascript',body:'window.FIREBASE_CONFIG={}; window.VH_OFFLINE_WORKBOOK=true;'}));
+ await p.context().route('**/js/firebase-config.js',r=>r.fulfill({contentType:'text/javascript',body:'window.FIREBASE_CONFIG={};'}));
  const opened=p.context().waitForEvent('page');await p.locator('.rail a[data-v="hours"]').click({modifiers:['Control']});
  const tab=await opened;t.after(()=>tab.close());await tab.waitForURL('**/#hours');
  await tab.waitForFunction(()=>typeof currentUser==='function'&&currentUser()&&ui.view==='hours');
@@ -36,7 +36,7 @@ test('website form fields retain focused and invalid borders with their error me
  const p=await helper.page(t);await helper.signIn(p);await p.locator('.pv-profile').click();
  const input=p.locator('#p-location');await input.fill('Atlantis under the sea');await p.locator('#profileForm [type="submit"]').click();
  assert.equal(await input.getAttribute('aria-invalid'),'true');assert.match(await p.locator('#e-location').textContent(),/Choose a city/);
- assert.equal(await input.evaluate(e=>getComputedStyle(e).borderTopColor),'rgb(166, 62, 56)');
+ assert.equal(await input.evaluate(e=>getComputedStyle(e).borderTopColor),'rgb(173, 70, 62)');
  await input.fill('Washington, DC');await p.locator('#profileForm [type="submit"]').click();await input.focus();
- assert.notEqual(await input.getAttribute('aria-invalid'),'true');assert.equal(await input.evaluate(e=>getComputedStyle(e).borderTopColor),'rgb(34, 98, 77)');
+ assert.notEqual(await input.getAttribute('aria-invalid'),'true');assert.equal(await input.evaluate(e=>getComputedStyle(e).borderTopColor),'rgb(73, 106, 128)');
 });

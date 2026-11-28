@@ -114,7 +114,7 @@ function initialRecords(role){
   const roster = [3,4].map((userId, k) => ({id:801 + k, userId, eventId:902, status:"registered", hours:0}));
   firebaseMock.user(me.id);
   firebaseMock.doc(`users/${me.id}`, me);
-  for (const name of ["events","regs","announcements","notices","concerns","clubs","memberships","hourLogs","users","organizers"]){
+  for (const name of ["events","regs","announcements","notices","concerns","clubs","memberships","hourLogs","users","organizers","invites"]){
     const records = {events, regs:role === "coordinator" ? roster : [], users:sample.users,
       organizers:sample.users.filter(user => user.role === "coordinator")};
     firebaseMock.push(name, records[name] || []);
@@ -156,7 +156,7 @@ test('account startup and workspace hold empty cache results and recover without
   assert.match(await page.locator('.load-status').textContent(),/couldn't load your shifts and service hours/);
   assert.equal(await page.getByRole('button',{name:'Try again',exact:true}).isEnabled(), true);
   await page.evaluate(() => {
-    for (const name of ["events","regs","announcements","notices","concerns","clubs","memberships","hourLogs","users","organizers"]) firebaseMock.push(name,[]);
+    for (const name of ["events","regs","announcements","notices","concerns","clubs","memberships","hourLogs","users","organizers","invites"]) firebaseMock.push(name,[]);
   });
   await page.clock.fastForward(100);
   await page.waitForFunction(() => !document.querySelector('.pv-sidebar').inert);

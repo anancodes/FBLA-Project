@@ -26,7 +26,7 @@ function websiteShell(u){
   const pendingOrgs = u.admin ? state.users.filter(x => x.role === "coordinator" && !x.verified).length : 0;
   const counts = {shifts:u.role === "volunteer" ? userStats(u.id).upcoming.length : 0,hours:pending,news:unreadCount(u),volunteers:pending+pendingOrgs};
   const countLabel = {shifts:"upcoming shifts",hours:"hours awaiting review",news:"unread messages",volunteers:"items awaiting review"};
-  const role = u.admin ? "Site admin" : u.role === "coordinator" ? (u.verified ? "Coordinator" : "Coordinator · not yet verified") : "Volunteer";
+  const role = u.admin ? "Site admin" : u.role === "coordinator" ? (u.verified ? "Coordinator" : "Coordinator · not yet verified") : u.guest ? "Volunteer · Guest" : "Volunteer";
   const home = u.role === "volunteer" && ui.view === "dashboard";
   return `<div class="shell pv-shell">
     <a class="pv-skip" href="#main">Skip to main content</a>
@@ -48,7 +48,7 @@ function websiteShell(u){
           ${DB.live && !loading && ui.view === "dashboard" ? (state.events.length
             ? `<details class="disclosure" id="community-examples"><summary>Example community activity</summary>${exampleActivity(u.role)}</details>`
             : exampleActivity(u.role)) : ""}</div></main>
-        <footer class="foot pv-footer"><div class="pv-footer-data">${DB.live ? `<span>Signed in as ${esc(u.email)}</span><span class="pill ${Cloud.online && !syncFailed && !loading ? "good" : "warn"}" id="sync-status">${syncFailed ? "Couldn’t sync records" : loading ? "Syncing your records" : Cloud.online ? "Connected" : "Offline: changes will sync when you reconnect"}</span>` : `<span>Saved in this browser.</span>`}</div><div class="pv-utility-links">${!loading ? '<button data-act="tour">Take the tour</button>' : ""}<button data-act="logout">Sign out</button></div>${accountDisclaimer()}</footer>
+        <footer class="foot pv-footer"><div class="pv-footer-data">${DB.live ? `<span>${u.guest ? "Guest pass on this browser" : `Signed in as ${esc(u.email)}`}</span><span class="pill ${Cloud.online && !syncFailed && !loading ? "good" : "warn"}" id="sync-status">${syncFailed ? "Couldn’t sync records" : loading ? "Syncing your records" : Cloud.online ? "Connected" : "Offline: changes will sync when you reconnect"}</span>` : `<span>Saved in this browser.</span>`}</div><div class="pv-utility-links">${!loading ? '<button data-act="tour">Take the tour</button>' : ""}<button data-act="logout">Sign out</button></div>${accountDisclaimer()}</footer>
       </div>
     </div>
   </div>`;
@@ -121,6 +121,7 @@ function volunteerHome(u){
   const recs = state.events.filter(e => canSignUpFor(e,u) && e.skills.some(k => u.skills.includes(k))).sort(byDate).slice(0,3);
   return `<header class="pv-greeting"><h1>Welcome back, ${esc(u.name.split(" ")[0])}</h1><a class="btn" href="#find" data-act="nav" data-v="find">Find opportunities</a></header>
     ${tourCard(u)}
+    ${u.guest ? `<div class="banner guest-banner"><span class="banner-icon">${icon("clock")}</span><div><b>You're using a guest pass</b><span>It's saved in this browser only. <a class="linkbtn" href="#profile" data-act="nav" data-v="profile">Add an email</a> to keep your hours on any device.</span></div></div>` : ""}
     <div class="pv-home-grid">
       <section class="pv-schedule" aria-labelledby="next-shifts-heading"><div class="pv-section-head"><h2 id="next-shifts-heading">Your next shifts</h2><a class="linkbtn" href="#shifts" data-act="nav" data-v="shifts">View schedule</a></div>
         ${up.length ? `<ol class="pv-shifts">${up.slice(0,3).map(agendaShift).join("")}</ol><p class="pv-scheduled-total">${up.length} upcoming ${up.length === 1 ? "shift" : "shifts"}</p>` : `<div class="pv-empty"><h3>Your schedule is open</h3><p>Shifts appear here after you sign up.</p></div>`}

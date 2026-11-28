@@ -8,10 +8,15 @@ service cloud.firestore {
     function club(clubId) { return /databases/$(database)/documents/clubs/$(string(clubId)); }
     function secret(clubId) { return /databases/$(database)/documents/clubSecrets/$(string(clubId)); }
     function codeDoc(code) { return /databases/$(database)/documents/joinCodes/$(code); }
+    function inviteDoc(code) { return /databases/$(database)/documents/invites/$(code); }
     function verifiedEmail() { return request.auth != null && request.auth.token.email_verified == true; }
-    function active() { return verifiedEmail() && exists(profile(request.auth.uid)); }
+    // Guests sign in anonymously from a coordinator's link or QR code (see invites below).
+    function anonymous() { return request.auth != null && request.auth.token.get('firebase', {}).get('sign_in_provider', '') == 'anonymous'; }
+    // An active person is a verified email account or a guest, either way with a saved profile.
+    // Guest profiles can only be volunteers (see users/create), so coordinator and admin powers still need a verified email.
+    function active() { return (verifiedEmail() || anonymous()) && exists(profile(request.auth.uid)); }
     function me() { return get(profile(request.auth.uid)).data; }
-    function coordinator() { return active() && me().role == 'coordinator' && (me().get('verified', false) || me().get('admin', false)); }
+    function coordinator() { return active() && !anonymous() && me().role == 'coordinator' && (me().get('verified', false) || me().get('admin', false)); }
     function admin() { return active() && me().get('admin', false) == true; }
     function clubRole(id) { return get(member(id, request.auth.uid)).data.role; }
     function manages(id) { return admin() || (id != null && active() && exists(member(id, request.auth.uid)) && clubRole(id) in ['officer', 'adviser']); }
@@ -64,7 +69,8 @@ service cloud.firestore {
     function recentSignIn() { return request.time.toMillis() / 1000 - request.auth.token.auth_time < 300; }
 
     function profileContent(data) {
-      return line(data.name, 2, 80) && email(data.email) && phone(data.phone) && skills(data.skills) &&
+      return line(data.name, 2, 80) && (data.get('guest', false) == true ? data.email == '' : email(data.email)) &&
+        phone(data.phone) && skills(data.skills) &&
         data.availability is list && data.availability.size() <= 3 && data.availability.hasOnly(['Weekday mornings','Weekday evenings','Weekends']) &&
         (data.get('zip', '') == '' || postal(data.zip)) && city(data.get('location', null)) &&
         line(data.get('emergency', ''), 0, 100) && line(data.get('org', ''), 0, 100) &&
@@ -74,19 +80,32 @@ service cloud.firestore {
       allow get: if (request.auth != null && request.auth.uid == id) || coordinator();
       // Volunteer contact, home city and emergency information stay on private profiles.
       allow list: if coordinator();
-      allow create: if request.auth != null && request.auth.uid == id && request.resource.data.id == id &&
-        fields(request.resource.data, ['id','name','email','phone','role','skills','availability','verified','waiverAt'],
-          ['zip','location','emergency','org','reads','toured']) &&
-        profileContent(request.resource.data) && request.resource.data.email == request.auth.token.email &&
-        request.resource.data.role in ['volunteer','coordinator'] && request.resource.data.verified == false &&
-        (request.resource.data.role == 'volunteer' ? isoTime(request.resource.data.waiverAt) : request.resource.data.waiverAt == '');
+      allow create: if request.auth != null && request.auth.uid == id && request.resource.data.id == id && (
+        (!anonymous() &&
+         fields(request.resource.data, ['id','name','email','phone','role','skills','availability','verified','waiverAt'],
+           ['zip','location','emergency','org','reads','toured']) &&
+         profileContent(request.resource.data) && request.resource.data.email == request.auth.token.email &&
+         request.resource.data.role in ['volunteer','coordinator'] && request.resource.data.verified == false &&
+         (request.resource.data.role == 'volunteer' ? isoTime(request.resource.data.waiverAt) : request.resource.data.waiverAt == '')) ||
+        // Guest: no email, always a volunteer, must accept the waiver, and needs an active invite or club join code.
+        (anonymous() &&
+         fields(request.resource.data, ['id','name','email','phone','role','skills','availability','verified','waiverAt','guest','invite'],
+           ['zip','location','emergency','reads','toured']) &&
+         request.resource.data.guest == true && request.resource.data.email == '' && profileContent(request.resource.data) &&
+         request.resource.data.role == 'volunteer' && request.resource.data.verified == false &&
+         isoTime(request.resource.data.waiverAt) && guestInvite(request.resource.data.invite)));
       allow update: if (active() && request.auth.uid == id && profileContent(request.resource.data) &&
         onlyChanges(['name','phone','skills','availability','zip','location','emergency','reads','toured'])) ||
+        // A guest who linked and verified an email moves their profile to that email. Nothing else changes.
+        (verifiedEmail() && !anonymous() && request.auth.uid == id && resource.data.get('guest', false) == true &&
+         onlyChanges(['guest','email']) && request.resource.data.guest == false &&
+         request.resource.data.email == request.auth.token.email && profileContent(request.resource.data)) ||
         (admin() && resource.data.role == 'coordinator' && !resource.data.get('admin', false) &&
          onlyChanges(['verified','verifiedAt']) && request.resource.data.verified is bool &&
          getAfter(latestOrganizer(id)).data.verified == request.resource.data.verified &&
          (request.resource.data.verified ? validDay(request.resource.data.verifiedAt) : request.resource.data.verifiedAt == ''));
-      allow delete: if active() && request.auth.uid == id && resource.data.role == 'volunteer' && recentSignIn();
+      // Guests have no password to re-enter, so their pass itself is enough.
+      allow delete: if active() && request.auth.uid == id && resource.data.role == 'volunteer' && (recentSignIn() || anonymous());
     }
 
     function matchesOrganizer(id) {
@@ -278,6 +297,23 @@ service cloud.firestore {
         numericId(request.resource.data.clubId) && maySetClubCode(request.resource.data.clubId) &&
         getAfter(secret(request.resource.data.clubId)).data.code == code;
       allow delete: if active() && advises(resource.data.clubId) && getAfter(secret(resource.data.clubId)).data.code != code;
+    }
+
+    // Guest links. The 12-character code is the secret; the document holds no personal data.
+    function inviteCode(code) { return code is string && code.matches('[A-Z0-9]{12}'); }
+    function guestInvite(code) {
+      return (inviteCode(code) && exists(inviteDoc(code)) && get(inviteDoc(code)).data.active == true) ||
+        (validCode(code) && exists(codeDoc(code)) && get(secret(get(codeDoc(code)).data.clubId)).data.code == code);
+    }
+    match /invites/{code} {
+      allow get: if inviteCode(code);
+      allow list: if coordinator() && resource.data.createdBy == request.auth.uid;
+      allow create: if coordinator() && inviteCode(code) &&
+        fields(request.resource.data, ['code','createdBy','createdAt','active'], []) &&
+        request.resource.data.code == code && request.resource.data.createdBy == request.auth.uid &&
+        validDay(request.resource.data.createdAt) && request.resource.data.active == true;
+      allow update: if (coordinator() && resource.data.createdBy == request.auth.uid || admin()) &&
+        onlyChanges(['active']) && request.resource.data.active == false;
     }
 
     match /settings/org {

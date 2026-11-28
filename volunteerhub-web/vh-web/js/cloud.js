@@ -29,7 +29,7 @@ const Cloud = {
   loadPhase:"", loadStatus:"", loadTimers:[], retryAt:0,
   initialReads:null, pendingWrites:new Map(),
   meSub:null, subs:[], roleKey:"", me:null,
-  data:{users:[], events:[], regs:[], announcements:[], notices:[], concerns:[], clubs:[], memberships:[], hourLogs:[], clubCodes:{}},
+  data:{users:[], events:[], regs:[], announcements:[], notices:[], concerns:[], clubs:[], memberships:[], hourLogs:[], clubCodes:{}, invites:[]},
   parts:{coords:[], all:null},
   club:{key:"", subs:[], myM:[], myL:[], allM:null, allL:null, m:{}, l:{}},   // club data: yours + clubs you manage
   org:null,
@@ -114,7 +114,9 @@ const Cloud = {
     }
     this.auth = firebase.auth(); this.fs = firebase.firestore();
     if (window.FIREBASE_EMULATOR) window.FIREBASE_EMULATOR(this.auth, this.fs);   // used only for testing
-    await this.auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
+    // Guests have no password, so their pass must survive closing the tab. Everyone else signs in per tab.
+    let guest = false; try { guest = localStorage.getItem(GUEST_FLAG) === "1"; } catch(e){}
+    await this.auth.setPersistence(firebase.auth.Auth.Persistence[guest ? "LOCAL" : "SESSION"]);
     // Do not persist live personal records on a shared device. Clear the old version's cache when possible.
     await this.fs.clearPersistence().catch(() => {});
     // Only the published organization settings are public.
@@ -131,9 +133,9 @@ const Cloud = {
     if (this.meSub){ this.meSub(); this.meSub = null; }
     this.me = null; this.previewProfile = null; this.needsProfile = false; this.roleKey = ""; DB.live = false;
     this.pendingWrites = new Map();
-    this.verificationUser = user && !user.emailVerified ? user : null;
+    this.verificationUser = user && !user.isAnonymous && !user.emailVerified ? user : null;   // guests have no email to verify
     this.clearLoad();
-    this.data = {users:[], events:[], regs:[], announcements:[], notices:[], concerns:[], clubs:[], memberships:[], hourLogs:[], clubCodes:{}};
+    this.data = {users:[], events:[], regs:[], announcements:[], notices:[], concerns:[], clubs:[], memberships:[], hourLogs:[], clubCodes:{}, invites:[]};
     this.parts = {coords:[], all:null};
     closeModal(false);
     state = this.emptyState();
@@ -162,6 +164,14 @@ const Cloud = {
       }
       this.needsProfile = false;
       const me = d.data(), key = `${me.role}|${!!me.verified}|${!!me.admin}`;
+      // A guest who added an email and verified it: switch the profile to that email (see firestore.rules).
+      if (me.guest && !user.isAnonymous && user.emailVerified && user.email && !d.metadata.fromCache && !this.finishingGuest){
+        this.finishingGuest = true;
+        d.ref.update({guest:false, email:user.email.toLowerCase()}).then(() => {
+          try { localStorage.removeItem(GUEST_FLAG); } catch(e){}
+          toast("Your hours are saved to your email. Sign in with it on any device.");
+        }).catch(err => this.loadError("your account", err)).finally(() => { this.finishingGuest = false; });
+      }
       this.me = me;
       if (key !== this.roleKey){
         this.roleKey = key;
@@ -225,6 +235,7 @@ const Cloud = {
       watch("hourLogs", fs.collection("hourLogs").where("userId", "==", me.id), docs => { C.myL = docs; this.mergeClubs(); });
     }
     if (coordLike) watch("users", fs.collection("users"), docs => { this.parts.all = docs; this.mergeUsers(); });
+    if (coordLike) watch("invites", fs.collection("invites").where("createdBy", "==", me.id));
     else this.parts.all = null;
   },
   detach(){
@@ -321,7 +332,7 @@ const Cloud = {
     const d = this.data, events = [...d.events, ...[...this.clubEvents.values()].flatMap(entry => entry.docs)];
     const eventIds = new Set(events.map(e => e.id));
     Object.assign(state, {users:d.users, events, announcements:d.announcements, notices:d.notices, concerns:d.concerns,
-      clubs:d.clubs, memberships:d.memberships, hourLogs:d.hourLogs, clubCodes:d.clubCodes,
+      clubs:d.clubs, memberships:d.memberships, hourLogs:d.hourLogs, clubCodes:d.clubCodes, invites:d.invites,
       regs:d.regs.filter(r => eventIds.has(r.eventId))});       // ignore sign-ups for deleted events
     DB.live = !!this.me; state.session.userId = this.me ? this.me.id : null;
     if (DB.live && !this.loadPhase) this.syncClubSubs();
@@ -392,6 +403,13 @@ const Cloud = {
       if (previous.exists) transaction.delete(codes.doc(previous.data().code));
     });
   },
+  // Guest links: one active invite per coordinator. Making a new one turns the old one off.
+  createInvite(record, old){
+    const batch = this.fs.batch(), invites = this.fs.collection("invites");
+    batch.set(invites.doc(record.code), clean(record));
+    if (old) batch.update(invites.doc(old), {active:false});
+    return batch.commit();
+  },
   findClubByCode(code){
     return this.fs.collection("joinCodes").doc(code).get({source:"server"}).then(d => {
       if (!d.exists) throw new Error("not found");
@@ -434,7 +452,7 @@ const Cloud = {
   showAccountProfile(user, profile){
     if (this.auth.currentUser?.uid !== user.uid || this.auth.currentUser.emailVerified) return;
     this.verificationUser = user;
-    this.previewProfile = profile;
+    this.previewProfile = profile?.guest ? {...profile, email:user.email} : profile;   // a guest adding an email
     this.needsProfile = !profile;
     this.clearLoad(); render();
   },
@@ -443,7 +461,42 @@ const Cloud = {
       if (error.code !== "auth/user-not-found") throw error;
     });
   },
-  logout(){ return this.auth.signOut(); },
+  logout(){
+    try { localStorage.removeItem(GUEST_FLAG); } catch(e){}
+    return this.auth.signOut();
+  },
+  // A guest signs in anonymously, then saves a profile. The database only accepts the profile
+  // while the invite or club code is active, so a stale link can't create guests.
+  async guestStart(profile){
+    if (!CLUB_CODE_PATTERN.test(profile.invite)){
+      const invite = await this.fs.collection("invites").doc(profile.invite).get({source:"server"});
+      if (!invite.exists || !invite.data().active) throw {code:"guest/invite-invalid"};
+    }
+    try { localStorage.setItem(GUEST_FLAG, "1"); } catch(e){}
+    await this.auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+    this.creatingProfile = true;          // don't offer "Finish your profile" while the guest profile saves
+    try {
+      const cred = await this.auth.signInAnonymously();
+      ui.view = "dashboard";
+      try {
+        await this.fs.collection("users").doc(cred.user.uid).set(clean({id:cred.user.uid, ...profile}));
+      } catch (err) {
+        try { localStorage.removeItem(GUEST_FLAG); } catch(e){}
+        await cred.user.delete().catch(() => this.auth.signOut());
+        throw err?.code === "permission-denied" ? {code:"guest/invite-invalid"} : err;
+      }
+    } finally {
+      this.creatingProfile = false;
+    }
+  },
+  // Keep a guest's records by attaching an email and password to the same sign-in.
+  async upgradeGuest(email, password){
+    const user = this.auth.currentUser;
+    if (!user || !user.isAnonymous) throw {code:"guest/not-guest"};
+    const result = await user.linkWithCredential(firebase.auth.EmailAuthProvider.credential(email, password));
+    try { await this.sendVerification(result.user); } catch(e){}
+    this.onAuth(result.user);          // shows "Verify your email"; the profile switches over after verification
+  },
   async sendVerification(user = this.verificationUser){
     if (!user || (this.verificationSentUid === user.uid && Date.now() < this.verificationSentAt)) throw {code:"auth/verification-cooldown"};
     await user.sendEmailVerification({url:location.origin + location.pathname});
@@ -472,9 +525,11 @@ const Cloud = {
     return batch.commit();
   },
   async deleteAccount(password, shifts){
-    const user = this.auth.currentUser, credential = firebase.auth.EmailAuthProvider.credential(user.email, password);
-    await user.reauthenticateWithCredential(credential);
-    await user.getIdToken(true);
+    const user = this.auth.currentUser, guest = user.isAnonymous;
+    if (!guest){
+      await user.reauthenticateWithCredential(firebase.auth.EmailAuthProvider.credential(user.email, password));
+      await user.getIdToken(true);
+    }
     for (let i = 0; i < shifts.length; i += 100){
       await this.commit("regs", shifts.slice(i, i + 100).map(shift => ({id:shift.id, fields:{status:"cancelled"}})));
     }
@@ -483,10 +538,11 @@ const Cloud = {
       await this.fs.collection("users").doc(user.uid).delete();
       try {
         await user.delete();
-        toast("Your sign-in and profile were deleted.");
+        try { localStorage.removeItem(GUEST_FLAG); } catch(e){}
+        toast(guest ? "Your guest profile was deleted." : "Your sign-in and profile were deleted.");
       } catch (error) {
         await this.logout();
-        toast("Your profile was deleted. Contact your site administrator to remove the remaining sign-in.", "bad");
+        toast(guest ? "Your guest profile was deleted." : "Your profile was deleted. Contact your site administrator to remove the remaining sign-in.", guest ? undefined : "bad");
       }
     } finally {
       this.deletingUid = null;
@@ -507,6 +563,12 @@ const Cloud = {
       "auth/too-many-requests":"Too many tries. Wait at least 30 seconds before trying again.",
       "auth/network-request-failed":"You're offline. Check your internet connection and try again.",
       "auth/requires-recent-login":"For your security, log out, log back in, and then try again.",
+      "guest/invite-invalid":"This link has expired or was turned off. Ask your coordinator for a new link or QR code.",
+      "guest/not-guest":"This account already has an email.",
+      "auth/credential-already-in-use":"That email already has a VolunteerHub account. Use a different email.",
+      "auth/provider-already-linked":"This account already has an email.",
+      "auth/operation-not-allowed":"Guest passes aren't turned on for this site yet. Ask your site administrator.",
+      "auth/admin-restricted-operation":"Guest passes aren't turned on for this site yet. Ask your site administrator.",
       "permission-denied":"you don't have permission to do that.", "unavailable":"the database can't be reached right now.",
       "resource-exhausted":"VolunteerHub is busy. Try again in a moment.",
     };

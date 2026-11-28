@@ -12,6 +12,8 @@ Choose **Create an account**, enter an email and password, and select **Voluntee
 
 The first workspace shows role-specific examples. Use **Send verification email**, open the email link, then select **Check verification** to access shared records. Coordinators need administrator approval before managing volunteers. Illustrative hours stay out of personal totals and email alerts.
 
+Volunteers don't need an account. A verified coordinator shares a guest link or QR code (People & clubs → Invite, an event's **Share** button, or a club's **Share join link**). Guests enter their name, accept the waiver, and sign up for shifts. Their guest pass is saved in that browser, and they can add an email from Profile to keep their hours on other devices.
+
 ## How to run
 
 From the repository root, run `python -m http.server 4173 --directory volunteerhub-web/vh-web` and open `http://localhost:4173`. The published app requires its configured Firebase service. The separately built offline workbook and its fictional credentials are documented in the [repository guide](../../README.md). [Firebase setup](SETUP-FIREBASE.md)
@@ -27,6 +29,8 @@ From the repository root, run `python -m http.server 4173 --directory volunteerh
 **Settings:** coordinators enter their organization's name, home ZIP code, and description, and they appear across the whole site, so any nonprofit can use it as its own.
 
 **School clubs:** each club (for example HOSA or NHS) has a join code, an adviser, and student officers. Members earn hours at club events, which count automatically at check-in, and by logging outside service with a supervisor's contact for an officer to approve. Each club sets an hour requirement for the term. Members see approved progress and hours waiting for approval. Officers can review claims and export member records. Club events are visible only to members. Officers can't approve their own hours.
+
+**Guest links and QR codes:** coordinators share a guest link and QR code from People & clubs → Invite, a single event from its Share button, or a club from Share join link. Volunteers who open the link enter their name, accept the waiver and start signing up. No account is needed. Event links open that event; club links also make the guest a member. A new link turns the old one off.
 
 **Site admins:** verify new organizers on the Organizers screen, which includes a checklist for confirming they're real.
 
@@ -61,6 +65,8 @@ From the repository root, run `python -m http.server 4173 --directory volunteerh
 | `js/views/settings.js` | Organization settings (name, home ZIP, description) |
 | `js/clubs.js` | Club logic: join codes, hour requirements and progress, logging and approving hours |
 | `js/views/clubs.js` | My clubs (members) and Manage clubs (advisers and officers) |
+| `js/guest.js` | Guest links and QR codes: the welcome screen, invites, sharing, and adding an email later |
+| `js/vendor/qrcode.js` | QR code generator by Kazuhiko Arase (MIT License), served from this site |
 | `js/views/organizers.js` | Site admin screen for verifying organizers |
 | `js/views/news.js` | Announcements screen (post for coordinators, read for volunteers) |
 | `js/tour.js` | First-login guided tour |
@@ -80,6 +86,7 @@ From the repository root, run `python -m http.server 4173 --directory volunteerh
 - Fonts: locally served Atkinson Hyperlegible Next and Bitter (SIL Open Font License; bundled in `fonts/`)
 - Landing image: generated temporary placeholder, to be replaced with the team's photo
 - Icons: simple line icons drawn for this project (in `js/components.js`)
+- QR codes: `qrcode-generator` 1.4.4 by Kazuhiko Arase (MIT License), bundled in `js/vendor/`, license in `licenses/`
 - ZIP code locations: from the open-source `zipcodes` package by Sean Pianka (MIT License), github.com/seanpianka/zipcodes
 - The original project credits Claude. The current redesign and alert implementation used Codex with Impeccable and UI UX Designer.
 

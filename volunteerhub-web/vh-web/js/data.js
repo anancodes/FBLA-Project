@@ -161,5 +161,6 @@ function seed(){
   log(2, 13, 35, 14, "Summer reading camp", "Read with kids and ran activity stations.", "approved");
   log(2, 9, 60, 6, "Park cleanup day", "Picked up litter and planted flowers.", "approved");
 
-  return {v:DATA_VERSION, org, clubs, memberships, hourLogs, clubCodes, users, events, regs, announcements, notices:[], reads:{}, toured:{}, concerns:[], session:{userId:null}, prefs:{font:15, hc:false}};
+  const invites = [{code:"DEMO7Q2M9PX4", createdBy:1, createdAt:termStart, active:true}];   // Jordan's guest link
+  return {v:DATA_VERSION, org, clubs, memberships, hourLogs, clubCodes, invites, users, events, regs, announcements, notices:[], reads:{}, toured:{}, concerns:[], session:{userId:null}, prefs:{font:15, hc:false}};
 }

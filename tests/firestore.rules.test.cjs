@@ -42,6 +42,14 @@ const user = (id, verified = true) => env.authenticatedContext(id, {
   email:`${id}@example.org`, email_verified:verified, auth_time:Math.floor(Date.now() / 1000),
 }).firestore();
 const ref = (db, path) => doc(db, path);
+// Guests sign in anonymously from a coordinator's link or QR code.
+const guest = (id, authAge = 0) => env.authenticatedContext(id, {
+  firebase:{sign_in_provider:"anonymous", identities:{}}, auth_time:Math.floor(Date.now() / 1000) - authAge,
+}).firestore();
+const guestProfile = (id, invite = "GUESTLINK234", extra = {}) => ({
+  id, role:"volunteer", name:"Riley Guest", email:"", phone:"", skills:[], availability:[],
+  verified:false, waiverAt:now, guest:true, invite, ...extra,
+});
 
 test.before(async () => {
   env = await initializeTestEnvironment({
@@ -71,6 +79,10 @@ test.beforeEach(async () => {
       "clubSecrets/5":{code:"NHS-ABC234DEF567"}, "joinCodes/NHS-ABC234DEF567":{clubId:5},
       "settings/org":{name:"VolunteerHub",zip:"20001",about:"",waiver:"Please follow the organizer’s instructions when volunteering."},
       "settings/internal":{owner:"staff"},
+      "invites/GUESTLINK234":{code:"GUESTLINK234",createdBy:"organizer",createdAt:today,active:true},
+      "invites/OLDLINK23456":{code:"OLDLINK23456",createdBy:"organizer",createdAt:today,active:false},
+      "users/guest":guestProfile("guest"),
+      "users/linked":guestProfile("linked"),
     };
     Object.entries(fixtures).forEach(([key, record]) => batch.set(ref(db,key),record));
     await batch.commit();
@@ -217,4 +229,67 @@ test("advisers may configure a valid term threshold; mail credentials and delive
     await assertFails(setDoc(record,{example:true}));
     await assertFails(getDoc(record));
   }
+});
+
+test("guests need an active invite or club code, stay volunteers, and never carry an email", async () => {
+  await assertSucceeds(setDoc(ref(guest("g1"),"users/g1"),guestProfile("g1")));
+  await assertSucceeds(setDoc(ref(guest("g2"),"users/g2"),guestProfile("g2","NHS-ABC234DEF567")));
+  await assertFails(setDoc(ref(guest("g3"),"users/g3"),guestProfile("g3","OLDLINK23456")));
+  await assertFails(setDoc(ref(guest("g3"),"users/g3"),guestProfile("g3","NOSUCHLINK23")));
+  await assertFails(setDoc(ref(guest("g3"),"users/g3"),guestProfile("g3","NHS-ABC234DEF999")));
+  await assertFails(setDoc(ref(guest("g3"),"users/g3"),guestProfile("g3","GUESTLINK234",{role:"coordinator",waiverAt:""})));
+  await assertFails(setDoc(ref(guest("g3"),"users/g3"),guestProfile("g3","GUESTLINK234",{email:"g3@example.org"})));
+  await assertFails(setDoc(ref(guest("g3"),"users/g3"),guestProfile("g3","GUESTLINK234",{waiverAt:""})));
+  await assertFails(setDoc(ref(guest("g3"),"users/g3"),guestProfile("g3","GUESTLINK234",{admin:true})));
+  await assertFails(setDoc(ref(guest("g3"),"users/other3"),guestProfile("other3")));
+  // Email accounts can't create a profile that claims to be a guest.
+  await assertFails(setDoc(ref(user("new"),"users/new"),{...profile("new"),guest:true,invite:"GUESTLINK234"}));
+  // An anonymous sign-in with no profile can't read anything private.
+  await assertFails(getDocs(query(collection(guest("nobody"),"events"),where("clubId","==",null))));
+  await assertFails(getDoc(ref(guest("nobody"),"regs/10_volunteer")));
+});
+
+test("guests sign up for shifts, join clubs and log hours, but get no coordinator powers", async () => {
+  const db = guest("guest");
+  await assertSucceeds(getDocs(query(collection(db,"events"),where("clubId","==",null))));
+  await assertSucceeds(setDoc(ref(db,"regs/10_guest"),registration(10,"guest")));
+  await assertSucceeds(updateDoc(ref(db,"users/guest"),{name:"Riley Q. Guest",phone:"555-123-4567"}));
+  await assertFails(updateDoc(ref(db,"users/guest"),{guest:false}));
+  await assertFails(updateDoc(ref(db,"users/guest"),{role:"coordinator"}));
+  await assertSucceeds(setDoc(ref(db,"memberships/5_guest"),{id:"5_guest",clubId:5,userId:"guest",role:"member",
+    name:"Riley Guest",email:"",joinedAt:today,code:"NHS-ABC234DEF567"}));
+  await assertSucceeds(setDoc(ref(db,"hourLogs/70"),{id:70,clubId:5,userId:"guest",name:"Riley Guest",date:today,hours:2,
+    place:"City food bank",activity:"Sorted canned food donations.",supervisor:"Dana Whitfield",contact:"dana@example.org",status:"pending",at:now}));
+  await assertFails(getDocs(collection(db,"users")));
+  await assertFails(getDoc(ref(db,"users/volunteer")));
+  await assertFails(setDoc(ref(db,"events/40"),venue(40,{postedBy:"guest"})));
+  await assertFails(setDoc(ref(db,"invites/NEWLINK23456"),{code:"NEWLINK23456",createdBy:"guest",createdAt:today,active:true}));
+  await assertFails(getDoc(ref(db,"clubSecrets/5")));
+  // Guests can't re-enter a password, so the pass itself is enough to delete their own profile.
+  await assertSucceeds(deleteDoc(ref(guest("guest",3600),"users/guest")));
+});
+
+test("coordinators manage only their own guest links, and anyone holding a code can check it", async () => {
+  const organizer = user("organizer");
+  await assertSucceeds(getDoc(ref(guest("nobody"),"invites/GUESTLINK234")));
+  await assertSucceeds(setDoc(ref(organizer,"invites/NEWLINK23456"),{code:"NEWLINK23456",createdBy:"organizer",createdAt:today,active:true}));
+  await assertSucceeds(updateDoc(ref(organizer,"invites/GUESTLINK234"),{active:false}));
+  await assertFails(updateDoc(ref(organizer,"invites/OLDLINK23456"),{active:true}));
+  await assertSucceeds(getDocs(query(collection(organizer,"invites"),where("createdBy","==","organizer"))));
+  await assertFails(getDocs(collection(organizer,"invites")));
+  await assertFails(setDoc(ref(user("pending"),"invites/PENDLINK2345"),{code:"PENDLINK2345",createdBy:"pending",createdAt:today,active:true}));
+  await assertFails(setDoc(ref(user("volunteer"),"invites/VOLLINK23456"),{code:"VOLLINK23456",createdBy:"volunteer",createdAt:today,active:true}));
+  await assertFails(setDoc(ref(organizer,"invites/short"),{code:"short",createdBy:"organizer",createdAt:today,active:true}));
+  await assertFails(updateDoc(ref(user("admin"),"invites/NEWLINK23456"),{createdBy:"admin"}));
+});
+
+test("a guest who links and verifies an email moves the profile to that email and nothing else", async () => {
+  const linked = (verified, email = "riley@example.org") => env.authenticatedContext("linked", {
+    email, email_verified:verified, firebase:{sign_in_provider:"password", identities:{}}, auth_time:Math.floor(Date.now() / 1000),
+  }).firestore();
+  await assertFails(updateDoc(ref(linked(false),"users/linked"),{guest:false,email:"riley@example.org"}));
+  await assertFails(updateDoc(ref(linked(true),"users/linked"),{guest:false,email:"someone.else@example.org"}));
+  await assertFails(updateDoc(ref(linked(true),"users/linked"),{guest:false,email:"riley@example.org",role:"coordinator"}));
+  await assertSucceeds(updateDoc(ref(linked(true),"users/linked"),{guest:false,email:"riley@example.org"}));
+  await assertFails(updateDoc(ref(linked(true),"users/linked"),{guest:true,email:""}));
 });

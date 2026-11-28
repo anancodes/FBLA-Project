@@ -386,6 +386,7 @@ function confirmAction(kind, id, trigger){
     toast(kind === "leaveclub" ? `You left ${c.name}.` : `${m.name} was removed from ${c.name}.`);
   }
   if (kind === "dellog"){ DB.remove("hourLogs", id); toast("Hours withdrawn."); }
+  if (kind === "newinvite") createInvite(String(id));
   if (kind === "newcode"){
     const c = clubById(id);
     Promise.resolve(setClubCode(c, makeCode(c.short))).then(() => toast("New join code created.")).catch(error => toast(Cloud.friendly(error), "bad"));
@@ -396,6 +397,10 @@ function confirmAction(kind, id, trigger){
 // Privacy: a person can delete their own account. Upcoming sign-ups are cancelled first
 // so their spots open up for others.
 function deleteMyAccount(){
+  if (DB.live && currentUser()?.guest){
+    const me = currentUser(), shifts = state.regs.filter(r => r.userId === me.id && ["registered","waitlist"].includes(r.status) && eventById(r.eventId)?.date >= TODAY);
+    return runPending("delete-account", "Deleting guest profile…", null, () => Cloud.deleteAccount(null, shifts), null, err => toast(Cloud.friendly(err), "bad"));
+  }
   if (DB.live) return openModal(`<form id="deleteAccountForm" class="stack" novalidate>
     <h2>Confirm account deletion</h2>
     <p class="muted">Enter your password to delete your sign-in and profile. Service and attendance records may be retained by your organization.</p>
@@ -462,13 +467,20 @@ const handlers = {
     const m = $("#page-title") || $("#main"); if (m) m.focus({preventScroll:true}); window.scrollTo(0, 0);
   },
   authmode: (v) => navigatePublic(v),
+  copyLink: (v) => copyText(v, "the link"),
+  downloadQR: (v, title) => downloadQR(v, title),
+  createInvite: () => createInvite(),
+  shareEvent: (_, id) => shareEvent(asId(id)),
+  shareClub: (_, id) => shareClub(asId(id)),
   checkVerification: (_, __, ev) => runPending("verify-email", "Checking verification…", ev.target.closest("button"),
     () => Cloud.checkVerification(), null, err => toast(Cloud.friendly(err), "bad")),
   resendVerification: (_, __, ev) => runPending("verify-email", "Sending verification email…", ev.target.closest("button"),
     () => Cloud.sendVerification(), () => toast("Check your email for the verification link."), err => toast(Cloud.friendly(err), "bad")),
   retryLoad: () => Cloud.retryLoad(),
   cloudSignOut: () => Cloud.logout().catch(error => toast(Cloud.friendly(error), "bad")),
-  logout: () => {
+  logout: (v) => {
+    if (v !== "confirm" && DB.live && currentUser()?.guest) return guestSignOutPrompt();
+    closeModal(false);
     clearPageURL(); setPageURL("login",true);
     ui.authMode = "login"; ui.armed = null; ui.tour = null; ui.cal = TODAY.slice(0, 7); ui.shifts.mode = ui.ev.mode = "list"; ui.find.location = null; ui.find.q = ""; ui.disclosures.clear(); ui.view = "dashboard";
     if (Cloud.enabled) return Cloud.logout().catch(error => toast(Cloud.friendly(error), "bad"));

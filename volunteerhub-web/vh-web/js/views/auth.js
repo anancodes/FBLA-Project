@@ -2,7 +2,7 @@
 "use strict";
 
 function profileForm(completing, hosted){
-  const description = completing ? "Your sign-in is ready. Choose how you’ll use VolunteerHub." : "Choose your role to open your workspace.";
+  const description = completing ? "Your sign-in is ready. Choose how you’ll use VolunteerHub." : "Coordinators create an account to post events and invite volunteers. Volunteers can skip this and join from a coordinator’s link or QR code.";
   return `<div class="login-card"><div><h1 class="auth-title">${completing ? "Finish your profile" : "Create an account"}</h1><p class="auth-intro">${description}</p></div>
     <form id="${completing ? "completeProfileForm" : "signupForm"}" class="stack" novalidate>
       <fieldset class="field"><legend>Account role</legend><div class="account-roles">
@@ -34,6 +34,7 @@ function loginView(){
     return `<div class="public-site public-auth">${accountHeader()}<main id="main" tabindex="-1">${panel}</main>${publicFooter(true)}</div>`;
   }
   if (ui.authMode === "landing") return landingView();
+  if (ui.authMode === "join") return guestView();
   let panel;
   if (ui.authMode === "signup") panel = profileForm(false, hosted);
   else if (ui.authMode === "reset" && hosted) panel = `<div class="login-card">
@@ -50,7 +51,8 @@ function loginView(){
       <p class="formerr" id="li-err" role="alert"></p><button class="btn" type="submit">Sign in</button>
     </form>
     ${hosted ? '<p class="auth-account-link"><a href="#reset" data-act="authmode" data-v="reset">Forgot password?</a></p>' : ""}
-    <p class="auth-account-link">New here? <a href="#signup" data-act="authmode" data-v="signup">Create an account</a></p></div>`;
+    <p class="auth-account-link">Volunteering? Open the link or scan the QR code from your coordinator. No account needed.</p>
+    <p class="auth-account-link">Coordinating? <a href="#signup" data-act="authmode" data-v="signup">Create an account</a></p></div>`;
   return `<div class="public-site public-auth">${publicHeader()}<main id="main" tabindex="-1">${loadAccountStatus()}${panel}</main>${publicFooter()}</div>`;
 }
 

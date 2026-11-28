@@ -63,6 +63,7 @@ function render(){
   }
   if (keepDisplayOpen) openDisplaySettings();
   syncPendingControls();
+  if (u && ui.invite && !(DB.live && Cloud.loadPhase)) setTimeout(consumeInvite, 0);   // finish a guest link once the workspace is ready
   const connection = $(".load-status:not([hidden])")?.textContent || "";
   if ($("#connection-status").textContent !== connection) $("#connection-status").textContent = connection;
   if (openingWorkspace && pageTitle && !keepDisplayOpen) pageTitle.focus({preventScroll:true});
@@ -83,7 +84,7 @@ const NAV = {
 };
 const VIEWS = {
   volunteer: {dashboard:volunteerHome, find:vFind, shifts:vShifts, hours:vHours, clubs:vMyClubs, news:newsView, profile:vProfile, help:helpView},
-  coordinator: {dashboard:cHome, events:cEvents, checkin:cCheckin, volunteers:cVolunteers, reports:cReports, news:newsView, settings:cSettings, organizers:cOrganizers, manage:manageClubsView, help:helpView},
+  coordinator: {dashboard:cHome, events:cEvents, checkin:cCheckin, volunteers:cVolunteers, invite:cInvite, reports:cReports, news:newsView, settings:cSettings, organizers:cOrganizers, manage:manageClubsView, help:helpView},
 };
 const NAV_ICON = {dashboard:"home", find:"search", shifts:"calendar", hours:"clock", news:"inbox", events:"calendar", volunteers:"users", reports:"chart", settings:"sliders"};
 const THEME_LABEL = {auto:"Auto", light:"Light", dark:"Dark"};
@@ -93,7 +94,7 @@ function menuFor(u){
 function tabsFor(u, sec){
   if (sec === "hours") return [["hours","My hours"],["clubs","My clubs"]];
   if (sec === "events") return [["events","All events"],["checkin","Check-in"]];
-  if (sec === "volunteers") return [["volunteers","Volunteers"],...((DB.isVerifiedCoordinator(u) || managedClubs(u).length) ? [["manage","Clubs"]] : []),...(u.admin ? [["organizers","Organizers"]] : [])];
+  if (sec === "volunteers") return [["volunteers","Volunteers"],...(DB.isVerifiedCoordinator(u) ? [["invite","Invite"]] : []),...((DB.isVerifiedCoordinator(u) || managedClubs(u).length) ? [["manage","Clubs"]] : []),...(u.admin ? [["organizers","Organizers"]] : [])];
   return [];
 }
 function sectionOf(u, view){
@@ -165,6 +166,8 @@ function handleSubmit(form){
   if (form.id === "deleteAccountForm") return confirmAccountDeletion(form);
   if (form.id === "loginForm") doLogin(form);
   if (form.id === "signupForm" || form.id === "completeProfileForm") doSignup(form);
+  if (form.id === "guestForm") doGuestJoin(form);
+  if (form.id === "guestUpgradeForm") doGuestUpgrade(form);
   if (form.id === "resetForm") doReset(form);
   if (form.id === "profileForm") saveProfile(form);
   if (form.id === "findForm") findOpportunities(form);
@@ -199,6 +202,8 @@ document.addEventListener("beforetoggle", ev => {
 window.addEventListener("resize", positionDisplaySettings);
 window.addEventListener("scroll", positionDisplaySettings, {capture:true, passive:true});
 
+ui.invite = readInviteFromURL();          // a guest link or QR code (see guest.js)
+if (ui.invite && (ui.invite.code || ui.invite.broken)) setPageURL("join", true);
 const initialRoute = pageFromURL();
 ui.authMode = publicModeFromURL(initialRoute);
 ui.requestedRoute = isPublicRoute(initialRoute) ? null : initialRoute;

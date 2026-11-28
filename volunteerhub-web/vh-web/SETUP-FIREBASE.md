@@ -11,8 +11,9 @@ The published configuration uses `volunteerhub-12975`. Its Authentication author
 ## 2. Turn on email and password sign-in
 1. In the left menu, choose **Build → Authentication**, then **Get started**.
 2. Under **Sign-in method**, choose **Email/Password**, switch on the first toggle, and click **Save**.
-3. Under Authentication **Settings**, require passwords of 15–128 characters, enable email-enumeration protection, and authorize your exact hosting domain. Verify the email confirmation and password reset flows in staging.
-4. Register the website for Firebase App Check using reCAPTCHA Enterprise. Add its public site key to `FIREBASE_APP_CHECK_SITE_KEY` and verify requests in staging before enforcing it for Firestore.
+3. Still under **Sign-in method**, click **Add new provider**, choose **Anonymous**, switch it on, and click **Save**. Guest volunteers use this when they open a coordinator's link or QR code. The database rules only accept a guest whose link is still active.
+4. Under Authentication **Settings**, require passwords of 15–128 characters, enable email-enumeration protection, and authorize your exact hosting domain. Verify the email confirmation and password reset flows in staging.
+5. Register the website for Firebase App Check using reCAPTCHA Enterprise. Add its public site key to `FIREBASE_APP_CHECK_SITE_KEY` and verify requests in staging before enforcing it for Firestore.
 
 ## 3. Create the database
 1. Choose **Build → Firestore Database**, then **Create database**.
@@ -47,6 +48,13 @@ A billing-enabled Firebase project can run daily checks when the website is clos
 
 ## When rules change
 If an update to the site includes a new `firestore.rules`, paste it into **Firestore Database → Rules** again and click **Publish**.
+
+## Guest links and QR codes
+Volunteers don't need accounts. A verified coordinator opens **People & clubs → Invite** to create a guest link and QR code, uses **Share** on an event, or uses **Share join link** on a club page. People who open the link enter their name, accept the waiver, and sign up for shifts.
+- A guest pass is saved in the browser that opened the link. Guests can add an email and password from **Profile** to sign in on other devices.
+- **Make a new link** turns the old link and QR code off. Guests who already joined keep their access. To remove a guest, delete their profile in the Firebase console.
+- Guests without an email don't receive Gmail hour alerts.
+- Don't turn on anonymous-account **automatic clean-up** (an optional setting for projects upgraded to Identity Platform). It deletes guest sign-ins older than 30 days. Guests who added an email are not affected.
 
 ## Good to know
 - **Cost:** The browser demo has no hosting-service dependency. Live Firestore use is subject to Firebase quotas, and scheduled Gmail alerts require a billing-enabled project.

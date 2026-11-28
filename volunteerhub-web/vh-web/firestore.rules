@@ -1,154 +1,290 @@
 rules_version = '2';
 
-// VolunteerHub database rules: who can read or change what.
-// Paste this whole file into Firebase console > Firestore Database > Rules, then Publish.
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    function signedIn()      { return request.auth != null; }
-    function me()            { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
-    function isCoord()       { return signedIn() && me().role == 'coordinator'; }
-    function isVerified()    { return isCoord() && (me().verified == true || me().admin == true); }
-    function isAdmin()       { return signedIn() && me().admin == true; }
+    function profile(uid) { return /databases/$(database)/documents/users/$(uid); }
+    function book(eventId) { return /databases/$(database)/documents/events/$(string(eventId)); }
+    function member(clubId, uid) { return /databases/$(database)/documents/memberships/$(string(clubId) + '_' + uid); }
+    function club(clubId) { return /databases/$(database)/documents/clubs/$(string(clubId)); }
+    function secret(clubId) { return /databases/$(database)/documents/clubSecrets/$(string(clubId)); }
+    function codeDoc(code) { return /databases/$(database)/documents/joinCodes/$(code); }
+    function verifiedEmail() { return request.auth != null && request.auth.token.email_verified == true; }
+    function active() { return verifiedEmail() && exists(profile(request.auth.uid)); }
+    function me() { return get(profile(request.auth.uid)).data; }
+    function coordinator() { return active() && me().role == 'coordinator' && (me().get('verified', false) || me().get('admin', false)); }
+    function admin() { return active() && me().get('admin', false) == true; }
+    function clubRole(id) { return get(member(id, request.auth.uid)).data.role; }
+    function manages(id) { return admin() || (id != null && active() && exists(member(id, request.auth.uid)) && clubRole(id) in ['officer', 'adviser']); }
+    function advises(id) {
+      return admin() || (id != null && active() &&
+        ((exists(member(id, request.auth.uid)) && clubRole(id) == 'adviser') ||
+         (coordinator() && get(club(id)).data.createdBy == request.auth.uid)));
+    }
     function onlyChanges(keys) { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys); }
-    function ownsEvent(eventId) {
-      return get(/databases/$(database)/documents/events/$(string(eventId))).data.postedBy == request.auth.uid;
+    function fields(data, required, optional) {
+      return data.keys().hasAll(required) && data.keys().hasOnly(required.concat(optional));
     }
-    // Clubs: a person's role in a club lives in memberships/{clubId}_{userId}
-    function membershipPath(clubId, uid) { return /databases/$(database)/documents/memberships/$(string(clubId) + '_' + uid); }
-    function clubRole(clubId) {
-      return exists(membershipPath(clubId, request.auth.uid)) ? get(membershipPath(clubId, request.auth.uid)).data.role : '';
+    function text(value, min, max) {
+      return value is string && value.size() >= min && value.size() <= max && value.matches('([^[:cntrl:]]|\n|\r|\t)*');
     }
-    function isManagerOf(clubId) { return signedIn() && (isAdmin() || (clubId != null && clubRole(clubId) in ['officer', 'adviser'])); }
-    function isAdviserOf(clubId) { return signedIn() && (isAdmin() || (clubId != null && clubRole(clubId) == 'adviser')); }
-    function eventClub(eventId) { return get(/databases/$(database)/documents/events/$(string(eventId))).data.get('clubId', null); }
+    function line(value, min, max) { return text(value, min, max) && value.matches('[^[:cntrl:]]*') && (min == 0 || value.matches('.*[^ ].*')); }
+    function uid(value) { return text(value, 1, 128) && value.matches('[A-Za-z0-9_-]+'); }
+    function number(value, min, max) { return value is number && value >= min && value <= max; }
+    function numericId(value) { return value is int && number(value, 1, 9007199254740991); }
+    function daysInMonth(year, month) {
+      return month == 2 ? (year % 4 == 0 && (year % 100 != 0 || year % 400 == 0) ? 29 : 28) :
+        (month in [4,6,9,11] ? 30 : 31);
+    }
+    function validDay(value) {
+      return value is string && value.matches('[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])') &&
+        int(value[8:10]) <= daysInMonth(int(value[0:4]), int(value[5:7]));
+    }
+    function validTime(value) { return value is string && value.matches('([01][0-9]|2[0-3]):[0-5][0-9]'); }
+    function isoTime(value) { return value is string && value.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}[.][0-9]{3}Z'); }
+    function today() {
+      let d = request.time;
+      return string(d.year()) + '-' + (d.month() < 10 ? '0' : '') + string(d.month()) + '-' + (d.day() < 10 ? '0' : '') + string(d.day());
+    }
+    function postal(value) { return value is string && value.matches('[0-9]{5}'); }
+    function email(value) { return line(value, 3, 254) && value.matches('[^ @]+@[^ @]+[.][^ @]+'); }
+    function phone(value) {
+      return line(value, 0, 30) && (value == '' ||
+        (value.matches('[0-9 ().-]+') && value.replace('[ ().-]', '').matches('[0-9]{10}')));
+    }
+    function skills(value) {
+      return value is list && value.size() <= 7 && value.hasOnly(['Lifting','Driving','Spanish','Tutoring','Cooking','Tech','First Aid']);
+    }
+    function city(value) {
+      return value == null || (value is map && fields(value, ['city','st','lat','lon'], []) &&
+        line(value.city, 1, 100) && value.st is string && value.st.matches('[A-Z]{2}') &&
+        number(value.lat, -90, 90) && number(value.lon, -180, 180));
+    }
 
-    // People. Volunteers' contact details are visible only to themselves and verified coordinators.
-    // Coordinators' profiles are visible to everyone signed in (they're the contact on events).
-    match /users/{uid} {
-      allow read: if signedIn() && (request.auth.uid == uid || isVerified() || resource.data.role == 'coordinator');
-      allow create: if signedIn() && request.auth.uid == uid
-        && request.resource.data.id == uid
-        && request.resource.data.role in ['volunteer', 'coordinator']
-        && request.resource.data.verified == false
-        && !('admin' in request.resource.data);
-      // You can edit your own profile, but not your role, verification, or admin status.
-      // Site admins can verify organizers.
-      allow update: if signedIn() && (
-        (request.auth.uid == uid && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['id', 'role', 'verified', 'verifiedAt', 'admin']))
-        || (isAdmin() && onlyChanges(['verified', 'verifiedAt'])));
-      allow delete: if signedIn() && request.auth.uid == uid;
+    function latestOrganizer(id) { return /databases/$(database)/documents/organizers/$(id); }
+    function recentSignIn() { return request.time.toMillis() / 1000 - request.auth.token.auth_time < 300; }
+
+    function profileContent(data) {
+      return line(data.name, 2, 80) && email(data.email) && phone(data.phone) && skills(data.skills) &&
+        data.availability is list && data.availability.size() <= 3 && data.availability.hasOnly(['Weekday mornings','Weekday evenings','Weekends']) &&
+        (data.get('zip', '') == '' || postal(data.zip)) && city(data.get('location', null)) &&
+        line(data.get('emergency', ''), 0, 100) && line(data.get('org', ''), 0, 100) &&
+        data.get('reads', []) is list && data.get('reads', []).size() <= 1000 && data.get('toured', false) is bool;
+    }
+    match /users/{id} {
+      allow get: if (request.auth != null && request.auth.uid == id) || coordinator();
+      // Volunteer contact, home city and emergency information stay on private profiles.
+      allow list: if coordinator();
+      allow create: if request.auth != null && request.auth.uid == id && request.resource.data.id == id &&
+        fields(request.resource.data, ['id','name','email','phone','role','skills','availability','verified','waiverAt'],
+          ['zip','location','emergency','org','reads','toured']) &&
+        profileContent(request.resource.data) && request.resource.data.email == request.auth.token.email &&
+        request.resource.data.role in ['volunteer','coordinator'] && request.resource.data.verified == false &&
+        (request.resource.data.role == 'volunteer' ? isoTime(request.resource.data.waiverAt) : request.resource.data.waiverAt == '');
+      allow update: if (active() && request.auth.uid == id && profileContent(request.resource.data) &&
+        onlyChanges(['name','phone','skills','availability','zip','location','emergency','reads','toured'])) ||
+        (admin() && resource.data.role == 'coordinator' && !resource.data.get('admin', false) &&
+         onlyChanges(['verified','verifiedAt']) && request.resource.data.verified is bool &&
+         getAfter(latestOrganizer(id)).data.verified == request.resource.data.verified &&
+         (request.resource.data.verified ? validDay(request.resource.data.verifiedAt) : request.resource.data.verifiedAt == ''));
+      allow delete: if active() && request.auth.uid == id && resource.data.role == 'volunteer' && recentSignIn();
     }
 
-    // Events: anyone signed in can see them; coordinators post them; the poster,
-    // a verified coordinator, or an admin can change or delete them.
+    function matchesOrganizer(id) {
+      let data = request.resource.data;
+      let source = getAfter(profile(id)).data;
+      return fields(data, ['id','name','org','verified'], []) && data.id == id && source.role == 'coordinator' &&
+        line(data.name, 2, 80) && data.name == source.name && line(data.org, 0, 100) && data.org == source.get('org', '') &&
+        data.verified is bool && data.verified == source.get('verified', false);
+    }
+    match /organizers/{id} {
+      allow read: if active() && (resource.data.verified == true || coordinator());
+      allow create, update: if active() && (request.auth.uid == id || admin()) && matchesOrganizer(id);
+    }
+
+    function eventShape(data, id) {
+      return fields(data, ['id','postedBy','postedAt','updatedAt','title','category','date','start','end','location','slots','skills','desc'],
+          ['zip','minAge','bring','wear','clubId']) &&
+        numericId(data.id) && string(data.id) == id && uid(data.postedBy) &&
+        validDay(data.postedAt) && validDay(data.updatedAt) && validDay(data.date) &&
+        line(data.title, 3, 80) && line(data.location, 1, 160) &&
+        data.category in ['Food Pantry','Tutoring','Environment','Senior Support','Fundraising','Other'] &&
+        validTime(data.start) && validTime(data.end) && data.start < data.end &&
+        data.slots is int && number(data.slots, 1, 200) && skills(data.skills) &&
+        text(data.desc, 0, 2000) && line(data.get('bring', ''), 0, 120) && line(data.get('wear', ''), 0, 120) &&
+        (data.get('minAge', null) == null || (data.minAge is int && number(data.minAge, 0, 21))) &&
+        (data.get('zip', '') == '' || postal(data.zip)) &&
+        (data.get('clubId', null) == null || numericId(data.clubId));
+    }
+    function eventAccess(data) {
+      return active() && (data.get('clubId', null) == null || coordinator() || exists(member(data.clubId, request.auth.uid)));
+    }
+    function managesEvent(data) { return coordinator() || (data.get('clubId', null) != null && manages(data.clubId)); }
     match /events/{id} {
-      allow read: if signedIn();
-      // Coordinators post events; club officers post events for their own club.
-      // A club event can only be posted or moved into a club by that club's adviser or officers.
-      allow create: if request.resource.data.postedBy == request.auth.uid
-        && (request.resource.data.get('clubId', null) == null ? isCoord() : isManagerOf(request.resource.data.clubId));
-      allow update: if ((isCoord() && (resource.data.postedBy == request.auth.uid || isVerified())) || isManagerOf(resource.data.get('clubId', null)))
-        && (request.resource.data.get('clubId', null) == resource.data.get('clubId', null) || isManagerOf(request.resource.data.get('clubId', null)));
-      allow delete: if (isCoord() && (resource.data.postedBy == request.auth.uid || isVerified())) || isManagerOf(resource.data.get('clubId', null));
+      allow get: if eventAccess(resource.data);
+      allow list: if active() && (coordinator() || resource.data.clubId == null ||
+        exists(member(resource.data.clubId, request.auth.uid)));
+      allow create: if active() && eventShape(request.resource.data, id) && request.resource.data.keys().hasAll(['clubId']) &&
+        request.resource.data.postedBy == request.auth.uid && request.resource.data.date >= today() &&
+        (request.resource.data.clubId == null ? coordinator() :
+         exists(club(request.resource.data.clubId)) && manages(request.resource.data.clubId));
+      allow update: if managesEvent(resource.data) && eventShape(request.resource.data, id) &&
+        onlyChanges(['updatedAt','title','category','date','start','end','location','slots','skills','desc','zip','minAge','bring','wear','clubId']) &&
+        (request.resource.data.date >= today() || request.resource.data.date == resource.data.date) &&
+        (request.resource.data.get('clubId', null) == resource.data.get('clubId', null) ||
+          (request.resource.data.get('clubId', null) == null ? coordinator() : manages(request.resource.data.clubId)));
+      allow delete: if managesEvent(resource.data);
     }
 
-    // Sign-ups. They hold only ids and a status, so everyone signed in can count them.
+    function registrationShape(data) {
+      return fields(data, ['id','userId','eventId','status','hours'], ['createdAt']) &&
+        uid(data.userId) && numericId(data.eventId) &&
+        data.status in ['registered','waitlist','attended','no-show','cancelled'] &&
+        (data.status == 'attended' ? number(data.hours, 0, 24) : data.hours == 0);
+    }
+    function selfRegistration(data, event) {
+      return me().role == 'volunteer' && request.auth.uid == data.userId && eventAccess(event) && event.date >= today() &&
+        data.status in ['registered','waitlist','cancelled'];
+    }
     match /regs/{id} {
-      allow read: if signedIn();
-      // Volunteers sign themselves up or join a waitlist. Coordinators add walk-ins.
-      allow create: if signedIn() && (
-        (request.resource.data.userId == request.auth.uid
-          && request.resource.data.status in ['registered', 'waitlist']
-          && request.resource.data.hours == 0)
-        || isVerified() || (isCoord() && ownsEvent(request.resource.data.eventId)) || isManagerOf(eventClub(request.resource.data.eventId)));
-      // Volunteers can cancel or move off the waitlist, but can't mark attendance or hours.
-      allow update: if signedIn() && (
-        (resource.data.userId == request.auth.uid
-          && onlyChanges(['status'])
-          && request.resource.data.status in ['registered', 'waitlist', 'cancelled']
-          && !(resource.data.status in ['attended', 'no-show']))
-        || isVerified() || (isCoord() && ownsEvent(resource.data.eventId)) || isManagerOf(eventClub(resource.data.eventId)));
-      allow delete: if isVerified() || (isCoord() && ownsEvent(resource.data.eventId)) || isManagerOf(eventClub(resource.data.eventId));
+      // The current client reads these records across accounts to calculate capacity and waitlist position.
+      allow read: if active();
+      allow create: if active() && registrationShape(request.resource.data) &&
+        request.resource.data.id == id && id == string(request.resource.data.eventId) + '_' + request.resource.data.userId &&
+        request.resource.data.createdAt == request.time && exists(profile(request.resource.data.userId)) &&
+        get(profile(request.resource.data.userId)).data.role == 'volunteer' &&
+        ((request.resource.data.status in ['registered','waitlist'] && selfRegistration(request.resource.data, get(book(request.resource.data.eventId)).data)) ||
+         (request.resource.data.status == 'attended' && managesEvent(get(book(request.resource.data.eventId)).data) &&
+          get(book(request.resource.data.eventId)).data.date <= today()));
+      allow update: if active() && registrationShape(request.resource.data) && onlyChanges(['status','hours']) &&
+        ((resource.data.status in ['registered','waitlist','cancelled'] &&
+          selfRegistration(request.resource.data, get(book(resource.data.eventId)).data) &&
+          (resource.data.id is string || request.resource.data.status == 'cancelled')) ||
+         (managesEvent(get(book(resource.data.eventId)).data) &&
+          (!(request.resource.data.status in ['attended','no-show']) || get(book(resource.data.eventId)).data.date <= today())));
+      allow delete: if active() && managesEvent(get(book(resource.data.eventId)).data);
     }
 
-    // Personal updates ("a spot opened up"). Only the person can read theirs.
     match /notices/{id} {
-      allow read: if signedIn() && resource.data.userId == request.auth.uid;
-      // You, a verified coordinator, or an officer of a club you're in can send you an update.
-      allow create: if signedIn() && (request.resource.data.userId == request.auth.uid || isVerified()
-        || (isManagerOf(request.resource.data.get('clubId', null))
-            && exists(membershipPath(request.resource.data.clubId, request.resource.data.userId))));
-      allow update: if signedIn() && resource.data.userId == request.auth.uid && onlyChanges(['read']);
+      allow read: if active() && resource.data.userId == request.auth.uid;
+      allow create: if active() &&
+        fields(request.resource.data, ['id','userId','text','at','read','clubId'], []) &&
+        string(request.resource.data.id) == id && uid(request.resource.data.userId) && text(request.resource.data.text, 1, 1000) &&
+        request.resource.data.read == false && isoTime(request.resource.data.at) &&
+        (request.resource.data.clubId == null || numericId(request.resource.data.clubId)) &&
+        (request.resource.data.userId == request.auth.uid || coordinator() ||
+         (manages(request.resource.data.clubId) && exists(member(request.resource.data.clubId, request.resource.data.userId))));
+      allow update: if active() && resource.data.userId == request.auth.uid && onlyChanges(['read']) && request.resource.data.read == true;
+      allow delete: if active() && resource.data.userId == request.auth.uid;
     }
 
-    // Announcements from verified coordinators.
     match /announcements/{id} {
-      allow read: if signedIn();
-      allow create: if isVerified() && request.resource.data.authorId == request.auth.uid;
-      allow delete: if isVerified();
+      allow read: if active() && (coordinator() || resource.data.audience == 'all' ||
+        request.auth.uid in resource.data.get('recipientIds', []));
+      allow create: if coordinator() &&
+        fields(request.resource.data, ['id','title','body','audience','authorId','at','recipientIds'], []) &&
+        numericId(request.resource.data.id) && string(request.resource.data.id) == id &&
+        request.resource.data.authorId == request.auth.uid &&
+        line(request.resource.data.title, 3, 100) && text(request.resource.data.body, 10, 3000) && isoTime(request.resource.data.at) &&
+        request.resource.data.recipientIds is list && request.resource.data.recipientIds.size() <= 500 &&
+        (request.resource.data.audience == 'all' ? request.resource.data.recipientIds.size() == 0 :
+          (request.resource.data.audience is string && request.resource.data.audience.matches('[0-9]{1,16}') &&
+           exists(/databases/$(database)/documents/events/$(request.resource.data.audience))));
+      allow delete: if coordinator();
     }
 
-    // Reported concerns about listings.
     match /concerns/{id} {
-      allow read: if signedIn() && (resource.data.userId == request.auth.uid || isVerified());
-      allow create: if signedIn() && request.resource.data.userId == request.auth.uid && request.resource.data.status == 'open';
-      allow update: if isVerified() && onlyChanges(['status']);
+      allow read: if active() && (admin() || resource.data.userId == request.auth.uid);
+      allow create: if active() && fields(request.resource.data, ['id','eventId','userId','reason','details','at','status'], []) &&
+        numericId(request.resource.data.id) && string(request.resource.data.id) == id &&
+        numericId(request.resource.data.eventId) && request.resource.data.userId == request.auth.uid &&
+        eventAccess(get(book(request.resource.data.eventId)).data) && request.resource.data.status == 'open' &&
+        line(request.resource.data.reason, 1, 50) && text(request.resource.data.details, 0, 500) && isoTime(request.resource.data.at);
+      allow update: if admin() && onlyChanges(['status']) && request.resource.data.status == 'resolved';
     }
 
-    // ----- School clubs -----
-    match /clubs/{clubId} {
-      allow read: if signedIn();
-      allow create: if isVerified() && request.resource.data.createdBy == request.auth.uid;
-      allow update: if isAdviserOf(clubId);
-      allow delete: if isAdmin();
+    function requirement(value) {
+      return value == null || (value is map && fields(value, ['hours','label','start','end'], ['emailAlerts','alertGap']) &&
+        value.get('emailAlerts', false) is bool &&
+        (!('alertGap' in value) || (number(value.alertGap, 0.25, value.hours) && (value.alertGap * 4) % 1 == 0)) &&
+        number(value.hours, 0.25, 500) && line(value.label, 2, 30) && validDay(value.start) && validDay(value.end) && value.end > value.start);
     }
-
-    // Membership id is "{clubId}_{userId}". Members join with the club's code; the adviser
-    // is added when the club is created; advisers choose officers.
+    function clubShape(data, id) {
+      return fields(data, ['id','name','short','about','req','createdBy'], []) && numericId(data.id) && string(data.id) == id &&
+        uid(data.createdBy) && line(data.name, 2, 80) && data.short is string && data.short.matches('[A-Z0-9]{2,6}') &&
+        text(data.about, 0, 1000) && requirement(data.req);
+    }
+    match /clubs/{id} {
+      allow read: if active();
+      allow create: if coordinator() && request.resource.data.createdBy == request.auth.uid && clubShape(request.resource.data, id);
+      allow update: if advises(resource.data.id) && clubShape(request.resource.data, id) && onlyChanges(['name','short','about','req']);
+    }
+    function validCode(code) {
+      return code is string && code.matches('[A-Z0-9]{2,6}-([A-Z0-9]{6}|[A-Z0-9]{12})');
+    }
+    function currentCode(code, clubId) {
+      return validCode(code) && get(secret(clubId)).data.code == code && get(codeDoc(code)).data.clubId == clubId;
+    }
     match /memberships/{id} {
-      allow read: if signedIn() && (resource.data.userId == request.auth.uid || isManagerOf(resource.data.clubId) || isVerified());
-      allow create: if signedIn() && request.resource.data.userId == request.auth.uid
-        && id == string(request.resource.data.clubId) + '_' + request.auth.uid
-        && (
-          (request.resource.data.role == 'member'
-            && get(/databases/$(database)/documents/joinCodes/$(request.resource.data.code)).data.clubId == request.resource.data.clubId)
-          || (request.resource.data.role == 'adviser'
-            && get(/databases/$(database)/documents/clubs/$(string(request.resource.data.clubId))).data.createdBy == request.auth.uid));
-      allow update: if isAdviserOf(resource.data.clubId) && resource.data.userId != request.auth.uid
-        && onlyChanges(['role']) && request.resource.data.role in ['member', 'officer'];
-      allow delete: if signedIn() && ((resource.data.userId == request.auth.uid && resource.data.role != 'adviser')
-        || (isManagerOf(resource.data.clubId) && resource.data.userId != request.auth.uid));
+      allow read: if active() && (resource.data.userId == request.auth.uid || manages(resource.data.clubId) || coordinator());
+      allow create: if active() &&
+        fields(request.resource.data, ['id','clubId','userId','role','name','email','joinedAt'], ['code']) &&
+        request.resource.data.userId == request.auth.uid && numericId(request.resource.data.clubId) &&
+        request.resource.data.id == id && id == string(request.resource.data.clubId) + '_' + request.auth.uid &&
+        request.resource.data.name == me().name && request.resource.data.email == me().email && validDay(request.resource.data.joinedAt) &&
+        ((request.resource.data.role == 'member' && currentCode(request.resource.data.get('code',''), request.resource.data.clubId)) ||
+         (coordinator() && request.resource.data.role == 'adviser' && !('code' in request.resource.data) &&
+          getAfter(club(request.resource.data.clubId)).data.createdBy == request.auth.uid));
+      allow update: if advises(resource.data.clubId) && resource.data.userId != request.auth.uid &&
+        resource.data.role in ['member','officer'] && onlyChanges(['role']) && request.resource.data.role in ['member','officer'];
+      allow delete: if active() && resource.data.role in ['member','officer'] &&
+        (resource.data.userId == request.auth.uid || manages(resource.data.clubId));
     }
 
-    // Outside service hours that members log for officers to approve.
+    function logShape(data, id) {
+      return fields(data, ['id','clubId','userId','name','date','hours','place','activity','supervisor','contact','status','at'],
+          ['reviewedBy','reviewedAt','note']) &&
+        numericId(data.id) && string(data.id) == id && numericId(data.clubId) && uid(data.userId) &&
+        line(data.name, 2, 80) && validDay(data.date) && number(data.hours, 0.25, 24) &&
+        int(data.hours * 4) == data.hours * 4 && line(data.place, 2, 160) && text(data.activity, 10, 1000) &&
+        line(data.supervisor, 2, 80) && (email(data.contact) || (phone(data.contact) && data.contact.size() >= 10)) && isoTime(data.at);
+    }
     match /hourLogs/{id} {
-      allow read: if signedIn() && (resource.data.userId == request.auth.uid || isManagerOf(resource.data.clubId) || isVerified());
-      allow create: if signedIn() && request.resource.data.userId == request.auth.uid && request.resource.data.status == 'pending'
-        && exists(membershipPath(request.resource.data.clubId, request.auth.uid));
-      // Officers can't approve their own hours.
-      allow update: if isManagerOf(resource.data.clubId) && resource.data.userId != request.auth.uid
-        && onlyChanges(['status', 'reviewedBy', 'reviewedAt', 'note']) && request.resource.data.status in ['approved', 'rejected'];
-      allow delete: if signedIn() && resource.data.userId == request.auth.uid && resource.data.status == 'pending';
+      allow read: if active() && (resource.data.userId == request.auth.uid || manages(resource.data.clubId) || coordinator());
+      allow create: if active() && logShape(request.resource.data, id) &&
+        request.resource.data.name == me().name && request.resource.data.userId == request.auth.uid &&
+        request.resource.data.date <= today() && request.resource.data.status == 'pending' &&
+        !request.resource.data.keys().hasAny(['reviewedBy','reviewedAt','note']) &&
+        exists(member(request.resource.data.clubId, request.auth.uid));
+      allow update: if active() && manages(resource.data.clubId) && resource.data.userId != request.auth.uid &&
+        resource.data.status == 'pending' && onlyChanges(['status','reviewedBy','reviewedAt','note']) &&
+        request.resource.data.status in ['approved','rejected'] && request.resource.data.reviewedBy == me().name &&
+        validDay(request.resource.data.reviewedAt) && text(request.resource.data.note, request.resource.data.status == 'rejected' ? 5 : 0, 240);
+      allow delete: if active() && resource.data.userId == request.auth.uid && resource.data.status == 'pending';
     }
 
-    // Join codes. clubSecrets lets managers see their club's code; joinCodes lets a member
-    // look up ONE code they typed (no one can list all codes).
-    match /clubSecrets/{clubId} {
-      allow read: if isManagerOf(clubId);
-      allow write: if isAdviserOf(clubId);
+    function maySetClubCode(id) {
+      return existsAfter(club(id)) &&
+        ((coordinator() && getAfter(club(id)).data.createdBy == request.auth.uid) || advises(id));
+    }
+    match /clubSecrets/{id} {
+      allow get: if id.matches('[0-9]{1,16}') && (manages(int(id)) || advises(int(id)));
+      allow create, update: if id.matches('[0-9]{1,16}') && maySetClubCode(int(id)) &&
+        fields(request.resource.data, ['code'], []) && validCode(request.resource.data.code) &&
+        getAfter(codeDoc(request.resource.data.code)).data.clubId == int(id);
     }
     match /joinCodes/{code} {
-      allow get: if signedIn();
-      allow list: if false;
-      allow create: if isAdviserOf(request.resource.data.clubId);
-      allow delete: if isAdviserOf(resource.data.clubId);
+      allow get: if active() && validCode(code) && get(secret(resource.data.clubId)).data.code == code;
+      allow create: if active() && validCode(code) && fields(request.resource.data, ['clubId'], []) &&
+        numericId(request.resource.data.clubId) && maySetClubCode(request.resource.data.clubId) &&
+        getAfter(secret(request.resource.data.clubId)).data.code == code;
+      allow delete: if active() && advises(resource.data.clubId) && getAfter(secret(resource.data.clubId)).data.code != code;
     }
 
-    // Organization name, home ZIP, description, and waiver. Public so the login page can show them.
-    match /settings/{doc} {
-      allow read: if true;
-      allow write: if isVerified() && doc == 'org';
+    match /settings/org {
+      allow get: if true;
+      allow create, update: if admin() && fields(request.resource.data, ['name','zip','about','waiver'], []) &&
+        line(request.resource.data.name, 2, 60) && postal(request.resource.data.zip) &&
+        text(request.resource.data.about, 0, 160) && text(request.resource.data.waiver, 40, 3000);
     }
   }
 }

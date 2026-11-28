@@ -21,6 +21,7 @@ const DB = {
   newId(coll){
     return this.live ? Date.now() * 100 + Math.floor(Math.random() * 100) : nid(state[coll]);
   },
+  registrationId(eventId, userId){ return this.live ? `${eventId}_${userId}` : this.newId("regs"); },
   add(coll, obj){
     state[coll].push(obj);
     if (this.live) Cloud.set(coll, obj);
@@ -40,6 +41,21 @@ const DB = {
     if (this.live) Cloud.setOrg(org);
   },
 
+  // Wait for the server on actions that require a confirmed outcome. Firestore batches
+  // recurring events and bulk attendance as a single atomic commit.
+  async commit(coll, changes){
+    const target = state;
+    const previous = new Map(state[coll].map(item => [item.id, item]));
+    await Cloud.commit(coll, changes);
+    if (target !== state) return;
+    for (const {id, record, fields} of changes){
+      const existing = state[coll].find(item => item.id === id);
+      // A listener may have already delivered a newer version while the write was pending.
+      if (existing && existing === previous.get(id)) Object.assign(existing, record || fields);
+      else if (!existing && !previous.has(id) && record) state[coll].push(record);
+    }
+  },
+
   /* Permission checks that mirror the database's security rules (firestore.rules),
      so the app doesn't try something the database will refuse. */
   isVerifiedCoordinator(u = currentUser()){ return !!u && u.role === "coordinator" && (u.verified || u.admin); },
@@ -47,7 +63,7 @@ const DB = {
     const u = currentUser();
     if (!this.live) return true;
     const e = eventById(r.eventId);
-    return r.userId === u.id || this.isVerifiedCoordinator(u) || (!!e && ((u.role === "coordinator" && e.postedBy === u.id) || (!!e.clubId && isClubManager(e.clubId, u))));
+    return r.userId === u.id || this.isVerifiedCoordinator(u) || (!!e && !!e.clubId && isClubManager(e.clubId, u));
   },
   canNotify(userId, clubId){
     const u = currentUser();

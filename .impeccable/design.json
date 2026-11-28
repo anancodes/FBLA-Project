@@ -1,0 +1,312 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-15T22:44:03Z",
+  "title": "Design System: VolunteerHub",
+  "extensions": {
+    "colorMeta": {
+      "action": {
+        "role": "primary",
+        "displayName": "Slate-blue action",
+        "tonalRamp": ["oklch(15% 0.0130 238.3)", "oklch(26% 0.0285 238.3)", "oklch(38% 0.0415 238.3)", "oklch(49% 0.0518 238.3)", "oklch(61% 0.0518 238.3)", "oklch(72% 0.0415 238.3)", "oklch(84% 0.0259 238.3)", "oklch(95% 0.0078 238.3)"]
+      },
+      "action-hover": {
+        "role": "primary",
+        "displayName": "Deep action",
+        "tonalRamp": ["oklch(15% 0.0137 239.3)", "oklch(26% 0.0302 239.3)", "oklch(38% 0.0440 239.3)", "oklch(49% 0.0550 239.3)", "oklch(61% 0.0550 239.3)", "oklch(72% 0.0440 239.3)", "oklch(84% 0.0275 239.3)", "oklch(95% 0.0082 239.3)"]
+      },
+      "sidebar": {
+        "role": "primary",
+        "displayName": "Dark blue wayfinding",
+        "tonalRamp": ["oklch(15% 0.0107 239.3)", "oklch(26% 0.0236 239.3)", "oklch(38% 0.0343 239.3)", "oklch(49% 0.0428 239.3)", "oklch(61% 0.0428 239.3)", "oklch(72% 0.0343 239.3)", "oklch(84% 0.0214 239.3)", "oklch(95% 0.0064 239.3)"]
+      },
+      "field": {
+        "role": "neutral",
+        "displayName": "White reading field",
+        "tonalRamp": ["oklch(15% 0.0000 0.0)", "oklch(26% 0.0000 0.0)", "oklch(38% 0.0000 0.0)", "oklch(49% 0.0000 0.0)", "oklch(61% 0.0000 0.0)", "oklch(72% 0.0000 0.0)", "oklch(84% 0.0000 0.0)", "oklch(95% 0.0000 0.0)"]
+      },
+      "field-quiet": {
+        "role": "neutral",
+        "displayName": "Quiet field",
+        "tonalRamp": ["oklch(15% 0.0010 236.5)", "oklch(26% 0.0023 236.5)", "oklch(38% 0.0033 236.5)", "oklch(49% 0.0042 236.5)", "oklch(61% 0.0042 236.5)", "oklch(72% 0.0033 236.5)", "oklch(84% 0.0021 236.5)", "oklch(95% 0.0006 236.5)"]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Reading ink",
+        "tonalRamp": ["oklch(15% 0.0098 243.9)", "oklch(26% 0.0217 243.9)", "oklch(38% 0.0315 243.9)", "oklch(49% 0.0394 243.9)", "oklch(61% 0.0394 243.9)", "oklch(72% 0.0315 243.9)", "oklch(84% 0.0197 243.9)", "oklch(95% 0.0059 243.9)"]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Supporting slate",
+        "tonalRamp": ["oklch(15% 0.0097 236.6)", "oklch(26% 0.0214 236.6)", "oklch(38% 0.0312 236.6)", "oklch(49% 0.0390 236.6)", "oklch(61% 0.0390 236.6)", "oklch(72% 0.0312 236.6)", "oklch(84% 0.0195 236.6)", "oklch(95% 0.0058 236.6)"]
+      },
+      "divider": {
+        "role": "neutral",
+        "displayName": "Quiet divider",
+        "tonalRamp": ["oklch(15% 0.0032 236.6)", "oklch(26% 0.0070 236.6)", "oklch(38% 0.0101 236.6)", "oklch(49% 0.0127 236.6)", "oklch(61% 0.0127 236.6)", "oklch(72% 0.0101 236.6)", "oklch(84% 0.0063 236.6)", "oklch(95% 0.0019 236.6)"]
+      },
+      "control-line": {
+        "role": "neutral",
+        "displayName": "Control boundary",
+        "tonalRamp": ["oklch(15% 0.0091 237.3)", "oklch(26% 0.0199 237.3)", "oklch(38% 0.0290 237.3)", "oklch(49% 0.0363 237.3)", "oklch(61% 0.0363 237.3)", "oklch(72% 0.0290 237.3)", "oklch(84% 0.0181 237.3)", "oklch(95% 0.0054 237.3)"]
+      },
+      "selected": {
+        "role": "neutral",
+        "displayName": "Selected field",
+        "tonalRamp": ["oklch(15% 0.0025 238.5)", "oklch(26% 0.0056 238.5)", "oklch(38% 0.0081 238.5)", "oklch(49% 0.0101 238.5)", "oklch(61% 0.0101 238.5)", "oklch(72% 0.0081 238.5)", "oklch(84% 0.0050 238.5)", "oklch(95% 0.0015 238.5)"]
+      },
+      "progress-low": {
+        "role": "semantic",
+        "displayName": "Low progress red",
+        "tonalRamp": ["oklch(15% 0.0290 27.9)", "oklch(26% 0.0638 27.9)", "oklch(38% 0.0929 27.9)", "oklch(49% 0.1161 27.9)", "oklch(61% 0.1161 27.9)", "oklch(72% 0.0929 27.9)", "oklch(84% 0.0580 27.9)", "oklch(95% 0.0174 27.9)"]
+      },
+      "progress-mid": {
+        "role": "semantic",
+        "displayName": "Midpoint yellow",
+        "tonalRamp": ["oklch(15% 0.0308 85.7)", "oklch(26% 0.0677 85.7)", "oklch(38% 0.0984 85.7)", "oklch(49% 0.1230 85.7)", "oklch(61% 0.1230 85.7)", "oklch(72% 0.0984 85.7)", "oklch(84% 0.0615 85.7)", "oklch(95% 0.0185 85.7)"]
+      },
+      "progress-full": {
+        "role": "semantic",
+        "displayName": "Completion green",
+        "tonalRamp": ["oklch(15% 0.0315 151.8)", "oklch(26% 0.0693 151.8)", "oklch(38% 0.1009 151.8)", "oklch(49% 0.1261 151.8)", "oklch(61% 0.1261 151.8)", "oklch(72% 0.1009 151.8)", "oklch(84% 0.0630 151.8)", "oklch(95% 0.0189 151.8)"]
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "Page title",
+        "purpose": "Signed-in page h1; 1.75rem below 620px."
+      },
+      "title": {
+        "displayName": "Section heading",
+        "purpose": "Signed-in Home section headings; 1.25rem below 620px."
+      },
+      "event": {
+        "displayName": "Event title",
+        "purpose": "Readable dated shift and recommendation titles."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Signed-in reading text follows the saved root text-size preference."
+      },
+      "label": {
+        "displayName": "Standard action",
+        "purpose": "Signed-in button typography; compact variants remain in source."
+      },
+      "meta": {
+        "displayName": "Supporting detail",
+        "purpose": "Quiet supporting copy; individual existing surfaces retain subordinate sizes."
+      },
+      "public-display": {
+        "displayName": "Public page heading",
+        "purpose": "Bitter h1 on the landing and account pages; the hero uses 2.375rem at widths up to 700px. Locally served weights 400–700; signed-in headings retain Public Sans."
+      },
+      "public-headline": {
+        "displayName": "Public section heading",
+        "purpose": "Process, audience and demo section headings; account demo h2 uses 1.25rem."
+      },
+      "public-title": {
+        "displayName": "Public process or role title",
+        "purpose": "Process, sample-record, audience and role-demo h3 on the public landing and account pages."
+      },
+      "public-body": {
+        "displayName": "Public reading",
+        "purpose": "Bitter public root and inherited reading, capped at 68ch where applicable; shares saved root text-size preferences. Font source: fonts/bitter-latin.woff2; license: fonts/Bitter-OFL.txt."
+      },
+      "public-label": {
+        "displayName": "Public action",
+        "purpose": "Public primary and secondary actions with 46px minimum height; narrower masthead and footer settings have source-specific variants."
+      },
+      "public-field": {
+        "displayName": "Public account field",
+        "purpose": "Sign-in, signup and live reset text/select fields; 44px minimum height, with inherited labeled-field focus and error states."
+      },
+      "public-meta": {
+        "displayName": "Public supporting detail",
+        "purpose": "Sample-record rows and footer copy; smaller caption and account variants remain in source."
+      }
+    },
+    "shadows": [
+      {
+        "name": "popup-light",
+        "value": "0 12px 32px rgba(16,24,40,.14), 0 2px 6px rgba(16,24,40,.06)",
+        "purpose": "Inherited dialog and toast depth; page content stays flat."
+      },
+      {
+        "name": "popup-dark",
+        "value": "0 12px 32px rgba(0,0,0,.5)",
+        "purpose": "Inherited popup depth in dark mode."
+      },
+      {
+        "name": "field-focus",
+        "value": "0 0 0 3px var(--accent-soft)",
+        "purpose": "Field focus ring alongside visible keyboard outline."
+      },
+      {
+        "name": "field-invalid",
+        "value": "0 0 0 3px var(--bad-soft)",
+        "purpose": "Invalid field ring; retain error text."
+      }
+    ],
+    "motion": [
+      {
+        "name": "button-state",
+        "value": "background .16s, border-color .16s",
+        "purpose": "Quiet state change; removed for reduced motion."
+      },
+      {
+        "name": "toast-rise",
+        "value": "rise .18s ease-out",
+        "purpose": "Inherited translateY(6px)/opacity .5 entrance; removed for reduced motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "intermediate-maximum",
+        "value": "1200px"
+      },
+      {
+        "name": "header-navigation-and-public-hero-stack-maximum",
+        "value": "900px"
+      },
+      {
+        "name": "narrow-phone-maximum",
+        "value": "620px"
+      },
+      {
+        "name": "public-columns-and-footer-stack-maximum",
+        "value": "700px"
+      },
+      {
+        "name": "public-record-label-stack-maximum",
+        "value": "360px"
+      },
+      {
+        "name": "public-wide-hero-minimum",
+        "value": "1600px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Explicit primary action; navigation actions in the website use anchors with the same treatment.",
+      "html": "<button class=\"ds-primary\">Save changes</button>",
+      "css": ".ds-primary{display:inline-flex;align-items:center;justify-content:center;gap:6px;font-family:\"Public Sans\",\"Segoe UI\",sans-serif;font-size:.9375rem;line-height:1;font-weight:500;min-height:42px;padding:10px 18px;border:1px solid var(--accent,#496a80);border-radius:4px;background:var(--accent,#496a80);color:var(--accent-ink,#fff);cursor:pointer;white-space:nowrap;transition:background .16s,border-color .16s;}.ds-primary:hover{background:var(--accent-hover,#34566d);border-color:var(--accent-hover,#34566d)}.ds-primary:focus-visible{outline:2px solid var(--accent,#496a80);outline-offset:4px}.ds-primary:disabled{opacity:.45;cursor:not-allowed}@media(prefers-reduced-motion:reduce){.ds-primary{transition:none}}"
+    },
+    {
+      "name": "Secondary button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Quiet explicit action with a stronger boundary; Home row actions use the compact 40px variant.",
+      "html": "<button class=\"ds-secondary\">View shift</button>",
+      "css": ".ds-secondary{display:inline-flex;align-items:center;justify-content:center;gap:6px;font-family:\"Public Sans\",\"Segoe UI\",sans-serif;font-size:.9375rem;line-height:1;font-weight:500;min-height:42px;padding:10px 18px;border:1px solid var(--accent,#496a80);border-radius:4px;background:var(--accent,#496a80);color:var(--accent-ink,#fff);cursor:pointer;white-space:nowrap;transition:background .16s,border-color .16s;background:var(--surface,#fff);color:var(--ink,#182c3c);border-color:var(--line-strong,#b7c8d3)}.ds-secondary:hover{background:var(--surface-2,#f2f5f7);border-color:var(--accent-hover,#34566d)}.ds-secondary:focus-visible{outline:2px solid var(--accent,#496a80);outline-offset:4px}.ds-secondary:disabled{opacity:.45;cursor:not-allowed}@media(prefers-reduced-motion:reduce){.ds-secondary{transition:none}}"
+    },
+    {
+      "name": "Labeled field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Existing field geometry with the Open agenda control boundary and visible keyboard focus.",
+      "html": "<div class=\"ds-field\"><label for=\"ds-opportunity-search\">Search opportunities</label><input id=\"ds-opportunity-search\" type=\"search\" placeholder=\"Event, organizer or cause\"></div>",
+      "css": ".ds-field{display:flex;flex-direction:column;gap:5px;font-family:\"Public Sans\",\"Segoe UI\",sans-serif;color:var(--ink,#182c3c);line-height:1.5}.ds-field label{font-size:.84rem;font-weight:500}.ds-field input{font-family:\"Public Sans\",\"Segoe UI\",sans-serif;font-size:.92rem;line-height:1.5;color:var(--ink,#182c3c);background:var(--surface,#fff);border:1px solid var(--control-line,#7c94a4);border-radius:4px;padding:7px 10px;width:100%;min-width:0;min-height:36px;caret-color:var(--accent,#496a80)}.ds-field input::placeholder{color:var(--faint,#586f7e)}.ds-field input:focus{outline:none;border-color:var(--accent,#496a80);box-shadow:0 0 0 3px var(--accent-soft,#e7eef3)}.ds-field input:focus-visible{outline:2px solid var(--accent,#496a80);outline-offset:4px}.ds-field input[aria-invalid=\"true\"]{border-color:var(--bad,#ad463e);box-shadow:0 0 0 3px var(--bad-soft,#faeeec)}"
+    },
+    {
+      "name": "Website navigation",
+      "kind": "nav",
+      "refersTo": "nav-link",
+      "description": "Real fragment links with current-page semantics; the role-specific menu remains the source of available destinations.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Main\"><a href=\"#dashboard\" aria-current=\"page\">Home</a><a href=\"#find\">Opportunities</a><a href=\"#shifts\">My schedule</a><a href=\"#hours\">Hours &amp; clubs</a><a href=\"#news\">Inbox</a></nav>",
+      "css": ".ds-nav{display:flex;flex-direction:column;gap:4px;padding:16px;background:var(--rail,#263f50);font-family:\"Public Sans\",\"Segoe UI\",sans-serif;line-height:1.5}.ds-nav a{display:flex;align-items:center;gap:12px;min-height:48px;padding:10px 12px;color:var(--rail-ink,#f0f5f8);border-radius:4px;text-decoration:none;font-size:1rem;font-weight:400;white-space:nowrap}.ds-nav a:hover{background:var(--rail-hover,#355365)}.ds-nav a[aria-current=\"page\"]{background:var(--rail-active,#e7eef3);color:var(--rail-active-ink,#182c3c);font-weight:600}.ds-nav a:focus-visible{outline:2px solid #e7eef3;outline-offset:4px}@media(max-width:900px){.ds-nav{flex-direction:row;flex-wrap:wrap}.ds-nav a{min-height:44px;padding:8px 12px;font-size:.9375rem}}@media(max-width:620px){.ds-nav a{font-size:.875rem;padding-inline:8px}}"
+    },
+    {
+      "name": "Verified service progress",
+      "kind": "custom",
+      "refersTo": "progress",
+      "description": "Home progress combines a continuous semantic fill with numeric hours, a goal and percentage text.",
+      "html": "<aside class=\"ds-service\" aria-labelledby=\"ds-service-heading\"><h2 id=\"ds-service-heading\">Verified service</h2><p class=\"ds-service-total\"><strong>21</strong> hours</p><p class=\"ds-service-goal\">of your 25-hour goal</p><div class=\"ds-meter\" role=\"progressbar\" aria-label=\"Service hour goal\" aria-valuemin=\"0\" aria-valuemax=\"100\" aria-valuenow=\"84\" aria-valuetext=\"21 of 25 hours\"><span></span></div><p class=\"ds-service-percent\">84% complete</p><a class=\"ds-service-link\" href=\"#hours\">View my hours</a></aside>",
+      "css": ".ds-service{font-family:\"Public Sans\",\"Segoe UI\",sans-serif;line-height:1.5;color:var(--ink,#182c3c)}.ds-service h2{margin:0;font-size:1.125rem;font-weight:600;line-height:1.5;letter-spacing:-.012em}.ds-service-total{margin:20px 0 0;font-size:1.625rem;font-weight:600;line-height:1.3;letter-spacing:-.025em}.ds-service-total strong{font:inherit;font-variant-numeric:tabular-nums}.ds-service-goal{margin:4px 0 0;font-size:.9375rem;color:var(--muted,#526b7b)}.ds-meter{margin-top:20px;height:6px;border-radius:0;overflow:hidden;background:var(--line,#dce5eb)}.ds-meter span{display:block;height:100%;width:84%;background:color-mix(in oklch,var(--progress-mid,#ad851b) 32%,var(--progress-full,#248348) 68%)}.ds-service-percent{margin:8px 0 24px;font-size:.875rem;color:var(--muted,#526b7b)}.ds-service-link{display:inline-flex;align-items:center;min-height:32px;font-size:.9375rem;font-weight:500;color:var(--accent,#496a80);text-decoration:underline;text-underline-offset:4px}.ds-service-link:hover{text-decoration-color:var(--accent,#496a80)}.ds-service-link:focus-visible{outline:2px solid var(--accent,#496a80);outline-offset:4px}"
+    },
+    {
+      "name": "Inline display settings",
+      "kind": "custom",
+      "refersTo": "inline-settings",
+      "description": "Expanded navigation settings; preview buttons demonstrate states without mutating preferences.",
+      "html": "<section class=\"ds-display\" aria-label=\"Display settings\"><div><span>Text size</span><span class=\"ds-segments\"><button aria-label=\"A−, smaller text\">A−</button><button aria-label=\"A+, larger text\">A+</button></span></div><div><span>Theme</span><span class=\"ds-segments\"><button aria-pressed=\"true\">Auto</button><button aria-pressed=\"false\">Light</button><button aria-pressed=\"false\">Dark</button></span></div><div><span>High contrast</span><button class=\"ds-contrast\" aria-pressed=\"false\">Off</button></div></section>",
+      "css": ".ds-display{padding:12px 0 20px;display:grid;gap:16px;background:var(--rail,#263f50);color:var(--rail-ink,#f0f5f8);font-family:\"Public Sans\",\"Segoe UI\",sans-serif;line-height:1.5}.ds-display>div{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;font-size:.8125rem}.ds-segments{display:inline-flex;border:1px solid #7e97a7;border-radius:4px;overflow:hidden}.ds-segments button{height:36px;padding:0 8px;border:0;font-family:\"Public Sans\",\"Segoe UI\",sans-serif;font-size:.8125rem;font-weight:500;background:var(--rail,#263f50);color:var(--rail-ink,#f0f5f8);cursor:pointer}.ds-segments button+button{border-left:1px solid #7e97a7}.ds-segments button:hover{background:var(--rail,#263f50)}.ds-segments button[aria-pressed=\"true\"],.ds-contrast[aria-pressed=\"true\"]{background:var(--rail-active,#e7eef3);color:var(--rail-active-ink,#182c3c)}.ds-contrast{min-height:34px;padding:8px 12px;border:1px solid #7e97a7;border-radius:4px;font-family:\"Public Sans\",\"Segoe UI\",sans-serif;font-size:.875rem;line-height:1;font-weight:500;background:var(--rail,#263f50);color:var(--rail-ink,#f0f5f8);cursor:pointer;transition:background .16s,border-color .16s}.ds-contrast:hover{border-color:#7e97a7}.ds-display button:focus-visible{outline:2px solid #e7eef3;outline-offset:4px}@media(max-width:900px){.ds-display{padding:8px 0 16px}.ds-display>div{font-size:.875rem}.ds-segments button{height:40px;padding:0 12px;font-size:.875rem}}@media(prefers-reduced-motion:reduce){.ds-contrast{transition:none}}"
+    },
+    {
+      "name": "Public primary action",
+      "kind": "button",
+      "refersTo": "public-button-primary",
+      "description": "Sign-in has primary emphasis within the approved Bitter public variant; existing signed-in buttons retain Public Sans.",
+      "html": "<a class=\"ds-public-primary\" href=\"#login\">Sign in</a>",
+      "css": ".ds-public-primary{display:inline-flex;align-items:center;justify-content:center;gap:6px;font-family:\"Bitter\",Georgia,serif;font-size:.9375rem;line-height:1;font-weight:600;min-height:46px;padding:10px 20px;border:1px solid var(--accent,#496a80);border-radius:4px;background:var(--accent,#496a80);color:var(--accent-ink,#fff);cursor:pointer;white-space:nowrap;text-decoration:none;transition:background .16s,border-color .16s}.ds-public-primary:hover{background:var(--accent-hover,#34566d);border-color:var(--accent-hover,#34566d)}.ds-public-primary:focus-visible{outline:2px solid var(--accent,#496a80);outline-offset:4px}.ds-public-primary:disabled{opacity:.45;cursor:not-allowed}@media(prefers-reduced-motion:reduce){.ds-public-primary{transition:none}}"
+    },
+    {
+      "name": "Public secondary action",
+      "kind": "button",
+      "refersTo": "public-button-secondary",
+      "description": "Adjacent hero demo entry and both role demo actions use the quiet public treatment; production demo buttons retain their existing handlers.",
+      "html": "<button class=\"ds-public-secondary\">Try volunteer demo</button>",
+      "css": ".ds-public-secondary{display:inline-flex;align-items:center;justify-content:center;gap:6px;font-family:\"Bitter\",Georgia,serif;font-size:.9375rem;line-height:1;font-weight:600;min-height:46px;padding:10px 20px;border:1px solid var(--accent,#496a80);border-radius:4px;background:var(--surface,#fff);color:var(--ink,#182c3c);border-color:var(--line-strong,#b7c8d3);cursor:pointer;white-space:nowrap;text-decoration:none;transition:background .16s,border-color .16s}.ds-public-secondary:hover{background:var(--surface-2,#f2f5f7);border-color:var(--accent-hover,#34566d)}.ds-public-secondary:focus-visible{outline:2px solid var(--accent,#496a80);outline-offset:4px}.ds-public-secondary:disabled{opacity:.45;cursor:not-allowed}@media(prefers-reduced-motion:reduce){.ds-public-secondary{transition:none}}"
+    },
+    {
+      "name": "Public account field",
+      "kind": "input",
+      "refersTo": "public-input",
+      "description": "Bitter account text/select fields keep explicit labels, visible keyboard focus, invalid boundaries and error text.",
+      "html": "<div class=\"ds-public-field\"><label for=\"ds-public-email\">Email</label><input id=\"ds-public-email\" type=\"email\" autocomplete=\"username\" placeholder=\"name@example.org\"></div>",
+      "css": ".ds-public-field{display:flex;flex-direction:column;gap:5px;font-family:\"Bitter\",Georgia,serif;line-height:1.65;color:var(--ink,#182c3c)}.ds-public-field label{font-size:.84rem;font-weight:500}.ds-public-field input{font-family:inherit;font-size:1rem;font-weight:400;line-height:1.65;background:var(--surface,#fff);color:var(--ink,#182c3c);border:1px solid var(--control-line,#7c94a4);border-radius:4px;padding:7px 10px;width:100%;min-width:0;min-height:44px;caret-color:var(--accent,#496a80)}.ds-public-field input::placeholder{color:var(--faint,#586f7e)}.ds-public-field input:focus{outline:none;border-color:var(--accent,#496a80);box-shadow:0 0 0 3px var(--accent-soft,#e7eef3)}.ds-public-field input:focus-visible{outline:2px solid var(--accent,#496a80);outline-offset:4px}.ds-public-field input[aria-invalid=\"true\"]{border-color:var(--bad,#ad463e);box-shadow:0 0 0 3px var(--bad-soft,#faeeec)}"
+    },
+    {
+      "name": "Public masthead",
+      "kind": "nav",
+      "refersTo": "public-navigation",
+      "description": "White horizontal masthead with Bitter wordmark, two useful section links and primary sign-in; wraps into a full navigation row on phones.",
+      "html": "<header class=\"ds-public-masthead\"><a class=\"ds-public-brand\" href=\"#home\">VolunteerHub</a><nav aria-label=\"Main navigation\"><a href=\"#how-it-works\">How it works</a><a href=\"#schools\">Schools &amp; nonprofits</a><a class=\"ds-public-signin\" href=\"#login\">Sign in</a></nav></header>",
+      "css": ".ds-public-masthead{display:flex;align-items:center;justify-content:space-between;gap:1.5rem;min-height:76px;padding:12px clamp(1.25rem,4vw,4rem);background:var(--surface,#fff);color:var(--ink,#182c3c);font-family:\"Bitter\",Georgia,serif;line-height:1.65}.ds-public-brand{font-size:1.5rem;font-weight:650;letter-spacing:-.035em;color:var(--ink,#182c3c);text-decoration:none;line-height:1.3}.ds-public-masthead nav{display:flex;align-items:center;flex-wrap:wrap;gap:1.5rem}.ds-public-masthead nav>a:not(.ds-public-signin){display:flex;align-items:center;min-height:44px;font-size:.9375rem;color:var(--ink,#182c3c);text-decoration:none}.ds-public-masthead nav>a:not(.ds-public-signin):hover{text-decoration:underline}.ds-public-masthead a{text-underline-offset:4px}.ds-public-masthead a:hover{text-decoration-thickness:2px}.ds-public-signin{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:10px 20px;border:1px solid var(--accent,#496a80);border-radius:4px;background:var(--accent,#496a80);color:var(--accent-ink,#fff);font-size:.9375rem;font-weight:600;line-height:1;text-decoration:none;white-space:nowrap;transition:background .16s,border-color .16s}.ds-public-signin:hover{background:var(--accent-hover,#34566d);border-color:var(--accent-hover,#34566d)}.ds-public-masthead a:focus-visible{outline:2px solid var(--accent,#496a80);outline-offset:4px}@media(max-width:900px){.ds-public-masthead{align-items:flex-start;gap:1rem;flex-wrap:wrap}.ds-public-masthead nav{gap:1rem}}@media(max-width:700px){.ds-public-masthead{padding-block:1rem}.ds-public-masthead nav{width:100%;justify-content:space-between;gap:.5rem}.ds-public-masthead nav>a:not(.ds-public-signin){font-size:.8125rem}.ds-public-signin{font-size:.875rem;padding:8px 14px;min-height:44px}}@media(max-width:360px){.ds-public-masthead nav>a:not(.ds-public-signin){font-size:.75rem}.ds-public-signin{padding-inline:10px}}@media(prefers-reduced-motion:reduce){.ds-public-signin{transition:none}}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Open agenda",
+    "overview": "The owner selected Open agenda and explicitly required a website. Dark blue wayfinding, a white reading field, readable Public Sans and ordinary web controls establish a simple, ordered service website for both signed-in roles. The approved public landing, sign-in, signup and reset variant uses Bitter's sturdy serif voice within the same navy, white and slate system.\n\nSchools and nonprofits receive equal care. Clear dates, explicit actions and distinct service states support people finding opportunities and coordinators maintaining accurate records. Organization details remain configurable; sample content does not establish customers or endorsements.\n\nSource authority is `volunteerhub-web/vh-web/css/open-agenda.css` and `js/website.js`, composed with `css/styles.css`, `js/app.js` and `index.html`. The selected code-led reference is `.impeccable/mocks/decision/open-agenda.html`; the website direction contract is `.impeccable/surfaces/volunteerhub-web-vh-web-js-website-js.md`. Frontmatter records reused light-mode tokens; source overrides govern dark and high-contrast modes. Sidecar ramps are panel previews, not shipped scales.\n\nThe public variant is grounded in `css/landing.css`, `js/views/landing.js` and `js/views/auth.js` under the same web root, with its scoped direction recorded in `.impeccable/surfaces/volunteerhub-web-vh-web-js-views-landing-js.md`. It merges the community-led composition with the owner's requested restraint, short purposeful copy and one large photograph; it does not replace the signed-in system.\n\nThe prior Open agenda finish disposition was **ship** for its 28 required captures and 38 isolated fixture checks. The current public review found no material UI defect in 17 required captures; the reported 43 browser/workflow checks use sample data and mocked Firebase. The full review’s **fix** concerned persistence and workflow documentation. A subsequent narrow **ship** verdict resolved those two findings through accurate documentation and explicit disclosure; it covers those scored fixes only. Automated Impeccable remains open at **SPEC**: font matching reports no resolvable browser/catalog despite installed Chromium/Playwright, and the approximately 70% comparison is recorded drift with owner-authorized type, content and photo-removal deviations. No asset/assembly acceptance or automated gate pass is claimed. Neither review establishes production database behavior, load capacity or deployment readiness.",
+    "keyCharacteristics": [
+      "Dark blue navigation and flat, generously spaced reading areas.",
+      "Public Bitter and signed-in Public Sans, tabular dates and amounts, explicit task labels.",
+      "Real navigation links, browser history, natural page scrolling and visible mobile destinations.",
+      "Numeric and verbal status alongside color, with retained display preferences and keyboard access."
+    ],
+    "rules": [
+      {
+        "name": "The Semantic Progress Rule",
+        "body": "Progress continuously mixes low red through midpoint yellow to completion green in OKLCH, accompanied by amounts and percentage text. Keep pending claims distinct from verified service.",
+        "section": "colors"
+      },
+      {
+        "name": "The Readable Preference Rule",
+        "body": "Use rem-based hierarchy and retain text size, Auto/Light/Dark and high-contrast controls across the website.",
+        "section": "typography"
+      },
+      {
+        "name": "The Public Type Scope Rule",
+        "body": "Use Bitter for the public landing and account pages; keep Public Sans on signed-in screens.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat Reading Surface Rule",
+        "body": "Use whitespace, tone and divider lines for page structure. Shifts, recommendations and service summaries do not become raised cards.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do keep website links, browser navigation, ordinary scrolling and all mobile destinations usable.",
+      "Do preserve saved display preferences, reduced motion, visible keyboard focus and text alongside semantic color.",
+      "Do use explicit actions and maintain accurate role, permission and service-state distinctions."
+    ],
+    "donts": [
+      "Don't add OS window chrome, app-like bottom navigation, neon accents or unnecessary account dropdowns.",
+      "Don't add descriptive tab clutter or vague actions; the owner rejects SignUpGenius-style clutter.",
+      "Don't turn sample organizations, demo records or isolated checks into commercial, production-readiness or accessibility-certification claims."
+    ]
+  }
+}

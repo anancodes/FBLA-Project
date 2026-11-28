@@ -2,42 +2,53 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com/recaptcha/; style-src 'self' 'unsafe-inline'; connect-src 'self' https://us-central1-volunteerhub-12975.cloudfunctions.net https://*.googleapis.com https://*.firebaseapp.com https://www.google.com/recaptcha/; frame-src https://*.firebaseapp.com https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>VolunteerHub</title>
-<meta name="description" content="Volunteer management for nonprofits: post shifts, sign up, check in, and report service hours.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
-<link rel="stylesheet" href="css/styles.css">
+<meta name="description" content="Find volunteer shifts, coordinate events, and track approved service hours for schools and nonprofits.">
+<link rel="preload" href="fonts/bitter-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/atkinson-hyperlegible-next-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="css/styles.css?v=accounts1">
+<link rel="stylesheet" href="css/open-agenda.css?v=accounts1">
+<link rel="stylesheet" href="css/landing.css?v=accounts1">
 </head>
 <body>
 <!-- The app draws itself into #app. #modal holds pop-up forms; #toast shows short messages. -->
 <div id="app"></div>
 <div id="modal"></div>
+<dialog id="action-confirmation" class="action-confirmation" aria-labelledby="confirmation-title" aria-describedby="confirmation-event confirmation-effect"></dialog>
+<div id="connection-status" class="sr-only" role="status"></div>
+<div id="operation-status" class="sr-only" role="status"></div>
 <div id="toast" aria-live="polite" role="status"></div>
 
 <!-- Load order matters: helpers and data first, screens next, app.js last. -->
 <script src="js/firebase-config.js"></script>
-<script src="js/utils.js"></script>
-<script src="js/zipdata.js"></script>
-<script src="js/geo.js"></script>
-<script src="js/data.js"></script>
-<script src="js/store.js"></script>
-<script src="js/db.js"></script>
-<script src="js/cloud.js"></script>
-<script src="js/clubs.js"></script>
-<script src="js/validation.js"></script>
-<script src="js/components.js"></script>
-<script src="js/views/auth.js"></script>
-<script src="js/views/volunteer.js"></script>
-<script src="js/views/coordinator.js"></script>
-<script src="js/views/help.js"></script>
-<script src="js/views/news.js"></script>
-<script src="js/views/settings.js"></script>
-<script src="js/views/organizers.js"></script>
-<script src="js/views/clubs.js"></script>
-<script src="js/tour.js"></script>
-<script src="js/actions.js"></script>
-<script src="js/app.js"></script>
+<script src="js/utils.js?v=accounts1"></script>
+<script src="js/zipdata.js?v=accounts1"></script>
+<script src="js/geo.js?v=accounts1"></script>
+<script src="js/data.js?v=accounts1"></script>
+<script src="js/store.js?v=accounts1"></script>
+<script src="js/db.js?v=accounts1"></script>
+<script src="js/cloud.js?v=accounts1"></script>
+<script src="js/pace.js?v=accounts1"></script>
+<script src="js/clubs.js?v=accounts1"></script>
+<script src="js/validation.js?v=accounts1"></script>
+<script src="js/components.js?v=accounts1"></script>
+<script src="js/loading.js?v=accounts1"></script>
+<script src="js/views/landing.js?v=accounts1"></script>
+<script src="js/views/auth.js?v=accounts1"></script>
+<script src="js/views/volunteer.js?v=accounts1"></script>
+<script src="js/website.js?v=accounts1"></script>
+<script src="js/views/coordinator.js?v=accounts1"></script>
+<script src="js/views/help.js?v=accounts1"></script>
+<script src="js/views/news.js?v=accounts1"></script>
+<script src="js/gmail.js?v=accounts1"></script>
+<script src="js/views/settings.js?v=accounts1"></script>
+<script src="js/views/organizers.js?v=accounts1"></script>
+<script src="js/views/clubs.js?v=accounts1"></script>
+<script src="js/tour.js?v=accounts1"></script>
+<script src="js/actions.js?v=accounts1"></script>
+<script src="js/app.js?v=accounts1"></script>
 </body>
 </html>

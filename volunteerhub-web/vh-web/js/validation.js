@@ -8,10 +8,22 @@
 "use strict";
 
 const V = {
-  name: v => !v.trim() ? "Enter your name." : v.trim().length < 2 ? "Name must be at least 2 characters." : "",
-  email: v => !/^[\w.+-]+@[\w-]+\.[\w.-]+$/.test(v.trim()) ? "Enter a valid email, like name@example.org." : "",
-  phone: v => { const d = v.replace(/[\s\-().]/g, ""); return d && !/^\d{10}$/.test(d) ? "Phone must be 10 digits, like 555-123-4567." : ""; },
-  password: v => v.length < 8 ? "Password must be at least 8 characters." : (!/\d/.test(v) || !/[A-Za-z]/.test(v)) ? "Password needs at least one letter and one number." : "",
+  text: (value, label, min, max, multiline = false) => {
+    const length = [...value].length;
+    const controls = multiline ? /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/ : /[\x00-\x1F\x7F]/;
+    if (length < min) return `Enter at least ${min} characters for ${label}.`;
+    if (length > max) return `Keep ${label} to ${max.toLocaleString()} characters.`;
+    return controls.test(value) ? "Remove unsupported control characters." : "";
+  },
+  name: v => V.text(v.trim(), "your name", 2, 80),
+  email: v => v.trim().length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()) ? "Enter a valid email, like name@example.org." : "",
+  phone: v => { const d = v.replace(/[\s\-().]/g, ""); return v.length > 30 || (d && !/^\d{10}$/.test(d)) ? "Phone must be 10 digits, like 555-123-4567." : ""; },
+  password: (v, live) => {
+    const length = [...v].length;
+    if (length > 128) return "Use no more than 128 characters.";
+    if (length < (live ? 15 : 8)) return live ? "Use at least 15 characters." : "Use at least 8 characters.";
+    return "";
+  },
 };
 function showErrors(form, errs, prefix = "e-"){
   form.querySelectorAll(".ferr").forEach(el => el.textContent = "");

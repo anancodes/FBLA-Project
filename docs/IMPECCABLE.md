@@ -31,6 +31,15 @@ Other useful commands: `layout` for spacing, `typeset` for text hierarchy, `adap
 
 The web app lives in `volunteerhub-web/vh-web/`. Existing frontend-design and frontend-ui-engineering skills remain available; explicitly name Impeccable to select this workflow.
 
+## Project context and configuration
+
+- [PRODUCT.md](../PRODUCT.md) records confirmed audiences, release intent, workflows, constraints, and open product decisions.
+- `.impeccable/config.json` stores the chosen build workflow. Read it as the source of truth for that setting.
+- `.impeccable/live/config.json` targets the existing web entry point. The repository and entry file were checked for CSP; no source policy changes were needed. This prepares configuration only: a live session still requires the project's design system to be documented separately.
+- [NEXT_UI_BRIEF.md](NEXT_UI_BRIEF.md) records the queued interface changes, awaiting the owner's instruction to start them.
+
+Commit durable Impeccable artifacts when they exist: `PRODUCT.md`, `DESIGN.md`, `.impeccable/config.json`, `.impeccable/surfaces/`, `.impeccable/design.json`, `.impeccable/live/config.json`, and `.impeccable/critique/ignore.md`. Keep runtime output and `.impeccable/config.local.json` out of version control. A blanket ignore of `.impeccable/` would hide shared project context.
+
 ## Installation scope and runtime
 
 This is the upstream manual-copy skill installation, including references, launchers, and bundled agent definitions. Automatic design hooks and Codex subagent registrations are not configured by this copy. The skill supports fallback workflows when these are unavailable.

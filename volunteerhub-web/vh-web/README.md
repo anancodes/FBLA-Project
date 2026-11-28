@@ -1,42 +1,32 @@
 # VolunteerHub
 
-**Live demo:** https://anancodes.github.io/FBLA-Project/volunteerhub-web/vh-web/
+[Open VolunteerHub](https://anancodes.github.io/FBLA-Project/volunteerhub-web/vh-web/)
 
 A website that helps nonprofits recruit, organize, and manage volunteers, built for the FBLA Coding & Programming 2026–27 topic, *Serving the Community: Nonprofit Volunteer Management*.
 
-## Two modes
+VolunteerHub includes club hour alerts, an email preview, a monthly service breakdown and an optional outside-service filter in Reports. [Competition evaluation](../../docs/FBLA-REVIEW.md) · [Connecting Gmail and enabling clubs](../../docs/GMAIL-ALERTS.md)
 
-- **Live mode** uses Firebase for real accounts and one shared database, with live updates across devices, offline support, and password reset by email. Turn it on with `SETUP-FIREBASE.md`.
-- **Demo mode** uses sample data saved only in your browser and works with no internet. It's always available from the login page's demo buttons.
+## Accounts
 
-## Security and privacy
+Choose **Create an account**, enter an email and password, and select **Volunteer** or **Coordinator**. Returning members sign in with the same email and password. Firebase Authentication manages credentials. Each Firestore `users/{uid}` profile stores the selected role and name.
 
-- **Passwords:** in live mode, Firebase Authentication handles passwords and the site never sees them. In demo mode, only a salted SHA-256 hash is stored.
-- **Database rules:** `firestore.rules` controls access. Volunteers can change only their own sign-ups. Only coordinators can mark attendance and hours, and only verified coordinators can see volunteers' contact details or post announcements. Only site admins can verify organizers.
-- **Accounts:** volunteers accept the organization's waiver when they sign up, and anyone can delete their own account from Profile.
+The first workspace shows role-specific examples. Use **Send verification email**, open the email link, then select **Check verification** to access shared records. Coordinators need administrator approval before managing volunteers. Illustrative hours stay out of personal totals and email alerts.
 
 ## How to run
 
-Double-click `index.html` to open it in a browser. No install or server is needed.
-
-Demo accounts (password `demo1234`):
-
-- Volunteer: `volunteer@demo.org`
-- Coordinator: `coordinator@demo.org`
-
-All volunteers, events, and places are sample data. Set your organization's name in Settings. It is saved in your browser only. Use **Reset demo data** at the bottom of the app to start over.
+From the repository root, run `python -m http.server 4173 --directory volunteerhub-web/vh-web` and open `http://localhost:4173`. The published app requires its configured Firebase service. The separately built offline workbook and its fictional credentials are documented in the [repository guide](../../README.md). [Firebase setup](SETUP-FIREBASE.md)
 
 ## Features
 
-**Volunteers:** find opportunities as a list or calendar, search by ZIP code and distance (nearest first, with miles shown on each shift), filter by cause, skills, and verified organizers, open More info for the address, parking, accessibility, what to bring and wear, minimum age, contact, and who posted it, add a shift to their own calendar (.ics), report a listing that seems wrong or unsafe, sign up (blocks overlapping shifts), join a waitlist for full events and get the spot automatically when someone cancels, reminders for shifts in the next 3 days, track verified hours toward a goal, print a service certificate, download hours as CSV, read announcements, edit skills and availability.
+**Volunteers:** search eligible open shifts by event, place or cause. A saved city enables approximate nearby filtering. Open a shift for practical details or to report a concern. My schedule has list and calendar views, a full history and waitlist status. My hours shows verified service with a downloadable CSV. Inbox carries shift changes, announcements and club approval updates.
 
 **Coordinators:** program overview, create/edit/delete events (list or calendar), waitlists that fill automatically when spots open, check-in (present, no-show, walk-ins) with roster download and print, volunteer directory with reliability and certificates, reports filtered by dates, cause, and volunteer and grouped by volunteer, event, month, or cause, with CSV download, copy, and print, announcements to everyone or to one event's volunteers, and a review list for concerns volunteers report.
 
-**Trust and safety:** every listing shows who posted it and when. Listings from verified organizers carry a badge, and volunteers see only verified listings unless they turn that filter off. Unverified listings show a safety warning. Volunteers can report a concern on any listing.
+**Trust and safety:** Opportunities shows eligible shifts from verified organizers or clubs. Organizer contact, access details and the way to report a concern are available from the shift.
 
 **Settings:** coordinators enter their organization's name, home ZIP code, and description, and they appear across the whole site, so any nonprofit can use it as its own.
 
-**School clubs:** each club (for example HOSA or NHS) has a join code, an adviser, and student officers. Members earn hours at club events, which count automatically at check-in, and by logging outside service with a supervisor's contact for an officer to approve. Each club sets an hour requirement for the term. Members see progress bars, and officers see who's done, on track, or behind and can download the list. Club events are visible only to members. Officers can't approve their own hours.
+**School clubs:** each club (for example HOSA or NHS) has a join code, an adviser, and student officers. Members earn hours at club events, which count automatically at check-in, and by logging outside service with a supervisor's contact for an officer to approve. Each club sets an hour requirement for the term. Members see approved progress and hours waiting for approval. Officers can review claims and export member records. Club events are visible only to members. Officers can't approve their own hours.
 
 **Site admins:** verify new organizers on the Organizers screen, which includes a checklist for confirming they're real.
 
@@ -49,18 +39,22 @@ All volunteers, events, and places are sample data. Set your organization's name
 | File | What it does |
 |---|---|
 | `index.html` | Page skeleton; loads the stylesheet and scripts in order |
-| `css/styles.css` | All styling, with colors defined once as variables |
+| `css/styles.css` | Base components and layout styles |
+| `css/open-agenda.css` | Shared Open agenda design, responsive layouts and accessible themes |
+| `css/landing.css` | Scoped public landing and account design |
+| `js/website.js` | Website navigation, page URLs and volunteer Home |
 | `js/utils.js` | General helpers: dates, times, HTML escaping, CSV |
 | `js/zipdata.js` | US ZIP codes with locations, so distance search works offline |
 | `js/geo.js` | ZIP lookup, ZIP validation, and distance math |
 | `js/data.js` | Constants and the sample (seed) data |
-| `js/firebase-config.js` | Your Firebase settings (leave empty for demo-only) |
+| `js/firebase-config.js` | Public project identifiers for Firebase Authentication and Firestore |
 | `js/db.js` | The one place data changes; routes saves to the browser or to Firebase |
 | `js/cloud.js` | Live mode: Firebase accounts, the database, live updates, and offline support |
 | `js/store.js` | App data, saving/loading with localStorage, waitlist logic, query helpers |
 | `js/validation.js` | Input validation and error display |
-| `js/components.js` | Reusable pieces: charts, calendar, tiles, pop-ups, messages, CSV export, printing |
+| `js/components.js` | Reusable pieces: calendar, progress, dialogs, messages, CSV export and printing |
 | `js/views/auth.js` | Login and create-account screens |
+| `js/views/landing.js` | Public landing, public links and demo entry points |
 | `js/views/volunteer.js` | Volunteer screens |
 | `js/views/coordinator.js` | Coordinator screens and report calculations |
 | `js/views/help.js` | Help screen |
@@ -83,7 +77,16 @@ All volunteers, events, and places are sample data. Set your organization's name
 ## Credits
 
 - Firebase (Google): accounts and database, loaded from Google's servers in live mode
-- Fonts: IBM Plex Sans and IBM Plex Mono, from Google Fonts (SIL Open Font License)
+- Fonts: locally served Atkinson Hyperlegible Next and Bitter (SIL Open Font License; bundled in `fonts/`)
+- Landing image: generated temporary placeholder, to be replaced with the team's photo
 - Icons: simple line icons drawn for this project (in `js/components.js`)
 - ZIP code locations: from the open-source `zipcodes` package by Sean Pianka (MIT License), github.com/seanpianka/zipcodes
-- AI assistance (Claude) was used as a coding tool. The team reviewed and can explain all code.
+- The original project credits Claude. The current redesign and alert implementation used Codex with Impeccable and UI UX Designer.
+
+## Interface cleanup
+
+See [the change guide](../../docs/UI_CLEANUP.md) and [test instructions](../../tests/README.md).
+
+The selected visual redesign is documented in [Open agenda](../../docs/OPEN_AGENDA.md), with desktop and mobile screenshots.
+
+See [the public landing page](../../docs/PUBLIC_LANDING.md) for the selected one-photo composition, account navigation and image replacement instructions.

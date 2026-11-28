@@ -12,138 +12,130 @@ function applyPrefs(){
   root.style.fontSize = state.prefs.font + "px";
   document.body.classList.toggle("hc", !!state.prefs.hc);
   if (t === "auto") root.removeAttribute("data-theme"); else root.setAttribute("data-theme", t);
+  positionDisplaySettings();
 }
 
 function render(){
   applyPrefs();
   const a = document.activeElement, fid = a && a.id && a.closest("#app") ? a.id : null;
+  const hadAppFocus = a && a.closest("#app"), focusDisclosure = hadAppFocus && a.closest("details[id]");
+  const focusDisclosureId = focusDisclosure && focusDisclosure.id;
   let sel = null; try { sel = a && typeof a.selectionStart === "number" ? [a.selectionStart, a.selectionEnd] : null; } catch(e){}
   const u = currentUser();
+  if (u && ui.requestedRoute){
+    ui.view = ui.requestedRoute;
+    if (!Cloud.loadPhase) ui.requestedRoute = null;
+  }
+  if (confirmation && (confirmation.userId !== u?.id || confirmation.view !== ui.view || (DB.live && Cloud.loadPhase === "workspace"))) closeConfirmation(false);
+  GmailAlerts.observe(u);
+  const previousViewKey = ui.renderKey;
+  const displayWasOpen = Boolean(activeDisplaySettings());
+  if (ui.renderKey) document.querySelectorAll("#app details[id]").forEach(el => {
+    const key = `${ui.renderKey}:${el.id}`;
+    if (el.open) ui.disclosures.add(key); else ui.disclosures.delete(key);
+  });
   ui.csv = null;
   // Keep anything typed into a form (live updates from other devices redraw the screen)
   const typed = [...document.querySelectorAll("#app form [id]")].filter(el => !el.dataset.filter && "value" in el && el.form && el.form.id !== ui.justSubmitted)
     .map(el => [el.id, el.type === "checkbox" || el.type === "radio" ? el.checked : el.value]);
   $("#app").innerHTML = u ? shell(u) : loginView();
+  document.body.classList.add("open-agenda");
+  document.body.classList.toggle("public-view",!u);
+  if (u && !ui.tour && !Cloud.loadPhase) setPageURL(ui.view,true);
+  const pageTitle = $("#main h1"); if (pageTitle){ pageTitle.id = "page-title"; pageTitle.tabIndex = -1; }
+  document.title = pageTitle ? `${pageTitle.textContent} | VolunteerHub` : "VolunteerHub";
+  if (Cloud.previewProfile) setPageURL("dashboard",true);
+  const openingWorkspace = (DB.live || Cloud.previewProfile) && ui.renderKey?.startsWith("auth:") && !Cloud.loadPhase;
+  ui.renderKey = u ? `${u.id}:${ui.view}` : Cloud.previewProfile ? `${Cloud.previewProfile.id}:activity` : `auth:${ui.authMode}`;
+  const keepDisplayOpen = displayWasOpen && previousViewKey === ui.renderKey && !(DB.live && Cloud.loadPhase === "workspace");
+  document.querySelectorAll("#app details[id]").forEach(el => { if (ui.disclosures.has(`${ui.renderKey}:${el.id}`)) el.open = true; });
+  ui.expandClub = null;
   typed.forEach(([id, v]) => { const el = document.getElementById(id); if (!el) return; if (typeof v === "boolean") el.checked = v; else el.value = v; });
   // Keep an open event pop-up in sync (e.g. it shows "You're signed up" right after signing up).
   const m = $("#modal .modal");
   if (m && ui.modalEvent && eventById(ui.modalEvent) && u){
+    const hadFocus = m.contains(a);
+    const detailsOpen = m.querySelector(".event-details")?.open;
     m.innerHTML = eventPopup(eventById(ui.modalEvent), u);
+    if (detailsOpen) m.querySelector(".event-details")?.setAttribute("open", "");
+    const title = m.querySelector("h2"); if (title) title.id = "modal-title";
+    if (hadFocus) (replacementControl(a,m) || modalControls()[0] || m).focus();
   }
-  if (fid){ const el = document.getElementById(fid); if (el){ el.focus(); try { if (sel) el.setSelectionRange(sel[0], sel[1]); } catch(e){} } }
+  if (keepDisplayOpen) openDisplaySettings();
+  syncPendingControls();
+  const connection = $(".load-status:not([hidden])")?.textContent || "";
+  if ($("#connection-status").textContent !== connection) $("#connection-status").textContent = connection;
+  if (openingWorkspace && pageTitle && !keepDisplayOpen) pageTitle.focus({preventScroll:true});
+  else if (fid){ const el = document.getElementById(fid); if (el){ el.focus(); try { if (sel) el.setSelectionRange(sel[0], sel[1]); } catch(e){} } }
+  else if (hadAppFocus){
+    const disclosure = focusDisclosureId && document.getElementById(focusDisclosureId);
+    const target = replacementControl(a,$("#app")) || (disclosure && disclosure.querySelector("summary")) ||
+      (a.closest("#open-shifts") && $("#search-results"));
+    if (target) target.focus({preventScroll:true});
+  }
 }
 
 // Navigation. Each menu item is a section; some sections have tabs for related screens,
 // so the menu stays short (5–7 items) while every screen is still one click away.
 const NAV = {
-  volunteer: [["dashboard","Home"],["find","Opportunities"],["shifts","My schedule"],["hours","Hours & clubs"],["manage","Club admin"],["news","Inbox"]],
-  coordinator: [["dashboard","Overview"],["events","Events"],["volunteers","People"],["manage","Clubs"],["reports","Reports"],["news","Inbox"],["settings","Settings"]],
-};
-// Tabs inside a section: [view, label]
-const TABS = {
-  events: [["events","All events"],["checkin","Check-in"]],
-  manage: [["manage","Members & approvals"],["checkin","Check-in"]],
-  hours: [["hours","My hours"],["clubs","My clubs"]],
-  volunteers: [["volunteers","Volunteers"],["organizers","Organizers"]],
+  volunteer: [["dashboard","Home"],["find","Opportunities"],["shifts","My schedule"],["hours","Hours & clubs"],["news","Inbox"]],
+  coordinator: [["dashboard","Overview"],["events","Events"],["volunteers","People & clubs"],["reports","Reports"],["news","Inbox"],["settings","Settings"]],
 };
 const VIEWS = {
-  volunteer: {dashboard:vHome, find:vFind, shifts:vShifts, hours:vHours, clubs:vMyClubs, manage:manageClubsView, checkin:cCheckin, news:newsView, profile:vProfile, help:helpView},
+  volunteer: {dashboard:volunteerHome, find:vFind, shifts:vShifts, hours:vHours, clubs:vMyClubs, news:newsView, profile:vProfile, help:helpView},
   coordinator: {dashboard:cHome, events:cEvents, checkin:cCheckin, volunteers:cVolunteers, reports:cReports, news:newsView, settings:cSettings, organizers:cOrganizers, manage:manageClubsView, help:helpView},
 };
-const NAV_ICON = {dashboard:"home", find:"search", shifts:"calendar", hours:"clock", manage:"layers", news:"inbox",
-  events:"calendar", volunteers:"users", reports:"chart", settings:"sliders"};
+const NAV_ICON = {dashboard:"home", find:"search", shifts:"calendar", hours:"clock", news:"inbox", events:"calendar", volunteers:"users", reports:"chart", settings:"sliders"};
 const THEME_LABEL = {auto:"Auto", light:"Light", dark:"Dark"};
-
-// Which menu item and tabs a screen belongs to (for example, Check-in sits under Events).
+function menuFor(u){
+  return NAV[u.role].filter(([view]) => view !== "settings" || (DB.live ? u.admin : DB.isVerifiedCoordinator(u)));
+}
+function tabsFor(u, sec){
+  if (sec === "hours") return [["hours","My hours"],["clubs","My clubs"]];
+  if (sec === "events") return [["events","All events"],["checkin","Check-in"]];
+  if (sec === "volunteers") return [["volunteers","Volunteers"],...((DB.isVerifiedCoordinator(u) || managedClubs(u).length) ? [["manage","Clubs"]] : []),...(u.admin ? [["organizers","Organizers"]] : [])];
+  return [];
+}
 function sectionOf(u, view){
   const sections = menuFor(u).map(n => n[0]);
   if (sections.includes(view)) return view;
-  for (const [sec, tabs] of Object.entries(TABS)) if (sections.includes(sec) && tabs.some(t => t[0] === view)) return sec;
-  return null;
-}
-function menuFor(u){
-  let nav = NAV[u.role];
-  if (u.role === "volunteer" && !managedClubs(u).length) nav = nav.filter(n => n[0] !== "manage");   // Club admin is for officers only
-  return nav;
-}
-function tabsFor(u, sec){
-  let tabs = TABS[sec] || [];
-  if (sec === "volunteers" && !u.admin) tabs = [];                    // only site admins verify organizers
-  if (sec === "manage" && u.role === "coordinator") tabs = [];        // coordinators check in from Events
-  return tabs.length > 1 ? tabs : [];
+  return sections.find(sec => tabsFor(u,sec).some(([v]) => v === view)) || null;
 }
 
 function shell(u){
-  const nav = menuFor(u);
-  const personal = ["profile", "help"];                                  // reached from the account menu
-  if (!sectionOf(u, ui.view) && !personal.includes(ui.view)) ui.view = "dashboard";
-  const sec = sectionOf(u, ui.view), tabs = sec ? tabsFor(u, sec) : [];
-  const upCount = u.role === "volunteer" ? userStats(u.id).upcoming.length : 0;
-  const unread = unreadCount(u);
-  const pendingLogs = managedClubs(u).reduce((n, c) => n + state.hourLogs.filter(l => l.clubId === c.id && l.status === "pending" && l.userId !== u.id).length, 0);
-  const pendingOrgs = u.admin ? state.users.filter(x => x.role === "coordinator" && !x.verified).length : 0;
-  const counts = {shifts:upCount, news:unread, manage:pendingLogs, volunteers:pendingOrgs};
-  const badge = k => counts[k] ? `<span class="count" aria-label="${counts[k]} new">${counts[k]}</span>` : "";
-  const roleName = u.role === "coordinator" ? (u.admin ? "Site admin" : u.verified ? "Coordinator" : "Coordinator · not yet verified") : "Volunteer";
-  const footer = DB.live
-    ? `<span>Signed in as ${esc(u.email)}</span><span class="pill ${Cloud.online ? "good" : "warn"}" id="sync-status">${Cloud.online ? "Connected" : "Offline: changes will sync when you reconnect"}</span>`
-    : `<span>${ui.demo ? "Demo with sample data. Nothing here affects your live site." : "Demo with sample data, saved in this browser only."}</span>${armBtn("reset", "Reset demo data", "Click again to reset", "secondary sm")}`;
-  return `<div class="shell">
-    ${ui.demo ? `<div class="mode-bar">You're exploring the demo with sample data. <button class="linkbtn" data-act="logout">Exit demo</button></div>` : ""}
-    <header class="top">
-      <div class="brand">${LOGO}<div><strong>VolunteerHub</strong><span>${esc(state.org.name)}</span></div></div>
-      <div class="tools">${accountMenu(u, roleName)}</div>
-    </header>
-    <div class="frame">
-      <nav class="rail" aria-label="Main">
-        ${nav.map(([k, l]) => `<button data-act="nav" data-v="${k}" ${sec === k ? 'aria-current="page"' : ""} class="${ui.tour && sec === k ? "tour-hl" : ""}">${icon(NAV_ICON[k] || "home")}<span>${l}</span>${badge(k)}</button>`).join("")}
-      </nav>
-      <main id="main" tabindex="-1"><div class="page">
-        ${tabs.length ? `<nav class="subtabs" aria-label="${esc(nav.find(n => n[0] === sec)[1])}">${tabs.map(([v, l]) => `<button data-act="nav" data-v="${v}" ${ui.view === v ? 'aria-current="page"' : ""}>${l}${v === "organizers" && pendingOrgs ? ` <span class="count">${pendingOrgs}</span>` : ""}</button>`).join("")}</nav>` : ""}
-        ${VIEWS[u.role][ui.view](u)}
-      </div></main>
-    </div>
-    <footer class="foot">${footer}</footer>
-    ${tourCard(u)}
-  </div>`;
-}
-
-// Avatar button with a drop-down: profile, display settings, help, and log out.
-function accountMenu(u, roleName){
-  const t = state.prefs.theme || "auto";
-  return `<div class="acct">
-    <button class="acct-btn" data-act="menu" aria-haspopup="true" aria-expanded="${!!ui.menu}"><span class="avatar" aria-hidden="true">${esc(initials(u.name))}</span><span class="who-name">${esc(u.name)}<small>${roleName}</small></span>${icon("chevron")}</button>
-    ${ui.menu ? `<div class="menu" role="menu">
-      <div class="menu-head"><b>${esc(u.name)}</b><span>${esc(u.email)}</span></div>
-      ${u.role === "volunteer" ? `<button role="menuitem" data-act="nav" data-v="profile">${icon("user")}Profile</button>` : ""}
-      <button role="menuitem" data-act="nav" data-v="help">${icon("help")}Help</button>
-      <button role="menuitem" data-act="tour">${icon("compass")}Take the tour</button>
-      <div class="menu-sep"></div>
-      <div class="menu-row"><span>Text size</span><span class="seg"><button data-act="font" data-v="-2" aria-label="Smaller text">A−</button><button data-act="font" data-v="2" aria-label="Larger text">A+</button></span></div>
-      <div class="menu-row"><span>Theme</span><span class="seg">${["auto","light","dark"].map(x => `<button data-act="setTheme" data-v="${x}" aria-pressed="${t === x}">${THEME_LABEL[x]}</button>`).join("")}</span></div>
-      <div class="menu-row"><span>High contrast</span><span class="seg"><button data-act="contrast" aria-pressed="${state.prefs.hc}">${state.prefs.hc ? "On" : "Off"}</button></span></div>
-      <div class="menu-sep"></div>
-      <button role="menuitem" data-act="logout">${icon("logout")}${ui.demo ? "Exit demo" : "Log out"}</button>
-    </div>` : ""}
-  </div>`;
+  const personal = u.role === "volunteer" ? ["profile","help"] : ["help"];
+  if (!VIEWS[u.role][ui.view] || (!sectionOf(u,ui.view) && !personal.includes(ui.view))) ui.view = "dashboard";
+  return websiteShell(u);
 }
 
 document.addEventListener("click", ev => {
+  const panel = activeDisplaySettings();
+  if (panel && !panel.hasAttribute("popover") && !ev.target.closest("#display-trigger, #display-settings-panel")) closeDisplaySettings(false);
   const el = ev.target.closest("[data-act]");
-  if (!el && ui.menu && !ev.target.closest(".menu")){ ui.menu = false; render(); return; }   // click outside closes the menu
   if (!el || el.disabled) return;
+  if ($("#action-confirmation").open && !el.closest("#action-confirmation")){ ev.preventDefault(); return; }
+  if (Cloud.loadPhase === "workspace" && DB.live && !["retryLoad","logout"].includes(el.dataset.act)){ ev.preventDefault(); return; }
+  if (actionBlocked(el)){ ev.preventDefault(); return; }
+  if (el.tagName === "A" && (ev.ctrlKey || ev.metaKey || ev.shiftKey || ev.altKey || ev.button !== 0)) return;
   const act = el.dataset.act;
   if (ui.armed && act !== "confirm" && act !== "arm") ui.armed = null;
-  // Close the account menu after picking something outside the display settings
-  if (ui.menu && !["menu", "font", "setTheme", "contrast"].includes(act)) ui.menu = false;
   if (handlers[act]){ if (act !== "overlay") ev.preventDefault(); handlers[act](el.dataset.v, el.dataset.id, ev); }
 });
 
 function setFilter(path, value){
-  const parts = path.split("."); let o = ui; while (parts.length > 1) o = o[parts.shift()]; o[parts[0]] = value;
+  const keys = path.split("."), field = keys.pop();
+  let target = ui;
+  for (const key of keys){
+    if (!Object.hasOwn(target, key) || typeof target[key] !== "object" || !target[key]) return;
+    target = target[key];
+  }
+  if (Object.hasOwn(target, field)) target[field] = value;
 }
 document.addEventListener("input", ev => {
   const el = ev.target;
+  if (el.hasAttribute("data-city-input")){
+    const list = document.getElementById(el.getAttribute("list")); if (list) list.innerHTML = cityOptions(el.value);
+  }
   if (el.dataset.filter && el.type !== "checkbox" && el.tagName === "INPUT" && el.type !== "date"){ setFilter(el.dataset.filter, el.value); render(); }
 });
 document.addEventListener("change", ev => {
@@ -163,14 +155,19 @@ document.addEventListener("change", ev => {
 
 document.addEventListener("submit", ev => {
   const form = ev.target; ev.preventDefault();
+  if ($("#action-confirmation").open) return;
+  if (Cloud.loadPhase === "workspace" && DB.live) return;
+  if (actionBlocked(form.querySelector('button[type="submit"]'))) return;
   ui.justSubmitted = form.id;                      // a saved form starts fresh instead of keeping old text
   try { handleSubmit(form); } finally { ui.justSubmitted = null; }
 });
 function handleSubmit(form){
+  if (form.id === "deleteAccountForm") return confirmAccountDeletion(form);
   if (form.id === "loginForm") doLogin(form);
-  if (form.id === "signupForm") doSignup(form);
+  if (form.id === "signupForm" || form.id === "completeProfileForm") doSignup(form);
   if (form.id === "resetForm") doReset(form);
   if (form.id === "profileForm") saveProfile(form);
+  if (form.id === "findForm") findOpportunities(form);
   if (form.id === "eventForm") saveEventForm(form);
   if (form.id === "annForm") postAnnouncement(form);
   if (form.id === "concernForm") submitConcern(form);
@@ -178,23 +175,34 @@ function handleSubmit(form){
   if (form.id === "joinForm") joinClub(form);
   if (form.id === "logForm") saveHourLog(form);
   if (form.id === "clubForm") saveClub(form);
-  if (form.id === "walkinForm"){
-    const uid = asId(new FormData(form).get("user")), e = eventById(ui.ciEvent);
-    if (!uid) return toast("Choose a volunteer first.", "bad");
-    if (spotsLeft(e) <= 0) return toast("This event is full. Raise the number of volunteers needed in Events first.", "bad");
-    const ex = state.regs.find(r => r.userId === uid && r.eventId === e.id);
-    if (ex) DB.update("regs", ex, {status:"attended", hours:duration(e)});
-    else DB.add("regs", {id:DB.newId("regs"), userId:uid, eventId:e.id, status:"attended", hours:duration(e)});
-    save(); render(); toast(`${userById(uid).name} was added and marked present.`);
-  }
+  if (form.id === "walkinForm") confirmWalkIn(form);
 }
 
 document.addEventListener("keydown", ev => {
+  if ($("#action-confirmation").open) return;       // native dialog handles focus and Escape
+  if (ev.key === "Tab") return trapModalTab(ev);
   if (ev.key !== "Escape") return;
-  if (ui.menu){ ui.menu = false; render(); }
-  else if ($("#modal").innerHTML) closeModal();
-  else if (ui.tour) endTour();
+  if ($("#modal").innerHTML) return closeModal();
+  if (activeDisplaySettings()){
+    ev.preventDefault();
+    return closeDisplaySettings();
+  }
+  const disclosure = $("#app details.overflow-menu[open]") || document.activeElement.closest("#app details[open]");
+  if (disclosure){ disclosure.open = false; disclosure.querySelector("summary").focus(); return; }
+  if (ui.tour) endTour();
 });
+$("#action-confirmation").addEventListener("cancel", ev => { ev.preventDefault(); dismissConfirmation(); });
 
-render();
-Cloud.boot();     // turns on live mode if Firebase settings are filled in (see firebase-config.js)
+document.addEventListener("beforetoggle", ev => {
+  if (ev.target.id === "display-settings-panel") $("#display-trigger")?.setAttribute("aria-expanded", String(ev.newState === "open"));
+}, true);
+window.addEventListener("resize", positionDisplaySettings);
+window.addEventListener("scroll", positionDisplaySettings, {capture:true, passive:true});
+
+const initialRoute = pageFromURL();
+ui.authMode = publicModeFromURL(initialRoute);
+ui.requestedRoute = isPublicRoute(initialRoute) ? null : initialRoute;
+window.addEventListener("popstate",followPageURL);
+window.addEventListener("hashchange",followPageURL);
+if (OFFLINE_WORKBOOK && !window.FIREBASE_CONFIG?.apiKey) render();
+else Cloud.boot();

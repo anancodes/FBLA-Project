@@ -18,6 +18,16 @@
 
 const DATA_VERSION = 7;   // bump this when the data shape changes so old saved data is replaced
 
+// Only the separately generated offline file and the loopback test fixture opt into local accounts.
+const OFFLINE_WORKBOOK = window.VH_OFFLINE_WORKBOOK === true &&
+  (location.protocol === "file:" || ["localhost","127.0.0.1"].includes(location.hostname));
+
+function emptyWorkspace(org){
+  return {v:DATA_VERSION, org:Object.assign({name:"Your Organization", zip:DEFAULT_HOME_ZIP, about:"", waiver:DEFAULT_WAIVER}, org || {}),
+    users:[], events:[], regs:[], announcements:[], notices:[], concerns:[], clubs:[], memberships:[], hourLogs:[], clubCodes:{},
+    session:{userId:null}, prefs:loadPrefs()};
+}
+
 function load(){
   try {
     const raw = localStorage.getItem(KEY);
@@ -26,25 +36,36 @@ function load(){
   return null;
 }
 // Preferences (text size, contrast, theme) belong to this device in both modes.
-function loadPrefs(){ try { return Object.assign({font:15, hc:false, theme:"auto"}, JSON.parse(localStorage.getItem(KEY + "-prefs") || "{}")); } catch(e){ return {font:15, hc:false, theme:"auto"}; } }
+function loadPrefs(){ try { return Object.assign({font:16, hc:false, theme:"auto"}, JSON.parse(localStorage.getItem(KEY + "-prefs") || "{}")); } catch(e){ return {font:16, hc:false, theme:"auto"}; } }
 function save(){
   try {
     localStorage.setItem(KEY + "-prefs", JSON.stringify(state.prefs));
-    if (!DB.live && !ui.liveShell) localStorage.setItem(KEY, JSON.stringify(state));   // demo data only
+    if (OFFLINE_WORKBOOK && !Cloud.enabled) localStorage.setItem(KEY, JSON.stringify(state));   // demo data only
   } catch(e){}
 }
-function demoState(){ const s = load() || seed(); s.prefs = loadPrefs(); return s; }
-let state = demoState();
+function offlineState(){
+  const cached = load();
+  if (cached){ cached.prefs = loadPrefs(); return cached; }
+  const sample = seed();
+  sample.users.forEach(user => {
+    const hash = hashPassword("demo1234");
+    user.passSalt = hash.salt; user.passHash = hash.hash;
+  });
+  sample.prefs = loadPrefs();
+  return sample;
+}
+let state = OFFLINE_WORKBOOK ? offlineState() : emptyWorkspace();
 
 // Temporary screen state (filters, open tabs, calendar month). Not saved.
 const ui = {
-  view:"dashboard", authMode:"login", armed:null, csv:null, tour:null,
-  demo:false,        // true while exploring sample data on a site that also has live mode
-  liveShell:false,   // true while showing live-mode data (signed in or on the live login page)
-  find:{q:"", cat:"all", zip:null, radius:"25", match:false, hideFull:false, verifiedOnly:true, mode:"list"},   // zip:null = start from the volunteer's saved ZIP
+  view:"dashboard", authMode:"landing", armed:null, csv:null, tour:null,
+  requestedRoute:null, fromHistory:false,
+  find:{q:"", cat:"all", location:null, radius:"25"},
+  shifts:{mode:"list"},
+  disclosures:new Set(), expandClub:null,
   ev:{tab:"upcoming", q:"", mode:"list"}, cal:TODAY.slice(0, 7),
   ciEvent:null, vq:"",
-  rep:{from:addDays(-90), to:TODAY, cat:"all", group:"volunteer", vol:"all"},
+  rep:{from:addDays(-90), to:TODAY, cat:"all", group:"volunteer", vol:"all", includeOutside:false},
 };
 
 /* ----- Lookups ----- */
@@ -63,7 +84,9 @@ const spotsLeft = e => e.slots - activeRegs(e.id).length;
 // A user's current registration for an event, including waitlist (ignores cancelled).
 const myReg = (uid, eid) => state.regs.find(r => r.userId === uid && r.eventId === eid && r.status !== "cancelled");
 // Waitlist in first-come, first-served order.
-const waitlistFor = eid => state.regs.filter(r => r.eventId === eid && r.status === "waitlist").sort((a, b) => a.id - b.id);
+const registrationOrder = r => r.createdAt?.toMillis?.() ?? (typeof r.id === "number" ? r.id / 100 : Number.MAX_SAFE_INTEGER);
+const compareRegistrations = (a, b) => registrationOrder(a) - registrationOrder(b) || String(a.id).localeCompare(String(b.id));
+const waitlistFor = eid => state.regs.filter(r => r.eventId === eid && r.status === "waitlist").sort(compareRegistrations);
 const waitlistPosition = r => waitlistFor(r.eventId).findIndex(x => x.id === r.id) + 1;
 
 // Does this user already have a shift that overlaps event e on the same day?
@@ -71,8 +94,11 @@ function findClash(uid, e){
   return state.regs
     .filter(r => r.userId === uid && r.status === "registered" && r.eventId !== e.id)
     .map(r => eventById(r.eventId))
-    .find(o => o.date === e.date && o.start < e.end && e.start < o.end);
+    .find(o => o?.date === e.date && o.start < e.end && e.start < o.end);
 }
+
+const canSignUpFor = (e, u) => !eventHasEnded(e) && canSeeEvent(e,u) && isVerified(e) &&
+  spotsLeft(e) > 0 && !myReg(u.id,e.id) && !findClash(u.id,e);
 
 // When spots open up, move people off the waitlist in order.
 // Skips anyone who now has a clashing shift. Stops at anyone this person isn't allowed
@@ -103,7 +129,7 @@ function fixOverbooking(e){
   if (e.date < TODAY) return moved;
   const extra = activeRegs(e.id).length - e.slots;
   if (extra <= 0) return moved;
-  const newest = activeRegs(e.id).filter(r => r.status === "registered").sort((a, b) => b.id - a.id).slice(0, extra);
+  const newest = activeRegs(e.id).filter(r => r.status === "registered").sort((a, b) => compareRegistrations(b, a)).slice(0, extra);
   for (const r of newest){
     if (!DB.canManageReg(r)) continue;
     DB.update("regs", r, {status:"waitlist"});
@@ -127,7 +153,9 @@ const noticesFor = uid => state.notices.filter(n => n.userId === uid).sort((a, b
 // Announcements go to everyone, or only to people signed up for one event.
 function announcementsFor(u){
   return state.announcements
-    .filter(a => u.role === "coordinator" || a.audience === "all" || activeRegs(+a.audience).some(r => r.userId === u.id) || waitlistFor(+a.audience).some(r => r.userId === u.id))
+    .filter(a => (u.role === "coordinator" && (!DB.live || DB.isVerifiedCoordinator(u))) || a.audience === "all" ||
+      (a.recipientIds ? a.recipientIds.includes(u.id) : !DB.live &&
+        [...activeRegs(+a.audience), ...waitlistFor(+a.audience)].some(r => r.userId === u.id)))
     .sort((a, b) => b.at.localeCompare(a.at));
 }
 const readSet = uid => new Set(userById(uid).reads || []);
@@ -138,7 +166,7 @@ function unreadCount(u){
 }
 function markAllRead(u){
   const ids = announcementsFor(u).map(a => a.id), seen = readSet(u.id);
-  if (ids.some(id => !seen.has(id))) DB.update("users", u, {reads:ids});
+  if (ids.some(id => !seen.has(id))) DB.update("users", u, {reads:ids.slice(0, 1000)});
   noticesFor(u.id).filter(n => !n.read).forEach(n => DB.update("notices", n, {read:true}));
 }
 
@@ -149,6 +177,7 @@ const posterOf = e => { const p = userById(e.postedBy) || {name:"Unknown organiz
 /* ----- Locations ----- */
 const homeZip = () => lookupZip(state.org.zip) || lookupZip(DEFAULT_HOME_ZIP);
 const orgPlace = () => placeName(homeZip());
+const eventHasLocation = e => !!lookupZip(e.zip) || venueOf(e).east !== undefined;
 // Where an event is: the ZIP a coordinator typed for it, or its saved place's position around the home ZIP.
 function eventPoint(e){
   if (e.zip && lookupZip(e.zip)) return lookupZip(e.zip);
@@ -165,7 +194,11 @@ function addressOf(e){
   return `${v.address ? v.address + ", " : ""}${z.city}, ${z.st} ${z.zip}`;
 }
 // The ZIP typed on Find opportunities, if it's a real one.
-function searchOrigin(){ const z = String(ui.find.zip || "").trim(); return /^\d{5}$/.test(z) ? lookupZip(z) : null; }
+function searchOrigin(){
+  const u = currentUser(), saved = userLocation(u);
+  if (!saved) return null;
+  return ui.find.location === null ? saved : resolveCity(ui.find.location);
+}
 const milesTo = (e, origin) => distanceMiles(origin, eventPoint(e));
 // Short code from the organization's initials, used on certificate numbers.
 const orgCode = () => (state.org.name.match(/[A-Za-z]+/g) || ["VH"]).map(w => w[0]).join("").slice(0, 4).toUpperCase();
@@ -181,13 +214,14 @@ function userStats(uid){
     eventHours: sum(att.map(r => r.hours)), outside: approvedOutsideHours(uid),
     hours: sum(att.map(r => r.hours)) + approvedOutsideHours(uid), attended: att.length,
     noShows: rs.filter(r => r.status === "no-show").length,
-    upcoming: rs.filter(r => r.status === "registered" && eventById(r.eventId).date >= TODAY),
-    waitlisted: rs.filter(r => r.status === "waitlist" && eventById(r.eventId).date >= TODAY),
+    upcoming: rs.filter(r => r.status === "registered" && !eventHasEnded(eventById(r.eventId))),
+    waitlisted: rs.filter(r => r.status === "waitlist" && !eventHasEnded(eventById(r.eventId))),
   };
 }
 
 // Hours from now until an event starts (negative if it already started).
-function hoursUntil(e){
-  const [y, m, d] = e.date.split("-").map(Number), [h, mi] = e.start.split(":").map(Number);
+function hoursUntil(e, time = e.start){
+  const [y, m, d] = e.date.split("-").map(Number), [h, mi] = time.split(":").map(Number);
   return (new Date(y, m - 1, d, h, mi) - new Date()) / 3600000;
 }
+const eventHasEnded = e => !e || hoursUntil(e,e.end) <= 0;

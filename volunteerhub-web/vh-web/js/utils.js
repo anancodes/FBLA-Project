@@ -11,7 +11,7 @@ const sum = a => a.reduce((x, y) => x + y, 0);
 const nid = arr => Math.max(0, ...arr.map(x => x.id).filter(n => typeof n === "number")) + 1;
 // Ids from the page come back as text. Numbers ("12") become 12; Firebase user ids stay text.
 const asId = v => /^\d+$/.test(String(v)) ? Number(v) : v;
-const fmtH = h => String(Math.round(h * 10) / 10);
+const fmtH = h => String(Math.round(h * 100) / 100);
 const initials = n => n.split(/\s+/).map(p => p[0]).slice(0, 2).join("").toUpperCase();
 
 function iso(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
@@ -24,9 +24,15 @@ const timeRange = e => `${fmtTime(e.start)}–${fmtTime(e.end)}`;
 function duration(e){ const [a,b] = e.start.split(":").map(Number), [c,d] = e.end.split(":").map(Number); return ((c*60+d) - (a*60+b)) / 60; }
 const byDate = (a, b) => (a.date + a.start).localeCompare(b.date + b.start);
 function monthKey(s){ return s.slice(0, 7); }
-function monthLabel(k){ const [y,m] = k.split("-").map(Number); return new Date(y, m-1, 1).toLocaleDateString("en-US", {month:"short"}); }
-function monthsBack(n){ const out = []; const d = new Date(); d.setDate(1); for (let i = n-1; i >= 0; i--){ const x = new Date(d.getFullYear(), d.getMonth() - i, 1); out.push(iso(x).slice(0,7)); } return out; }
-function toCSV(rows){ return rows.map(r => r.map(c => { const s = String(c); return /[",\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s; }).join(",")).join("\n"); }
+function toCSV(rows){
+  return rows.map(row => row.map(cell => {
+    const text = String(cell ?? "");
+    // Keep user-provided values as text when opened in spreadsheet software.
+    const formulaLike = typeof cell === "string" && /^(?:[\t\r\n]|\s*[=+@\-＝＋＠－])/.test(text);
+    const value = formulaLike ? "'" + text : text;
+    return formulaLike || /[",\r\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
+  }).join(",")).join("\n");
+}
 
 /* ----- Password hashing (demo mode) -----
  * Demo accounts never store a password itself, only a salted SHA-256 hash of it.
@@ -60,7 +66,7 @@ function sha256(text){
   }
   return H.map(v => v.toString(16).padStart(8, "0")).join("");
 }
-function hashPassword(password, salt = Math.random().toString(36).slice(2, 12)){
+function hashPassword(password, salt = Array.from(crypto.getRandomValues(new Uint8Array(16)), n => n.toString(16).padStart(2,"0")).join("")){
   return {salt, hash:sha256(salt + ":" + password)};
 }
 const checkPassword = (password, user) => !!user.passHash && sha256(user.passSalt + ":" + password) === user.passHash;

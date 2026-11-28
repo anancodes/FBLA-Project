@@ -31,6 +31,10 @@ The baseline was the public GitHub Pages site on November 27, 2026. Both demo ro
 | Make the solution explainable and portable | Stack rationale, source and font credits, deployment guide, automated checks and single-file offline demo | Open the sample roles with external services blocked. Review the worker and preview the exact email text from a club. |
 | Close the two remaining evidence gaps | Conduct a first-use task observation and deliver one staging alert to two consenting accounts | An unfamiliar volunteer finds a shift and explains their pace, an adviser changes the threshold unaided, and both test inboxes confirm one notification across two job runs. These checks require participants and account authorization. |
 
+## Verification
+
+The automated suites cover 59 browser and location checks, seven pace and Gmail delivery checks, and 12 Firestore rules and backend integration checks. The scheduled function was invoked twice against a local Firestore emulator and a simulated Gmail endpoint. The first run produced a message addressed to both recipients. The second produced no additional message. The single-file demo also opened both roles, downloaded a CSV and previewed an alert with zero external requests. [Test instructions](../tests/README.md)
+
 ## What the other 40 points require
 
 | Event-day row | Points | Evidence the judges need |

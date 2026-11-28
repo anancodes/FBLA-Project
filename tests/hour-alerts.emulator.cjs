@@ -68,3 +68,36 @@ test("admin consent, callback replay, status and disconnect work through the HTT
   assert.equal((await (await post("disconnect")).json()).connected,false);
   assert.equal((await db.doc("mailPrivate/gmail").get()).exists,false);
 });
+
+test("the scheduled function delivers one Gmail draft across two unattended runs",async t=>{
+  const scheduler = require("../functions").checkServiceHours;
+  const pace = require("../volunteerhub-web/vh-web/js/pace");
+  assert.equal(scheduler.__endpoint.scheduleTrigger.schedule,"0 9 * * *");
+  assert.equal(scheduler.__endpoint.scheduleTrigger.timeZone,pace.timeZone);
+  const day = new Date(pace.today() + "T12:00:00Z");
+  const offset = n => new Date(day.getTime() + n * 86400000).toISOString().slice(0,10);
+  const req = {start:offset(-10),end:offset(10),hours:20,label:"Current term",emailAlerts:true};
+  const batch = db.batch();
+  batch.set(db.doc("clubs/91"),{id:91,name:"Service Club",short:"SC",createdBy:"adviser",req});
+  for (const [uid,role] of [["student","member"],["adviser","adviser"]]){
+    batch.set(db.doc("memberships/91_" + uid),{clubId:91,userId:uid,name:uid,role});
+  }
+  batch.set(db.doc("mailPrivate/gmail"),{mailbox:"test-sender",sender:"team@example.org",refresh:"fixture",version:"test-v1"});
+  await batch.commit();
+  t.after(async()=>{await Promise.all([db.doc("clubs/91").delete(),db.doc("mailPrivate/gmail").delete()]);});
+  t.mock.method(OAuth2Client.prototype,"getAccessToken",async()=>({token:"fixture"}));
+  t.mock.method(getAuth(),"getUsers",async ids=>({users:ids.map(({uid})=>({uid,emailVerified:true,email:uid+"@example.org"}))}));
+  const calls=[];
+  t.mock.method(globalThis,"fetch",async(url,options)=>{
+    assert.equal(new URL(url).hostname,"gmail.googleapis.com");
+    calls.push({url,body:JSON.parse(options.body)});
+    return Response.json({id:"draft1"});
+  });
+  await scheduler.run({});
+  assert.equal((await db.doc("mailPrivate/lastCheck").get()).get("sent"),1);
+  await scheduler.run({});
+  assert.equal((await db.doc("mailPrivate/lastCheck").get()).get("sent"),0);
+  assert.equal(calls.length,2);
+  assert.match(Buffer.from(calls[0].body.message.raw,"base64url").toString(),/To: student@example.org\r\nBcc: adviser@example.org/);
+  assert.match(calls[1].url,/drafts\/send$/);
+});
